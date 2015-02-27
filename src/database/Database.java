@@ -13,7 +13,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class Database<K,V> {
 
-    public final long TIMEOUT = 200;
+    public final long TIMEOUT = 2000;
     public final TimeUnit TIMEOUT_UNIT = TimeUnit.MICROSECONDS;
 
     ConcurrentHashMap<K,ObjectDb<K,V>> concurrentHashMap;
@@ -37,7 +37,7 @@ public class Database<K,V> {
             return obj.value;
         } else {
             t.abort();
-            throw new TransactionAbortException();
+            throw new TransactionAbortException("Thread "+Thread.currentThread().getName()+" - get key:"+key);
         }
     }
 
@@ -60,7 +60,7 @@ public class Database<K,V> {
 
         } else {
             t.abort();
-            throw new TransactionAbortException();
+            throw new TransactionAbortException("Thread "+Thread.currentThread().getName()+" - put key:"+key+" value:"+value);
         }
 
 

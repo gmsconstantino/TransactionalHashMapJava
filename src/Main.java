@@ -40,7 +40,9 @@ public class Main {
             concurrentHashMap.put(p,q);
         }
 
-        db.txn_commit(t);
+        if(db.txn_commit(t)){
+            commitTransactions.add(t);
+        }
     }
 
     public static void main(String[] args) {
@@ -118,6 +120,7 @@ public class Main {
 
         // TODO: verify data;
 
+        System.out.println("Commit Transactions: "+commitTransactions.size());
 
 
     }

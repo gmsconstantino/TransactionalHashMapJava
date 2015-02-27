@@ -9,11 +9,19 @@ import java.util.concurrent.locks.Lock;
 /**
  * Created by gomes on 26/02/15.
  */
-public class Transaction {
+public class Transaction implements Comparable {
 
+    static long count = 0;
+
+    long id;
     Set<Lock> lockList;
 
     public Transaction(){
+        init();
+    }
+
+    private synchronized void init(){
+        id = count++;
         lockList = new HashSet<Lock>();
     }
 
@@ -37,4 +45,9 @@ public class Transaction {
         }
     }
 
+    @Override
+    public int compareTo(Object o) {
+        Transaction t = (Transaction) o;
+        return Long.compare(this.id, t.id);
+    }
 }
