@@ -16,6 +16,8 @@ public class Database<K,V> {
     public final long TIMEOUT = 2000;
     public final TimeUnit TIMEOUT_UNIT = TimeUnit.MICROSECONDS;
 
+    public static long commit_count = 0;
+
     ConcurrentHashMap<K,ObjectDb<K,V>> concurrentHashMap;
     Lock safe_put;
 
@@ -24,50 +26,44 @@ public class Database<K,V> {
         safe_put = new ReentrantLock();
     }
 
-    public V get(Transaction t, K key) throws TransactionAbortException {
+    public V get(Transaction t, K key) throws TransactionTimeoutException {
         ObjectDb<K,V> obj = concurrentHashMap.get(key);
 
         if (obj == null)
             return null;
 
-        if(obj.rwlock.try_lock_read_for(TIMEOUT, TIMEOUT_UNIT)){
-            // add to list lock transactions
-            t.addLock(obj.rwlock.getObjectLock());
-
+        if(obj.try_lock_read_for(t,TIMEOUT, TIMEOUT_UNIT)){
             return obj.value;
         } else {
             t.abort();
-            throw new TransactionAbortException("Thread "+Thread.currentThread().getName()+" - get key:"+key);
+            throw new TransactionTimeoutException("Thread "+Thread.currentThread().getName()+" - get key:"+key);
         }
     }
 
-    public void put(Transaction t, K key, V value) throws TransactionAbortException{
+    public void put(Transaction t, K key, V value) throws TransactionTimeoutException {
         // Search
         ObjectDb<K,V> obj = concurrentHashMap.get(key);
-
+        boolean add_ok = false;
         if(obj == null){
             safe_put.lock(); //Sendo a hash concorrente necessito disto?
             obj = concurrentHashMap.get(key);
             if(obj == null) {
-                obj = new ObjectDb<K, V>(key);
+                obj = new ObjectDb<K, V>(t,key, value); // A thread fica com o write lock
                 concurrentHashMap.put(key, obj);
+                add_ok = true;
             }
             safe_put.unlock();
+            if(add_ok)
+                return;
         }
 
-        //falta verificar se a transacao ten o lock
-        if(obj.rwlock.try_lock_write_for(TIMEOUT,TIMEOUT_UNIT)){
 
+        if(obj.try_lock_write_for(t,TIMEOUT,TIMEOUT_UNIT)){
+            obj.value = value;
         } else {
             t.abort();
-            throw new TransactionAbortException("Thread "+Thread.currentThread().getName()+" - put key:"+key+" value:"+value);
+            throw new TransactionTimeoutException("Thread "+Thread.currentThread().getName()+" - put key:"+key+" value:"+value);
         }
-
-
-        obj.value = value;
-
-        // add to list lock transactions
-        t.addLock(obj.rwlock.getObjectLock());
 
     }
 

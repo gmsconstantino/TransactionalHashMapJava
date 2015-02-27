@@ -1,8 +1,6 @@
 import database.Database;
-import database.ObjectDb;
 import database.Transaction;
-import database.TransactionAbortException;
-import structures.MapEntry;
+import database.TransactionTimeoutException;
 
 
 import java.util.*;
@@ -91,9 +89,9 @@ public class Main {
                                     continue;
 
                                 if (r.nextBoolean()) {
-                                    int qtd = q + (r.nextInt(5) * (r.nextBoolean() ? 1 : -1));
-                                    db.put(t, prod_id, qtd);
-                                    synclog.add(new Log(t, prod_id, qtd));
+//                                    int qtd = q + (r.nextInt(5) * (r.nextBoolean() ? 1 : -1));
+//                                    db.put(t, prod_id, qtd);
+//                                    synclog.add(new Log(t, prod_id, qtd));
                                 }
                             }
                         }
@@ -102,7 +100,7 @@ public class Main {
                             commitTransactions.add(t);
                         }
 
-                    }catch (TransactionAbortException e){
+                    }catch (TransactionTimeoutException e){
                         e.printStackTrace();
                     }
                 }
@@ -119,8 +117,32 @@ public class Main {
         }
 
         // TODO: verify data;
+        verify_data();
 
         System.out.println("Commit Transactions: "+commitTransactions.size());
+
+
+    }
+
+    private static void verify_data() {
+
+        for (Log log : synclog){
+            if (commitTransactions.contains(log.t)){
+                concurrentHashMap.put(log.prod,log.qtd);
+            }
+        }
+
+        Iterator t = db.getIterator();
+
+        while (t.hasNext()){
+            Map.Entry<Integer,Integer> entry = (Map.Entry<Integer,Integer>) t.next();
+
+            Integer data = concurrentHashMap.get(entry.getKey());
+
+            if (data != entry.getValue()){
+                System.out.println("Error - key: "+entry.getKey()+" db: "+entry.getValue()+" hs: "+data);
+            }
+        }
 
 
     }

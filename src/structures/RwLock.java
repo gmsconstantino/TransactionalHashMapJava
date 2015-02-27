@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class RwLock {
 
-    private final ReentrantReadWriteLock lock;
+    public final ReentrantReadWriteLock lock;
     private final Lock r;
     private final Lock w;
 
@@ -24,7 +24,10 @@ public class RwLock {
     }
 
     public void unlock_write(){
-        w.unlock();
+//        int wlock = lock.getWriteHoldCount();
+        for (int i = 0; i < lock.getWriteHoldCount()+1; i++) {
+            w.unlock();
+        }
     }
 
     public boolean try_lock_write_for(long time, TimeUnit unit){
@@ -41,7 +44,9 @@ public class RwLock {
     }
 
     public void unlock_read(){
-        r.unlock();
+        for (int i = 0; i < lock.getReadHoldCount()+1; i++) {
+            r.unlock();
+        }
     }
 
     public boolean try_lock_read_for(long time, TimeUnit unit){
@@ -53,11 +58,16 @@ public class RwLock {
         }
     }
 
-    public Lock getObjectLock(){
-        if(lock.isWriteLockedByCurrentThread()){
-            return w;
-        } else
-            return r;
+    public boolean upgrade_lock(){
+        unlock_read();
+        return try_lock_write_for(1000, TimeUnit.MICROSECONDS);
     }
+
+//    public Lock getObjectLock(){
+//        if(lock.isWriteLockedByCurrentThread()){
+//            return w;
+//        } else
+//            return r;
+//    }
 
 }

@@ -1,20 +1,20 @@
 package database;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 
 /**
  * Created by gomes on 26/02/15.
  */
-public class Transaction implements Comparable {
+
+public class Transaction<K,V> implements Comparable {
 
     static long count = 0;
 
+
     long id;
-    Set<Lock> lockList;
+    long commit_id;
+    Map<K,ObjectDb<K,V>> lockList;
 
     public Transaction(){
         init();
@@ -22,15 +22,20 @@ public class Transaction implements Comparable {
 
     private synchronized void init(){
         id = count++;
-        lockList = new HashSet<Lock>();
+        lockList = new HashMap<K, ObjectDb<K, V>>();
     }
 
-    void addLock(Lock l){
-        lockList.add(l);
+    void addObjectDb(K key, ObjectDb objectDb){
+        lockList.put(key, objectDb);
     }
 
-    public void commit(){
+    ObjectDb<K,V> getObjectDb(K key){
+        return lockList.get(key);
+    }
 
+    public synchronized void commit(){
+        unlock_locks();
+        commit_id = Database.commit_count++;
     }
 
     public void abort(){
@@ -40,8 +45,8 @@ public class Transaction implements Comparable {
     }
 
     private void unlock_locks(){
-        for(Lock l : lockList){
-            l.unlock();
+        for(ObjectDb objectDb : lockList.values()){
+            objectDb.unlock();
         }
     }
 
@@ -49,5 +54,13 @@ public class Transaction implements Comparable {
     public int compareTo(Object o) {
         Transaction t = (Transaction) o;
         return Long.compare(this.id, t.id);
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public long getCommit_id() {
+        return commit_id;
     }
 }
