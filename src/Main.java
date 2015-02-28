@@ -12,7 +12,7 @@ public class Main {
     static Database<Integer,Integer> db;
     static ConcurrentHashMap<Integer, Integer> concurrentHashMap;
     static List<Log> synclog;
-    static Set<Transaction> commitTransactions;
+    static Set<Transaction> transactions;
 
     static class Log {
         Transaction t;
@@ -39,7 +39,7 @@ public class Main {
         }
 
         if(db.txn_commit(t)){
-            commitTransactions.add(t);
+            transactions.add(t);
         }
     }
 
@@ -48,17 +48,11 @@ public class Main {
         db = new Database<Integer, Integer>();
         concurrentHashMap = new ConcurrentHashMap<Integer, Integer>();
         synclog = Collections.synchronizedList(new ArrayList<Log>());
-        commitTransactions = new ConcurrentSkipListSet<Transaction>();
+        transactions = new ConcurrentSkipListSet<Transaction>();
 
         populate_database();
 
-//        Iterator it = db.getIterator();
-//        while (it.hasNext()){
-//            Map.Entry<Integer,Integer> e = (Map.Entry<Integer,Integer>) it.next();
-//            System.out.println(e.getKey()+"->"+e.getValue());
-//        }
-
-        int n_threads = 10;
+        int n_threads = 50;
         Thread[] arrThreads = new Thread[n_threads];
 
         for (int i = 0; i <n_threads; i++) {
@@ -67,10 +61,11 @@ public class Main {
                 public void run() {
                     super.run();
                     Random r = new Random();
-
+                    Transaction t = null;
                     try {
 
-                        Transaction t = db.txn_begin();
+                        t = db.txn_begin();
+                        transactions.add(t);
 
                         for (int i = 0; i < 10; i++) {
 
@@ -83,25 +78,30 @@ public class Main {
                                 synclog.add(new Log(t, prod_id, qtd));
                             } else {
                                 // probability 75% of trying to lookup for 'prod_id'
-                                Integer q = db.get(t, prod_id);
-
-                                if (q == null)
-                                    continue;
 
                                 if (r.nextBoolean()) {
-//                                    int qtd = q + (r.nextInt(5) * (r.nextBoolean() ? 1 : -1));
-//                                    db.put(t, prod_id, qtd);
-//                                    synclog.add(new Log(t, prod_id, qtd));
+                                    Integer q = db.get_to_update(t, prod_id);
+
+                                    if (q == null)
+                                        continue;
+
+                                    int qtd = q + (r.nextInt(5) * (r.nextBoolean() ? 1 : -1));
+                                    db.put(t, prod_id, qtd);
+                                    synclog.add(new Log(t, prod_id, qtd));
+                                } else {
+                                    Integer q = db.get(t, prod_id);
+
+                                    if (q == null)
+                                        continue;
                                 }
                             }
                         }
 
-                        if (db.txn_commit(t)) {
-                            commitTransactions.add(t);
-                        }
+                        db.txn_commit(t);
 
                     }catch (TransactionTimeoutException e){
                         e.printStackTrace();
+                        System.out.println(t);
                     }
                 }
             };
@@ -116,20 +116,36 @@ public class Main {
             }
         }
 
-        // TODO: verify data;
         verify_data();
 
-        System.out.println("Commit Transactions: "+commitTransactions.size());
-
-
+//        System.out.println("Commit Transactions: " + transactions.size());
     }
 
     private static void verify_data() {
 
-        for (Log log : synclog){
-            if (commitTransactions.contains(log.t)){
-                concurrentHashMap.put(log.prod,log.qtd);
+        Transaction[] array = new Transaction[transactions.size()];
+        transactions.toArray(array);
+
+        Arrays.sort(array, new Comparator<Transaction>() {
+            @Override
+            public int compare(Transaction o1, Transaction o2) {
+                return Long.compare(o1.getCommit_id(), o2.getCommit_id());
             }
+        });
+
+        for (int i = 0; i < array.length; i++) {
+            if(array[i].success){
+                for (Log log : synclog){
+                    if (log.t.getId() == array[i].getId()){
+                        concurrentHashMap.put(log.prod,log.qtd);
+                    }
+                }
+            }
+        }
+
+        if (db.size() != concurrentHashMap.size()){
+            System.out.println("Sizes dont match.");
+//            return;
         }
 
         Iterator t = db.getIterator();

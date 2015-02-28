@@ -1,52 +1,79 @@
 package database;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
 /**
  * Created by gomes on 26/02/15.
  */
 
-public class Transaction<K,V> implements Comparable {
+public class Transaction<K> implements Comparable {
 
-    static long count = 0;
-
+    public static AtomicLong commit_count = new AtomicLong(0);
+    static AtomicLong count = new AtomicLong(0);
 
     long id;
     long commit_id;
-    Map<K,ObjectDb<K,V>> lockList;
+
+    Map<K,ObjectDb<?,?>> readSet;
+    Map<K,ObjectDb<?,?>> writeSet;
+
+    public boolean isActive;
+    public boolean success;
 
     public Transaction(){
         init();
     }
 
     private synchronized void init(){
-        id = count++;
-        lockList = new HashMap<K, ObjectDb<K, V>>();
+        id = count.getAndIncrement();
+
+        isActive = true;
+        success = false;
+
+        readSet = new HashMap<K, ObjectDb<?, ?>>();
+        writeSet = new HashMap<K, ObjectDb<?, ?>>();
     }
 
-    void addObjectDb(K key, ObjectDb objectDb){
-        lockList.put(key, objectDb);
+    void add_Read_ObjectDb(K key, ObjectDb objectDb){
+        readSet.put(key, objectDb);
     }
 
-    ObjectDb<K,V> getObjectDb(K key){
-        return lockList.get(key);
+    void add_Write_ObjectDb(K key, ObjectDb objectDb){
+        writeSet.put(key, objectDb);
+    }
+
+    ObjectDb<?,?> getObjectDb(K key){
+        ObjectDb<?,?> obj = readSet.get(key);
+        if(obj != null){
+            return obj;
+        } else
+            return writeSet.get(key);
     }
 
     public synchronized void commit(){
+        commit_id = commit_count.getAndIncrement();
+
+        //TODO: tirar do buffer e actualizar os objetos
+
         unlock_locks();
-        commit_id = Database.commit_count++;
+        isActive = false;
+        success = true;
     }
 
     public void abort(){
-
         unlock_locks();
-
+        isActive = false;
+        commit_id = -1;
     }
 
     private void unlock_locks(){
-        for(ObjectDb objectDb : lockList.values()){
-            objectDb.unlock();
+        for(ObjectDb objectDb : readSet.values()){
+            objectDb.unlock_read();
+        }
+        for(ObjectDb objectDb : writeSet.values()){
+            objectDb.unlock_write();
         }
     }
 
@@ -62,5 +89,17 @@ public class Transaction<K,V> implements Comparable {
 
     public long getCommit_id() {
         return commit_id;
+    }
+
+    @Override
+    public String toString() {
+        return "Transaction{" +
+                "id=" + id +
+                ", commit_id=" + commit_id +
+                ", readSet=" + readSet +
+                ", writeSet=" + writeSet +
+                ", isActive=" + isActive +
+                ", success=" + success +
+                '}';
     }
 }

@@ -24,7 +24,6 @@ public class RwLock {
     }
 
     public void unlock_write(){
-//        int wlock = lock.getWriteHoldCount();
         for (int i = 0; i < lock.getWriteHoldCount()+1; i++) {
             w.unlock();
         }
