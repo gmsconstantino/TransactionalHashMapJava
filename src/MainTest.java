@@ -20,7 +20,24 @@ public class MainTest {
 
     @org.junit.Test
     public void testPopulate_database() throws Exception {
-        assertTrue(true);
+        final Integer[] v2 = new Integer[2];
+
+        Transaction<Integer> t = db.txn_begin();
+
+        db.put(t,10, 5);
+        db.put(t, 20, 15);
+
+        db.txn_commit(t);
+
+        t = db.txn_begin();
+
+        v2[0] = db.get(t,10);
+        v2[1] = db.get(t,20);
+
+        db.txn_commit(t);
+
+        assertEquals(v2[0].intValue(), 5);
+        assertEquals(v2[1].intValue(), 15);
     }
 
     @org.junit.Test

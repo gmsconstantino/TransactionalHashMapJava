@@ -2,7 +2,6 @@ package database;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
 
 /**
  * Created by gomes on 26/02/15.
@@ -16,8 +15,10 @@ public class Transaction<K> implements Comparable {
     long id;
     long commit_id;
 
-    Map<K,ObjectDb<?,?>> readSet;
-    Map<K,ObjectDb<?,?>> writeSet;
+    Map<K, ObjectDb<?>> readSet;
+    Map<K, ObjectDb<?>> writeSet;
+
+    Map<K,CacheObjectDb<?>> cache;
 
     public boolean isActive;
     public boolean success;
@@ -32,8 +33,10 @@ public class Transaction<K> implements Comparable {
         isActive = true;
         success = false;
 
-        readSet = new HashMap<K, ObjectDb<?, ?>>();
-        writeSet = new HashMap<K, ObjectDb<?, ?>>();
+        readSet = new HashMap<K, ObjectDb<?>>();
+        writeSet = new HashMap<K, ObjectDb<?>>();
+
+        cache = new HashMap<K, CacheObjectDb<?>>();
     }
 
     void add_Read_ObjectDb(K key, ObjectDb objectDb){
@@ -44,28 +47,43 @@ public class Transaction<K> implements Comparable {
         writeSet.put(key, objectDb);
     }
 
-    ObjectDb<?,?> getObjectDb(K key){
-        ObjectDb<?,?> obj = readSet.get(key);
-        if(obj != null){
-            return obj;
-        } else
-            return writeSet.get(key);
+//    ObjectDb<?> getObjectDb(K key){
+//        ObjectDbImpl<?> obj = readSet.get(key);
+//        if(obj != null){
+//            return obj;
+//        } else
+//            return writeSet.get(key);
+//    }
+
+    public void put_to_cache(K key, CacheObjectDb<?> objectDb){
+        cache.put(key, objectDb);
+    }
+
+    public CacheObjectDb<?> get_from_cache(K key){
+        return cache.get(key);
     }
 
     public synchronized void commit(){
         commit_id = commit_count.getAndIncrement();
 
-        //TODO: tirar do buffer e actualizar os objetos
+        for (Map.Entry<K, CacheObjectDb<?>> obj : cache.entrySet()){
+            ObjectDb objectDb = writeSet.get(obj.getKey());
+            objectDb.setValue(obj.getValue().getValue());
+        }
 
         unlock_locks();
         isActive = false;
         success = true;
+
+//        cache = null;
     }
 
     public void abort(){
         unlock_locks();
         isActive = false;
         commit_id = -1;
+
+//        cache = null;
     }
 
     private void unlock_locks(){
@@ -98,6 +116,7 @@ public class Transaction<K> implements Comparable {
                 ", commit_id=" + commit_id +
                 ", readSet=" + readSet +
                 ", writeSet=" + writeSet +
+                ", cache=" + cache +
                 ", isActive=" + isActive +
                 ", success=" + success +
                 '}';

@@ -101,6 +101,7 @@ public class Main {
 
                     }catch (TransactionTimeoutException e){
                         e.printStackTrace();
+                        
                         System.out.println(t);
                     }
                 }
@@ -116,12 +117,17 @@ public class Main {
             }
         }
 
-        verify_data();
+        if(verify_data()){
+            System.out.println("Database....... OK");
+        } else
+            System.out.println("Database....... Failed");
 
 //        System.out.println("Commit Transactions: " + transactions.size());
     }
 
-    private static void verify_data() {
+    private static boolean verify_data() {
+
+        boolean all_ok = true;
 
         Transaction[] array = new Transaction[transactions.size()];
         transactions.toArray(array);
@@ -143,10 +149,13 @@ public class Main {
             }
         }
 
-        if (db.size() != concurrentHashMap.size()){
-            System.out.println("Sizes dont match.");
-//            return;
-        }
+        // Nao pode ser utilizado o size, pq a db pode criar objectos que depois nao sejam utilizados
+        // pela transacao por ter abortado
+//        if (db.size() != concurrentHashMap.size()){
+//            System.out.println("Sizes dont match. DB: "+db.size()+" map: "+concurrentHashMap.size());
+//            all_ok = false;
+////            return;
+//        }
 
         Iterator t = db.getIterator();
 
@@ -154,12 +163,14 @@ public class Main {
             Map.Entry<Integer,Integer> entry = (Map.Entry<Integer,Integer>) t.next();
 
             Integer data = concurrentHashMap.get(entry.getKey());
-
-            if (data != entry.getValue()){
+            if (entry.getValue() == null){
+                System.out.println("Warn - key:"+entry.getKey()+" was empty.");
+            }else if (data != entry.getValue()){
                 System.out.println("Error - key: "+entry.getKey()+" db: "+entry.getValue()+" hs: "+data);
+                all_ok = false;
             }
         }
 
-
+        return all_ok;
     }
 }

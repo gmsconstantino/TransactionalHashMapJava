@@ -5,9 +5,6 @@ import structures.MapEntry;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by gomes on 26/02/15.
@@ -17,24 +14,28 @@ public class Database<K,V> {
     public final long TIMEOUT = 2;
     public final TimeUnit TIMEOUT_UNIT = TimeUnit.MICROSECONDS;
 
-    ConcurrentHashMap<K,ObjectDb<K,V>> concurrentHashMap;
+    ConcurrentHashMap<K, ObjectDb<V>> concurrentHashMap;
 
     public Database(){
-        concurrentHashMap = new ConcurrentHashMap<K, ObjectDb<K, V>>();
+        concurrentHashMap = new ConcurrentHashMap<K, ObjectDb<V>>();
     }
 
     public V get(Transaction t, K key) throws TransactionTimeoutException {
-        // TODO: Procurar primeiro na cache da transacao
-        // Senao tiver na cache fazer o que esta em baixo
 
-        ObjectDb<K,V> obj = concurrentHashMap.get(key);
+        ObjectDb<V> obj = t.get_from_cache(key);
+        if (obj != null){
+            return obj.getValue();
+        }
+
+        // Passa a ser um objecto do tipo ObjectDbImpl
+        obj = concurrentHashMap.get(key);
 
         if (obj == null)
             return null;
 
         if(obj.try_lock_read_for(TIMEOUT, TIMEOUT_UNIT)){
             t.add_Read_ObjectDb(key, obj);
-            return obj.value;
+            return obj.getValue();
         } else {
             t.abort();
             throw new TransactionTimeoutException("Transaction " + t.getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
@@ -42,16 +43,21 @@ public class Database<K,V> {
     }
 
     public V get_to_update(Transaction t, K key) throws TransactionTimeoutException {
-        // TODO: Procurar primeiro na cache da transacao
 
-        ObjectDb<K,V> obj = concurrentHashMap.get(key);
+        ObjectDb<V> obj = t.get_from_cache(key);
+        if (obj != null){
+            return obj.getValue();
+        }
+
+        // Passa a ser um objecto do tipo ObjectDbImpl
+        obj = concurrentHashMap.get(key);
 
         if (obj == null)
             return null;
 
         if(obj.try_lock_write_for(TIMEOUT, TIMEOUT_UNIT)){
             t.add_Write_ObjectDb(key, obj);
-            return obj.value;
+            return obj.getValue();
         } else {
             t.abort();
             throw new TransactionTimeoutException("Transaction " + t.getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
@@ -59,21 +65,32 @@ public class Database<K,V> {
     }
 
     public void put(Transaction t, K key, V value) throws TransactionTimeoutException {
+
+        // Se esta na cache é pq ja tenho o write lock do objecto
+        ObjectDb<V> obj = t.get_from_cache(key);
+        if (obj != null){
+            obj.setValue(value);
+            return;
+        }
+
         // Search
-        ObjectDb<K,V> obj = concurrentHashMap.get(key);
+        obj = concurrentHashMap.get(key); // Passa a ser um objecto do tipo ObjectDbImpl
         boolean add_ok = false;
         if(obj == null){
-            obj = new ObjectDb<K, V>(key, value); // A thread fica com o write lock
-            concurrentHashMap.putIfAbsent(key, obj);
+            obj = new ObjectDbImpl<V>(value); // A thread fica com o write lock
+
+            ObjectDb<V> map_obj = concurrentHashMap.putIfAbsent(key, obj);
+            obj = map_obj!=null? map_obj : obj;
+
             t.add_Write_ObjectDb(key, obj);
+            t.put_to_cache(key, new CacheObjectDb<V>(value));
             return;
         }
 
         if(obj.try_lock_write_for(TIMEOUT,TIMEOUT_UNIT)){
             t.add_Write_ObjectDb(key, obj);
-
-            // TODO: Escrever para uma cache
-            obj.value = value;
+            t.put_to_cache(key, new CacheObjectDb<V>(value));
+//            obj.value = value;
         } else {
             t.abort();
             throw new TransactionTimeoutException("Transaction " + t.getId() +": Thread "+Thread.currentThread().getName()+" - put key:"+key+" value:"+value);
@@ -104,8 +121,8 @@ public class Database<K,V> {
 
     private class DbIterator implements Iterator {
 
-        Set<Map.Entry<K,ObjectDb<K,V>>> set;
-        Iterator<Map.Entry<K,ObjectDb<K,V>>> it;
+        Set<Map.Entry<K, ObjectDb<V>>> set;
+        Iterator<Map.Entry<K, ObjectDb<V>>> it;
         DbIterator(){
             set = concurrentHashMap.entrySet();
             it = set.iterator();
@@ -120,8 +137,9 @@ public class Database<K,V> {
         public Object next() {
 
             if(this.hasNext()){
-                ObjectDb<K,V> objectDb = it.next().getValue();
-                return new MapEntry<K,V>(objectDb.key,objectDb.value);
+                Map.Entry<K, ObjectDb<V>> obj = it.next();
+                ObjectDb<V> objectDb = obj.getValue();
+                return new MapEntry<K,V>(obj.getKey(),objectDb.getValue());
             }
             return null;
         }
