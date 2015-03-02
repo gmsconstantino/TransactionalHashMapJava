@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-public class MainTest {
+public class MainShopTest {
 
     Database<Integer,Integer> db;
 
@@ -139,6 +139,33 @@ public class MainTest {
         assertEquals(v2[0].intValue(), 9);
         assertEquals(v2[1].intValue(), 1);
         assertEquals(v2[2].intValue(), 7);
+    }
+
+    @org.junit.Test
+    public void testAbort() throws Exception {
+
+        Thread t1 = new Thread(){
+            @Override
+            public void run() {
+                super.run();
+
+                Transaction<Integer> t = db.txn_begin();
+
+                db.put(t,10, 5);
+                db.put(t,20, 15);
+                db.put(t,25, 7);
+
+                db.txn_abort(t);
+
+            }
+        };
+
+
+
+        t1.start();
+        t1.join();
+
+        assertEquals(db.size(), 0);
     }
 
     @org.junit.Test

@@ -13,13 +13,15 @@ public class ObjectDbImpl<V> implements ObjectDb<V> {
 
     V value;
 
+    private boolean isNew;
     private RwLock rwlock;
 
     ObjectDbImpl(V value){
         rwlock = new RwLock();
         rwlock.lock_write();
 
-//        this.value = value; Nao pode escrever o valor porque pode abortar a transacao
+        isNew = true;
+        this.value = value;
     }
 
 
@@ -53,9 +55,20 @@ public class ObjectDbImpl<V> implements ObjectDb<V> {
     }
 
     @Override
+    public boolean isNew() {
+        return isNew;
+    }
+
+    @Override
+    public void setOld() {
+        isNew = false;
+    }
+
+    @Override
     public String toString() {
-        return "ObjectDb{" +
-                "value=" + value +
+        return "ObjectDbImpl{" +
+                "isNew=" + isNew +
+                ", value=" + value +
                 '}';
     }
 
@@ -67,5 +80,10 @@ public class ObjectDbImpl<V> implements ObjectDb<V> {
     @Override
     public void setValue(V value) {
         this.value = value;
+    }
+
+    @Override
+    public ObjectDb getObjectDb() {
+        return this;
     }
 }

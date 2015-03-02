@@ -8,14 +8,21 @@ import java.util.concurrent.TimeUnit;
 public class CacheObjectDb<V> implements ObjectDb<V> {
 
     V value;
+    ObjectDb<V> objectDb;
 
-    public CacheObjectDb(V value) {
+    public CacheObjectDb(V value, ObjectDb<V> obj) {
         this.value = value;
+        this.objectDb = obj;
     }
 
     @Override
     public V getValue() {
         return value;
+    }
+
+    @Override
+    public ObjectDb getObjectDb(){
+        return objectDb;
     }
 
     @Override
@@ -40,6 +47,16 @@ public class CacheObjectDb<V> implements ObjectDb<V> {
 
     @Override
     public void unlock_write() {
+
+    }
+
+    @Override
+    public boolean isNew() {
+        return false;
+    }
+
+    @Override
+    public void setOld() {
 
     }
 
