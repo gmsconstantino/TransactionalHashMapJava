@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-public class MainTest {
+public class MainShopTest {
 
     Database<Integer,Integer> db;
 

@@ -11,8 +11,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class Database<K,V> {
 
-    public final long TIMEOUT = 2;
+    public final long TIMEOUT = 200;
     public final TimeUnit TIMEOUT_UNIT = TimeUnit.MICROSECONDS;
+
+//    public final long TIMEOUT = 1;
+//    public final TimeUnit TIMEOUT_UNIT = TimeUnit.SECONDS;
 
     ConcurrentHashMap<K, ObjectDb<V>> concurrentHashMap;
 
