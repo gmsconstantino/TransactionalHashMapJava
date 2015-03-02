@@ -1,0 +1,29 @@
+start 1
+begin
+write 100 5
+write 110 8
+write 111 12
+write 1000 14
+commit
+
+start 2
+begin
+read 100
+
+start 3
+begin
+read 110
+
+switch 2
+write 110 29
+
+switch 3
+write 100 15
+
+switch 2
+commit
+
+switch 3
+commit
+
+exit

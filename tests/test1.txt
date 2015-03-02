@@ -1,0 +1,12 @@
+start 1
+begin
+write 100 5
+write 110 8
+commit
+
+start 2
+begin
+read 100
+commit
+
+exit
