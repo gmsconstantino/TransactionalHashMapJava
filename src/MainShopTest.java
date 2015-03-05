@@ -1,6 +1,9 @@
 import database.Database;
 import database.Transaction;
-import org.junit.Test;
+import database.TransactionFactory;
+
+import javax.xml.crypto.Data;
+import java.util.Iterator;
 
 import static org.junit.Assert.*;
 
@@ -22,19 +25,19 @@ public class MainShopTest {
     public void testPopulate_database() throws Exception {
         final Integer[] v2 = new Integer[2];
 
-        Transaction<Integer> t = db.txn_begin();
+        Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-        db.put(t,10, 5);
-        db.put(t, 20, 15);
+        t.put(10, 5);
+        t.put( 20, 15);
 
-        db.txn_commit(t);
+        t.commit();
 
-        t = db.txn_begin();
+        t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-        v2[0] = db.get(t,10);
-        v2[1] = db.get(t,20);
+        v2[0] = t.get(10);
+        v2[1] = t.get(20);
 
-        db.txn_commit(t);
+        t.commit();
 
         assertEquals(v2[0].intValue(), 5);
         assertEquals(v2[1].intValue(), 15);
@@ -50,15 +53,15 @@ public class MainShopTest {
             public void run() {
                 super.run();
 
-                Transaction<Integer> t = db.txn_begin();
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-                db.put(t,10, 5);
+                t.put(10, 5);
 
 //                Thread.yield();
 
-                db.put(t, 20, 15);
+                t.put(20, 15);
 
-                db.txn_commit(t);
+                t.commit();
 
             }
         };
@@ -68,13 +71,13 @@ public class MainShopTest {
             public void run() {
                 super.run();
 
-                Transaction<Integer> t = db.txn_begin();
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-                v2[0] = db.get(t,10);
+                v2[0] = t.get(10);
 
-                v2[1] = db.get(t,20);
+                v2[1] = t.get(20);
 
-                db.txn_commit(t);
+                t.commit();
 
             }
         };
@@ -100,17 +103,16 @@ public class MainShopTest {
             public void run() {
                 super.run();
 
-                Transaction<Integer> t = db.txn_begin();
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-                db.put(t,10, 5);
-                db.put(t,20, 15);
-                db.put(t,25, 7);
+                t.put(10, 5);
+                t.put(20, 15);
+                t.put(25, 7);
 
-                db.put(t,10, 9);
-                db.put(t,20, 1);
+                t.put(10, 9);
+                t.put(20, 1);
 
-                db.txn_commit(t);
-
+                t.commit();
             }
         };
 
@@ -119,13 +121,13 @@ public class MainShopTest {
             public void run() {
                 super.run();
 
-                Transaction<Integer> t = db.txn_begin();
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-                v2[0] = db.get(t,10);
-                v2[1] = db.get(t,20);
-                v2[2] = db.get(t,25);
+                v2[0] = t.get(10);
+                v2[1] = t.get(20);
+                v2[2] = t.get(25);
 
-                db.txn_commit(t);
+                t.commit();
 
             }
         };
@@ -149,13 +151,13 @@ public class MainShopTest {
             public void run() {
                 super.run();
 
-                Transaction<Integer> t = db.txn_begin();
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-                db.put(t,10, 5);
-                db.put(t,20, 15);
-                db.put(t,25, 7);
+                t.put(10, 5);
+                t.put(20, 15);
+                t.put(25, 7);
 
-                db.txn_abort(t);
+                t.abort();
 
             }
         };
@@ -172,22 +174,22 @@ public class MainShopTest {
     public void testThreadPut() throws Exception {
 
         final Integer[] v2 = new Integer[2];
-        final Long[] transaction1_id = new Long[1];
+        final Long[] transaction_commit = new Long[2];
 
-        long commit_id = Transaction.commit_count.get();
+        long commit_id = Database.timestamp.get();
 
         Thread t1 = new Thread(){
             @Override
             public void run() {
                 super.run();
 
-                Transaction<Integer> t = db.txn_begin();
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-                db.put(t,10, 5);
-                db.put(t, 20, 15);
+                t.put(10, 5);
+                t.put(20, 15);
 
-                db.txn_commit(t);
-                transaction1_id[0] = t.getCommit_id();
+                t.commit();
+                transaction_commit[0] = t.getCommitId();
             }
         };
 
@@ -196,12 +198,13 @@ public class MainShopTest {
             public void run() {
                 super.run();
 
-                Transaction<Integer> t = db.txn_begin();
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-                v2[0] = db.get(t,10);
-                v2[1] = db.get(t,20);
+                v2[0] = t.get(10);
+                v2[1] = t.get(20);
 
-                db.txn_commit(t);
+                t.commit();
+                transaction_commit[1] = t.getCommitId();
             }
         };
 
@@ -211,7 +214,7 @@ public class MainShopTest {
         t1.join();
         t2.join();
 
-        if (transaction1_id[0] == commit_id) {
+        if (transaction_commit[0] < transaction_commit[1]) {
             assertEquals(v2[0].intValue(), 5);
             assertEquals(v2[1].intValue(), 15);
         } else {
@@ -226,20 +229,20 @@ public class MainShopTest {
         final Integer[] v2 = new Integer[2];
         final Long[] transaction1_id = new Long[1];
 
-        long commit_id = Transaction.commit_count.get();
+        long commit_id = Database.timestamp.get();
 
         Thread t1 = new Thread(){
             @Override
             public void run() {
                 super.run();
 
-                Transaction<Integer> t = db.txn_begin();
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-                db.put(t,10, 5);
-                db.put(t, 20, 15);
+                t.put(10, 5);
+                t.put(20, 15);
 
-                db.txn_commit(t);
-                transaction1_id[0] = t.getCommit_id();
+                t.commit();
+                transaction1_id[0] = t.getCommitId();
             }
         };
 
@@ -248,15 +251,15 @@ public class MainShopTest {
             public void run() {
                 super.run();
 
-                Transaction<Integer> t = db.txn_begin();
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-                v2[0] = db.get_to_update(t,10);
-                db.put(t,10, 105);
+                v2[0] = t.get_to_update(10);
+                t.put(10, 105);
 
-                v2[0] = db.get(t,10);
-                v2[1] = db.get(t,20);
+                v2[0] = t.get(10);
+                v2[1] = t.get(20);
 
-                db.txn_commit(t);
+                t.commit();
             }
         };
 
@@ -278,19 +281,19 @@ public class MainShopTest {
         final Integer[] v2 = new Integer[2];
         final Long[] stop_t3 = new Long[1];
 
-        long commit_id = Transaction.commit_count.get();
+        long commit_id = Database.timestamp.get();
 
         Thread t1 = new Thread(){
             @Override
             public void run() {
                 super.run();
 
-                Transaction<Integer> t = db.txn_begin();
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-                db.put(t,10, 5);
-                db.put(t, 20, 15);
+                t.put(10, 5);
+                t.put(20, 15);
 
-                db.txn_commit(t);
+                t.commit();
             }
         };
 
@@ -299,17 +302,17 @@ public class MainShopTest {
             public void run() {
                 super.run();
 
-                Transaction<Integer> t = db.txn_begin();
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-                v2[0] = db.get_to_update(t,10);
+                v2[0] = t.get_to_update(10);
                 assertEquals(v2[0].intValue(), 5);
 
-                db.put(t,10, 105);
+                t.put(10, 105);
 
-                v2[0] = db.get(t,10);
-                v2[1] = db.get(t,20);
+                v2[0] = t.get(10);
+                v2[1] = t.get(20);
 
-                db.txn_commit(t);
+                t.commit();
             }
         };
 
@@ -319,9 +322,9 @@ public class MainShopTest {
                 super.run();
                 long n;
                 while (stop_t3[0] == 1L) {
-                    Transaction<Integer> t = db.txn_begin();
-                    db.get(t, 10);
-                    db.txn_commit(t);
+                    Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
+                    t.get(10);
+                    t.commit();
 
                     for (int i = 0; i < 1000000; i++) {
                         n = i;

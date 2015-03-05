@@ -1,55 +1,38 @@
 package database;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
-
 /**
  * Created by gomes on 26/02/15.
  */
 
-public class Transaction<K> implements Comparable {
-
-    public static AtomicLong commit_count = new AtomicLong(0);
-    static AtomicLong count = new AtomicLong(0);
+public abstract class Transaction<K,V> implements Comparable {
 
     long id;
-    long commit_id;
-
-    protected Map<K, ObjectDb<?>> readSet;
-    protected Map<K, ObjectDb<?>> writeSet;
-
+    long commitId;
     public boolean isActive;
     public boolean success;
 
-    public Transaction(){
+    protected Database db;
+
+    public Transaction(Database db){
+        this.db = db;
         init();
     }
 
-    private synchronized void init(){
-        id = count.getAndIncrement();
-
+    protected void init(){
+        id = Database.timestamp.getAndIncrement();
         isActive = true;
         success = false;
-
-        readSet = new HashMap<K, ObjectDb<?>>();
-        writeSet = new HashMap<K, ObjectDb<?>>();
     }
 
-    void addObjectDbToReadBuffer(K key, ObjectDb objectDb){
-        readSet.put(key, objectDb);
-    }
+    public abstract V get(K key);
 
-    void addObjectDbToWriteBuffer(K key, ObjectDb objectDb){
-        writeSet.put(key, objectDb);
-    }
+    public abstract V get_to_update(K key);
 
-    ObjectDb<?> getObjectFromReadBuffer(K key){
-        return (readSet.get(key)!=null) ? readSet.get(key).getObjectDb() : null;
-    }
+    public abstract void put(K key, V value);
 
-    ObjectDb<?> getObjectFromWriteBuffer(K key){
-            return (writeSet.get(key)!=null) ? writeSet.get(key).getObjectDb() : null;
-    }
+    public abstract boolean commit();
+
+    public abstract void abort();
 
     @Override
     public int compareTo(Object o) {
@@ -61,17 +44,14 @@ public class Transaction<K> implements Comparable {
         return id;
     }
 
-    public long getCommit_id() {
-        return commit_id;
+    public long getCommitId() {
+        return commitId;
     }
 
     @Override
     public String toString() {
         return "Transaction{" +
                 "id=" + id +
-                ", commit_id=" + commit_id +
-                ", readSet=" + readSet +
-                ", writeSet=" + writeSet +
                 ", isActive=" + isActive +
                 ", success=" + success +
                 '}';
