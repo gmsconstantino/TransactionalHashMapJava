@@ -12,6 +12,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class ObjectDbImpl<V> implements ObjectDb<V> {
 
     V value;
+    long version;
 
     private boolean isNew;
     private RwLock rwlock;
@@ -20,6 +21,7 @@ public class ObjectDbImpl<V> implements ObjectDb<V> {
         rwlock = new RwLock();
         rwlock.lock_write();
 
+        version = ObjectDb.timestamp.getAndIncrement();
         isNew = true;
         this.value = value;
     }
@@ -75,6 +77,11 @@ public class ObjectDbImpl<V> implements ObjectDb<V> {
     @Override
     public V getValue() {
         return value;
+    }
+
+    @Override
+    public long getVersion() {
+        return version;
     }
 
     @Override

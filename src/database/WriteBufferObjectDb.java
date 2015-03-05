@@ -21,6 +21,11 @@ public class WriteBufferObjectDb<V> implements ObjectDb<V> {
     }
 
     @Override
+    public long getVersion() {
+        return objectDb.getVersion();
+    }
+
+    @Override
     public ObjectDb getObjectDb(){
         return objectDb;
     }
