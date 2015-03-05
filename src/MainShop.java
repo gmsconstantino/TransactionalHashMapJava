@@ -101,9 +101,9 @@ public class MainShop {
                         t.commit();
 
                     }catch (TransactionTimeoutException e){
-                        e.printStackTrace();
+//                        e.printStackTrace();
 
-                        System.out.println(t);
+                        System.out.println("[timeout] "+t);
                     }
                 }
             };
@@ -120,8 +120,11 @@ public class MainShop {
 
         if(verify_data()){
             System.out.println("Database....... OK");
-        } else
+            System.out.println("true");
+        } else {
             System.out.println("Database....... Failed");
+            System.out.println("false");
+        }
 
 //        System.out.println("Commit Transactions: " + transactions.size());
     }
@@ -160,7 +163,6 @@ public class MainShop {
         System.out.println("Sizes -> DB: "+db.size()+" map: "+concurrentHashMap.size());
 
         Iterator t = db.getIterator();
-
         while (t.hasNext()){
             Map.Entry<Integer,Integer> entry = (Map.Entry<Integer,Integer>) t.next();
 

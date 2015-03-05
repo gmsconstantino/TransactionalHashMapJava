@@ -44,7 +44,111 @@ public class MainShopTest {
     }
 
     @org.junit.Test
-    public void testSequenatialPut() throws Exception {
+    public void testSequentialPutGetAbort() throws Exception {
+
+        final Integer[] v2 = new Integer[2];
+
+
+        Thread t1 = new Thread(){
+            @Override
+            public void run() {
+                super.run();
+
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
+
+                t.put(10, 5);
+                t.put(20, 15);
+
+                t.get(10);
+
+                try {
+                    t.abort();
+
+                } catch (NullPointerException e){
+                    fail();
+                }
+
+            }
+        };
+
+        Thread t2 = new Thread(){
+            @Override
+            public void run() {
+                super.run();
+
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
+
+                v2[0] = t.get(10);
+
+                v2[1] = t.get(20);
+
+                t.commit();
+
+            }
+        };
+
+        t1.start();
+        t1.join();
+
+        t2.start();
+        t2.join();
+
+//        if ()
+        assertEquals(v2[0], null);
+        assertEquals(v2[1], null);
+    }
+
+    @org.junit.Test
+    public void testSequentialPutGetCommit() throws Exception {
+
+        final Integer[] v2 = new Integer[2];
+
+        Thread t1 = new Thread(){
+            @Override
+            public void run() {
+                super.run();
+
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
+
+                t.put(10, 5);
+                t.put(20, 15);
+
+                t.get(10);
+
+                t.commit();
+
+            }
+        };
+
+        Thread t2 = new Thread(){
+            @Override
+            public void run() {
+                super.run();
+
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
+
+                v2[0] = t.get(10);
+
+                v2[1] = t.get(20);
+
+                t.commit();
+
+            }
+        };
+
+        t1.start();
+        t1.join();
+
+        t2.start();
+        t2.join();
+
+//        if ()
+        assertEquals(v2[0].intValue(), 5);
+        assertEquals(v2[1].intValue(), 15);
+    }
+
+    @org.junit.Test
+    public void testSequentialPut() throws Exception {
 
         final Integer[] v2 = new Integer[2];
 
@@ -94,7 +198,7 @@ public class MainShopTest {
     }
 
     @org.junit.Test
-    public void testSequenatialPut_2() throws Exception {
+    public void testSequentialPut_2() throws Exception {
 
         final Integer[] v2 = new Integer[3];
 

@@ -5,12 +5,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by gomes on 28/02/15.
  */
-public class CacheObjectDb<V> implements ObjectDb<V> {
+public class WriteBufferObjectDb<V> implements ObjectDb<V> {
 
     V value;
     ObjectDb<V> objectDb;
 
-    public CacheObjectDb(V value, ObjectDb<V> obj) {
+    public WriteBufferObjectDb(V value, ObjectDb<V> obj) {
         this.value = value;
         this.objectDb = obj;
     }
