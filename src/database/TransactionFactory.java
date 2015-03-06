@@ -1,5 +1,8 @@
 package database;
 
+import database2PL.Transaction2PL;
+import databaseOCC.TransactionOCC;
+
 /**
  * Created by gomes on 05/03/15.
  */
@@ -7,7 +10,7 @@ public class TransactionFactory {
 
     public enum type { TWOPL, OCC }
 
-    public static Transaction getFactory(type t, Database db){
+    public static Transaction createTransaction(type t, Database db){
         switch (t){
             case TWOPL:
                 return new Transaction2PL(db);

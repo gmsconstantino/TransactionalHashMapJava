@@ -6,8 +6,8 @@ package database;
 
 public abstract class Transaction<K,V> implements Comparable {
 
-    long id;
-    long commitId;
+    public long id;
+    public long commitId;
     public boolean isActive;
     public boolean success;
 
@@ -33,6 +33,18 @@ public abstract class Transaction<K,V> implements Comparable {
     public abstract boolean commit() throws TransactionTimeoutException;
 
     public abstract void abort() throws TransactionTimeoutException;
+
+    protected ObjectDb<K,V> getKeyDatabase(K key){
+        return db.getKey(key);
+    }
+
+    protected ObjectDb<K,V> putIfAbsent(K key, ObjectDb<K,V> obj){
+        return db.putIfAbsent(key, obj);
+    }
+
+    protected ObjectDb<K,V> removeKey(K key){
+        return db.removeKey(key);
+    }
 
     @Override
     public int compareTo(Object o) {

@@ -1,4 +1,6 @@
-package database;
+package database2PL;
+
+import database.*;
 
 import java.util.*;
 
@@ -9,7 +11,7 @@ import java.util.*;
 public class Transaction2PL<K,V> extends Transaction<K,V> {
 
     protected Set<K> readSet;
-    protected Map<K,ObjectDb<K,V>> writeSet;
+    protected Map<K, ObjectDb<K,V>> writeSet;
 
     public Transaction2PL(Database db) {
         super(db);
@@ -28,11 +30,11 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
             return null;
 
         if (readSet.contains(key)){
-            return (V) db.getKey(key).getObjectDb().getValue();
+            return (V) getKeyDatabase(key).getObjectDb().getValue();
         }
 
         // Passa a ser um objecto do tipo ObjectDbImpl
-        ObjectDb<?,?> obj = db.getKey(key);
+        ObjectDb<?,?> obj = getKeyDatabase(key);
 
         if (obj == null)
             return null;
@@ -57,7 +59,7 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
         }
 
         // Passa a ser um objecto do tipo ObjectDbImpl
-        obj = db.getKey(key);
+        obj = getKeyDatabase(key);
 
         if (obj == null)
             return null;
@@ -84,12 +86,12 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
         }
 
         // Search
-        obj = db.getKey(key); // Passa a ser um objecto do tipo ObjectDbImpl
+        obj = getKeyDatabase(key); // Passa a ser um objecto do tipo ObjectDbImpl
 
         if(obj == null){
             obj = new ObjectDbImpl<K,V>(value); // A thread fica com o write lock
 
-            ObjectDb<K,V> map_obj = db.putIfAbsent(key, obj);
+            ObjectDb<K,V> map_obj = putIfAbsent(key, obj);
             obj = map_obj!=null? map_obj : obj;
 
             addObjectDbToWriteBuffer(key, obj);
@@ -133,7 +135,7 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
         for (Map.Entry<K,ObjectDb<K,V>> obj : entrySet){
             ObjectDb objectDb = obj.getValue();
             if (objectDb.isNew()){
-                db.removeKey(obj.getKey());
+                removeKey(obj.getKey());
                 readSet.remove(obj.getKey());
             } else {
                 objectDb.getObjectDb().setValue(objectDb.getValue());
@@ -149,7 +151,7 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
         Iterator<K> it_keys = readSet.iterator();
         while (it_keys.hasNext()) {
             K key = it_keys.next();
-            ObjectDb objectDb = db.getKey(key);
+            ObjectDb objectDb = getKeyDatabase(key);
             objectDb.unlock_read();
         }
 

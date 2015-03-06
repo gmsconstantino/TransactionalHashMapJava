@@ -1,4 +1,7 @@
-package database;
+package databaseOCC;
+
+import database2PL.Config;
+import database.*;
 
 import java.util.*;
 
@@ -8,7 +11,7 @@ import java.util.*;
 
 public class TransactionOCC<K,V> extends Transaction<K,V> {
 
-    protected Map<K, ObjectDb<K,V>> readSet;
+    protected Map<K, ObjectDb<K,V>> readSet; //set , conf se add nao altera
     protected Map<K, ObjectDb<K,V>> writeSet;
 
     public TransactionOCC(Database db) {
@@ -23,7 +26,7 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
     }
 
     @Override
-    public V get(Object key) {
+    public V get(K key) throws TransactionTimeoutException {
         if (!isActive)
             return null;
 
@@ -33,10 +36,11 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
 //            }
             return (V) writeSet.get(key).getValue();
         } else if (readSet.containsKey(key)){
+            // ir a BD,
             return (V) readSet.get(key).getValue();
         }
 
-        ObjectDb<?,?> obj = db.getKey(key);
+        ObjectDb<?,?> obj = getKeyDatabase(key);
         if (obj == null)
             return null;
 
@@ -52,12 +56,12 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
     }
 
     @Override
-    public V get_to_update(K key) {
+    public V get_to_update(K key) throws TransactionTimeoutException{
         return get(key);
     }
 
     @Override
-    public void put(K key, V value) {
+    public void put(K key, V value) throws TransactionTimeoutException{
         if(!isActive)
             return;
 
@@ -76,7 +80,7 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
             return;
         }
 
-        ObjectDb<?,?> obj = db.getKey(key);
+        ObjectDb<?,?> obj = getKeyDatabase(key);
         if (obj == null) {
             obj = new ObjectDbImpl<K,V>(value); // A thread fica com o write lock
 //            db.putIfAbsent(key, null);
@@ -104,27 +108,19 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
 
         Set<ObjectDb<K,V>> lockObjects = new HashSet<>();
 
-        //BufferObject
-        for (ObjectDb<K,V> buffer : readSet.values()){
-            ObjectDb<K,V> objectDb = buffer.getObjectDb();
-            if(objectDb.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-                lockObjects.add(objectDb);
-
-                if (buffer.getVersion() == objectDb.getVersion())
-                    continue;
-                else {
-                    abort();
-                    return false;
-                }
-            } else {
-                abortTimeout(lockObjects);
-            }
-        }
-
         for (ObjectDb<K,V> buffer : writeSet.values()){
             ObjectDb<K,V> objectDb = buffer.getObjectDb();
             if(objectDb.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
                 lockObjects.add(objectDb);
+
+                if (buffer.isNew()) {
+                    ObjectDb<K, V> map_obj = putIfAbsent(buffer.getKey(), buffer.getObjectDb());
+                    if (map_obj != null){
+                        unlockWrite_objects(lockObjects);
+                        abort();
+                        return false;
+                    }
+                }
 
                 if (buffer.getVersion() == objectDb.getVersion())
                     continue;
@@ -138,9 +134,27 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
             }
         }
 
+        // Validate Read Set
+        for (ObjectDb<K,V> buffer : readSet.values()){ // BufferObject
+            ObjectDb<K,V> objectDb = buffer.getObjectDb();
+            if(objectDb.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
+
+                if (buffer.getVersion() == objectDb.getVersion()) {
+                    objectDb.unlock_read();
+                    continue;
+                } else {
+                    abort();
+                    return false;
+                }
+            } else {
+                abortTimeout(lockObjects);
+            }
+        }
+
+        // Escrita
         for (ObjectDb<K,V> buffer : writeSet.values()){
             if (buffer.isNew()) {
-                ObjectDb<K, V> map_obj = db.putIfAbsent(buffer.getKey(), buffer.getObjectDb());
+                ObjectDb<K, V> map_obj = putIfAbsent(buffer.getKey(), buffer.getObjectDb());
                 if (map_obj != null){
                     unlockWrite_objects(lockObjects);
                     abort();
@@ -174,7 +188,7 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
     }
 
     @Override
-    public void abort() {
+    public void abort() throws TransactionTimeoutException{
         isActive = false;
         success = false;
         return;

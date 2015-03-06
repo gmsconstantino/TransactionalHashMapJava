@@ -1,4 +1,6 @@
-package database;
+package database2PL;
+
+import database.ObjectDb;
 
 import java.util.concurrent.TimeUnit;
 
@@ -13,27 +15,27 @@ public class BufferObjectDb<K,V> implements ObjectDb<K,V> {
     ObjectDb<K,V> objectDb;
     private boolean isNew;
 
-    public BufferObjectDb(V value, ObjectDb<K,V> obj) {
+    public BufferObjectDb(V value, ObjectDb<K, V> obj) {
         this.value = value;
         this.objectDb = obj;
         isNew = false;
     }
 
-    public BufferObjectDb(V value, long version, ObjectDb<K,V> obj) {
+    public BufferObjectDb(V value, long version, ObjectDb<K, V> obj) {
         this.value = value;
         this.version = version;
         this.objectDb = obj;
         isNew = false;
     }
 
-    public BufferObjectDb(V value, long version, ObjectDb<K,V> obj, boolean isNew) {
+    public BufferObjectDb(V value, long version, ObjectDb<K, V> obj, boolean isNew) {
         this.value = value;
         this.version = version;
         this.objectDb = obj;
         this.isNew = isNew;
     }
 
-    public BufferObjectDb(K key, V value, long version, ObjectDb<K,V> obj, boolean isNew) {
+    public BufferObjectDb(K key, V value, long version, ObjectDb<K, V> obj, boolean isNew) {
         this.key = key;
         this.value = value;
         this.version = version;

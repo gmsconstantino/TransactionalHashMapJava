@@ -4,7 +4,6 @@ import structures.MapEntry;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -31,12 +30,14 @@ public class Database<K,V> {
         return concurrentHashMap.remove(key);
     }
 
+
+
     /*
      * Public
      */
 
     public Transaction<K,V> newTransaction(TransactionFactory.type t){
-        return TransactionFactory.getFactory(t,this);
+        return TransactionFactory.createTransaction(t, this);
     }
 
     public int size(){

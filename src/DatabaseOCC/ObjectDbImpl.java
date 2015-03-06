@@ -1,10 +1,9 @@
-package database;
+package databaseOCC;
 
+import database.ObjectDb;
 import structures.RwLock;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Created by gomes on 26/02/15.
