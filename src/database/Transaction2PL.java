@@ -9,7 +9,7 @@ import java.util.*;
 public class Transaction2PL<K,V> extends Transaction<K,V> {
 
     protected Set<K> readSet;
-    protected Map<K,ObjectDb<V>> writeSet;
+    protected Map<K,ObjectDb<K,V>> writeSet;
 
     public Transaction2PL(Database db) {
         super(db);
@@ -32,7 +32,7 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
         }
 
         // Passa a ser um objecto do tipo ObjectDbImpl
-        ObjectDb<?> obj = db.getKey(key);
+        ObjectDb<?,?> obj = db.getKey(key);
 
         if (obj == null)
             return null;
@@ -51,7 +51,7 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
         if (!isActive)
             return null;
 
-        ObjectDb<V> obj = getObjectFromWriteBuffer(key);
+        ObjectDb<K,V> obj = getObjectFromWriteBuffer(key);
         if (obj != null){
             return obj.getValue();
         }
@@ -63,7 +63,7 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
             return null;
 
         if(obj.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            addObjectDbToWriteBuffer(key, new WriteBufferObjectDb(obj.getValue(), obj));
+            addObjectDbToWriteBuffer(key, new BufferObjectDb(obj.getValue(), obj));
             return obj.getValue();
         } else {
             abort();
@@ -77,7 +77,7 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
             return;
 
         // Se esta na cache é pq ja tenho o write lock do objecto
-        ObjectDb<V> obj = getObjectFromWriteBuffer(key);
+        ObjectDb<K,V> obj = getObjectFromWriteBuffer(key);
         if (obj != null){
             obj.setValue(value);
             return;
@@ -87,9 +87,9 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
         obj = db.getKey(key); // Passa a ser um objecto do tipo ObjectDbImpl
 
         if(obj == null){
-            obj = new ObjectDbImpl<V>(value); // A thread fica com o write lock
+            obj = new ObjectDbImpl<K,V>(value); // A thread fica com o write lock
 
-            ObjectDb<V> map_obj = db.putIfAbsent(key, obj);
+            ObjectDb<K,V> map_obj = db.putIfAbsent(key, obj);
             obj = map_obj!=null? map_obj : obj;
 
             addObjectDbToWriteBuffer(key, obj);
@@ -98,7 +98,7 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
         }
 
         if(obj.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            addObjectDbToWriteBuffer(key, new WriteBufferObjectDb<V>(obj.getValue(), obj));
+            addObjectDbToWriteBuffer(key, new BufferObjectDb<K,V>(obj.getValue(), obj));
             obj.setValue(value);
         } else {
             abort();
@@ -113,8 +113,8 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
 
         commitId = Database.timestamp.getAndIncrement();
 
-        Set<Map.Entry<K,ObjectDb<V>>> entrySet =  writeSet.entrySet();
-        for (Map.Entry<K,ObjectDb<V>> obj : entrySet){
+        Set<Map.Entry<K,ObjectDb<K,V>>> entrySet =  writeSet.entrySet();
+        for (Map.Entry<K,ObjectDb<K,V>> obj : entrySet){
             ObjectDb objectDb = obj.getValue();
             objectDb.setOld();
         }
@@ -129,8 +129,8 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
     @Override
     public void abort() {
         // Cleanup
-        Set<Map.Entry<K,ObjectDb<V>>> entrySet =  writeSet.entrySet();
-        for (Map.Entry<K,ObjectDb<V>> obj : entrySet){
+        Set<Map.Entry<K,ObjectDb<K,V>>> entrySet =  writeSet.entrySet();
+        for (Map.Entry<K,ObjectDb<K,V>> obj : entrySet){
             ObjectDb objectDb = obj.getValue();
             if (objectDb.isNew()){
                 db.removeKey(obj.getKey());
@@ -166,7 +166,7 @@ public class Transaction2PL<K,V> extends Transaction<K,V> {
         writeSet.put(key, obj);
     }
 
-    ObjectDb<V> getObjectFromWriteBuffer(K key){
+    ObjectDb<K,V> getObjectFromWriteBuffer(K key){
         return (writeSet.get(key)!=null) ? writeSet.get(key).getObjectDb() : null;
     }
 

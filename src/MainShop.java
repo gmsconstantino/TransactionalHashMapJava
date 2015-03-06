@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 public class MainShop {
 
+    static final TransactionFactory.type TYPE = TransactionFactory.type.OCC;
+
     static Database<Integer,Integer> db;
     static ConcurrentHashMap<Integer, Integer> concurrentHashMap;
     static List<Log> synclog;
@@ -30,7 +32,7 @@ public class MainShop {
     public static void populate_database(){
         Random r = new Random(0);
 
-        Transaction t = db.newTransaction(TransactionFactory.type.TWOPL);
+        Transaction t = db.newTransaction(TYPE);
 
         for (int i = 0; i < 1000; i++) {
             int p = r.nextInt(1000);
@@ -63,9 +65,9 @@ public class MainShop {
                     super.run();
                     Random r = new Random();
                     Transaction<Integer, Integer> t = null;
-                    try {
+//                    try {
 
-                        t = db.newTransaction(TransactionFactory.type.TWOPL);
+                        t = db.newTransaction(TYPE);
                         transactions.add(t);
 
                         for (int i = 0; i < 10; i++) {
@@ -98,13 +100,15 @@ public class MainShop {
                             }
                         }
 
-                        t.commit();
-
-                    }catch (TransactionTimeoutException e){
-//                        e.printStackTrace();
-
-                        System.out.println("[timeout] "+t);
-                    }
+//                        t.commit();
+                        if(!t.commit()){
+                            System.out.println("[abort] "+t);
+                        }
+//                    }catch (TransactionTimeoutException e){
+////                        e.printStackTrace();
+//
+//                        System.out.println("[timeout] "+t);
+//                    }
                 }
             };
             arrThreads[i].start();

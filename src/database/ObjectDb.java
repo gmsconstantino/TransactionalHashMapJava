@@ -6,11 +6,12 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Created by gomes on 28/02/15.
  */
-public interface ObjectDb<V> {
+public interface ObjectDb<K,V> {
 
     static AtomicLong timestamp = new AtomicLong(0);
 
     public V getValue();
+    public K getKey();
     public long getVersion();
     public void setValue(V value);
 

@@ -24,15 +24,15 @@ public abstract class Transaction<K,V> implements Comparable {
         success = false;
     }
 
-    public abstract V get(K key);
+    public abstract V get(K key) throws TransactionTimeoutException;
 
-    public abstract V get_to_update(K key);
+    public abstract V get_to_update(K key) throws TransactionTimeoutException;
 
-    public abstract void put(K key, V value);
+    public abstract void put(K key, V value) throws TransactionTimeoutException;
 
-    public abstract boolean commit();
+    public abstract boolean commit() throws TransactionTimeoutException;
 
-    public abstract void abort();
+    public abstract void abort() throws TransactionTimeoutException;
 
     @Override
     public int compareTo(Object o) {

@@ -13,6 +13,8 @@ import pt.dct.cli.Tx;
  */
 public class DctTxWrapper implements Tx {
 
+    static final TransactionFactory.type TYPE = TransactionFactory.type.OCC;
+
     protected Database<String,Integer> db;
     protected Transaction<String,Integer> tx;
     protected DctStorage storage;
@@ -20,7 +22,7 @@ public class DctTxWrapper implements Tx {
     public DctTxWrapper(DctStorage storage, Database _db) {
         this.storage = storage;
         this.db = _db;
-        this.tx = db.newTransaction(TransactionFactory.type.TWOPL);
+        this.tx = db.newTransaction(TYPE);
     }
 
     @Override

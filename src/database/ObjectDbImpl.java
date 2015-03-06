@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * Created by gomes on 26/02/15.
  */
-public class ObjectDbImpl<V> implements ObjectDb<V> {
+public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
 
     V value;
     long version;
@@ -69,14 +69,20 @@ public class ObjectDbImpl<V> implements ObjectDb<V> {
     @Override
     public String toString() {
         return "ObjectDbImpl{" +
-                "isNew=" + isNew +
-                ", value=" + value +
+                "value=" + value +
+                ", version=" + version +
+                ", isNew=" + isNew +
                 '}';
     }
 
     @Override
     public V getValue() {
         return value;
+    }
+
+    @Override
+    public K getKey() {
+        return null;
     }
 
     @Override
