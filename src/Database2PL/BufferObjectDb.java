@@ -1,23 +1,33 @@
-package database;
+package database2PL;
+
+import database.ObjectDb;
 
 import java.util.concurrent.TimeUnit;
 
 /**
  * Created by gomes on 28/02/15.
  */
-public class CacheObjectDb<V> implements ObjectDb<V> {
+public class BufferObjectDb<K,V> implements ObjectDb<K,V> {
 
+    K key;
     V value;
-    ObjectDb<V> objectDb;
 
-    public CacheObjectDb(V value, ObjectDb<V> obj) {
+    ObjectDb<K,V> objectDb;
+    private boolean isNew;
+
+    public BufferObjectDb(V value, ObjectDb<K, V> obj) {
         this.value = value;
         this.objectDb = obj;
+        isNew = false;
     }
 
     @Override
     public V getValue() {
         return value;
+    }
+
+    public K getKey() {
+        return key;
     }
 
     @Override
@@ -52,18 +62,20 @@ public class CacheObjectDb<V> implements ObjectDb<V> {
 
     @Override
     public boolean isNew() {
-        return false;
+        return isNew;
     }
 
     @Override
     public void setOld() {
-
+        isNew = false;
     }
 
     @Override
     public String toString() {
-        return "CacheObjectDb{" +
+        return "BufferObjectDb{" +
                 "value=" + value +
+                ", isNew=" + isNew +
+                ", objectDb=" + objectDb +
                 '}';
     }
 }

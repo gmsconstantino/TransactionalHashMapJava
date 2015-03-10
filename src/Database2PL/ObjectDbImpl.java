@@ -1,15 +1,14 @@
-package database;
+package database2PL;
 
+import database.ObjectDb;
 import structures.RwLock;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Created by gomes on 26/02/15.
  */
-public class ObjectDbImpl<V> implements ObjectDb<V> {
+public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
 
     V value;
 
@@ -67,14 +66,19 @@ public class ObjectDbImpl<V> implements ObjectDb<V> {
     @Override
     public String toString() {
         return "ObjectDbImpl{" +
-                "isNew=" + isNew +
-                ", value=" + value +
+                "value=" + value +
+                ", isNew=" + isNew +
                 '}';
     }
 
     @Override
     public V getValue() {
         return value;
+    }
+
+    @Override
+    public K getKey() {
+        return null;
     }
 
     @Override

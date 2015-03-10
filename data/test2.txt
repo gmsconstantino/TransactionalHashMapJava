@@ -14,4 +14,12 @@ switch 1
 write 111 12
 write 1000 14
 commit
+
+start 3
+begin
+read 100
+read 110
+read 111
+read 1000
+commit
 exit

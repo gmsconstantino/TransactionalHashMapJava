@@ -1,13 +1,18 @@
 package database;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by gomes on 28/02/15.
  */
-public interface ObjectDb<V> {
+public interface ObjectDb<K,V> {
+
+    AtomicLong timestamp = new AtomicLong(-1L);
 
     public V getValue();
+    public K getKey();
+
     public void setValue(V value);
 
     public ObjectDb getObjectDb();

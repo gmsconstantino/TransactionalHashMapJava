@@ -1,5 +1,6 @@
 import database.Database;
 import database.Transaction;
+import database.TransactionFactory;
 import database.TransactionTimeoutException;
 
 
@@ -8,6 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 public class MainShop {
+
+    static final TransactionFactory.type TYPE = TransactionFactory.type.OCC;
 
     static Database<Integer,Integer> db;
     static ConcurrentHashMap<Integer, Integer> concurrentHashMap;
@@ -29,16 +32,16 @@ public class MainShop {
     public static void populate_database(){
         Random r = new Random(0);
 
-        Transaction t = db.txn_begin();
+        Transaction t = db.newTransaction(TYPE);
 
         for (int i = 0; i < 1000; i++) {
             int p = r.nextInt(1000);
             int q = r.nextInt(50);
-            db.put(t,p, q);
+            t.put(p, q);
             concurrentHashMap.put(p,q);
         }
 
-        if(db.txn_commit(t)){
+        if(t.commit()){
             transactions.add(t);
         }
     }
@@ -61,10 +64,10 @@ public class MainShop {
                 public void run() {
                     super.run();
                     Random r = new Random();
-                    Transaction t = null;
-                    try {
+                    Transaction<Integer, Integer> t = null;
+//                    try {
 
-                        t = db.txn_begin();
+                        t = db.newTransaction(TYPE);
                         transactions.add(t);
 
                         for (int i = 0; i < 10; i++) {
@@ -74,22 +77,22 @@ public class MainShop {
                             if (op < 25) {
                                 // probability 25% of trying to insert 'prod_id'
                                 int qtd = r.nextInt(25);
-                                db.put(t, prod_id, qtd);
+                                t.put(prod_id, qtd);
                                 synclog.add(new Log(t, prod_id, qtd));
                             } else {
                                 // probability 75% of trying to lookup for 'prod_id'
 
                                 if (r.nextBoolean()) {
-                                    Integer q = db.get_to_update(t, prod_id);
+                                    Integer q = t.get_to_update(prod_id);
 
                                     if (q == null)
                                         continue;
 
                                     int qtd = q + (r.nextInt(5) * (r.nextBoolean() ? 1 : -1));
-                                    db.put(t, prod_id, qtd);
+                                    t.put(prod_id, qtd);
                                     synclog.add(new Log(t, prod_id, qtd));
                                 } else {
-                                    Integer q = db.get(t, prod_id);
+                                    Integer q = t.get(prod_id);
 
                                     if (q == null)
                                         continue;
@@ -97,13 +100,15 @@ public class MainShop {
                             }
                         }
 
-                        db.txn_commit(t);
-
-                    }catch (TransactionTimeoutException e){
-                        e.printStackTrace();
-
-                        System.out.println(t);
-                    }
+//                        t.commit();
+                        if(!t.commit()){
+                            System.out.println("[abort] "+t);
+                        }
+//                    }catch (TransactionTimeoutException e){
+////                        e.printStackTrace();
+//
+//                        System.out.println("[timeout] "+t);
+//                    }
                 }
             };
             arrThreads[i].start();
@@ -119,8 +124,11 @@ public class MainShop {
 
         if(verify_data()){
             System.out.println("Database....... OK");
-        } else
+            System.out.println("true");
+        } else {
             System.out.println("Database....... Failed");
+            System.out.println("false");
+        }
 
 //        System.out.println("Commit Transactions: " + transactions.size());
     }
@@ -135,7 +143,7 @@ public class MainShop {
         Arrays.sort(array, new Comparator<Transaction>() {
             @Override
             public int compare(Transaction o1, Transaction o2) {
-                return Long.compare(o1.getCommit_id(), o2.getCommit_id());
+                return Long.compare(o1.getCommitId(), o2.getCommitId());
             }
         });
 
@@ -159,7 +167,6 @@ public class MainShop {
         System.out.println("Sizes -> DB: "+db.size()+" map: "+concurrentHashMap.size());
 
         Iterator t = db.getIterator();
-
         while (t.hasNext()){
             Map.Entry<Integer,Integer> entry = (Map.Entry<Integer,Integer>) t.next();
 
