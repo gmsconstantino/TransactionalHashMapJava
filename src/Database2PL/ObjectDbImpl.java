@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
 
     V value;
-    long version;
 
     private boolean isNew;
     private RwLock rwlock;
@@ -20,7 +19,6 @@ public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
         rwlock = new RwLock();
         rwlock.lock_write();
 
-        version = ObjectDb.timestamp.getAndIncrement();
         isNew = true;
         this.value = value;
     }
@@ -69,7 +67,6 @@ public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
     public String toString() {
         return "ObjectDbImpl{" +
                 "value=" + value +
-                ", version=" + version +
                 ", isNew=" + isNew +
                 '}';
     }
@@ -82,11 +79,6 @@ public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
     @Override
     public K getKey() {
         return null;
-    }
-
-    @Override
-    public long getVersion() {
-        return version;
     }
 
     @Override

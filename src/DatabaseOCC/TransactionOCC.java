@@ -11,8 +11,8 @@ import java.util.*;
 
 public class TransactionOCC<K,V> extends Transaction<K,V> {
 
-    protected Map<K, ObjectDb<K,V>> readSet; //set , conf se add nao altera
-    protected Map<K, ObjectDb<K,V>> writeSet;
+    protected Map<K, ObjectVersionDB<K,V>> readSet; //set , conf se add nao altera
+    protected Map<K, ObjectVersionDB<K,V>> writeSet;
 
     public TransactionOCC(Database db) {
         super(db);
@@ -21,8 +21,8 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
     protected synchronized void init(){
         super.init();
 
-        readSet = new HashMap<K, ObjectDb<K,V>>();
-        writeSet = new HashMap<K, ObjectDb<K,V>>();
+        readSet = new HashMap<K, ObjectVersionDB<K,V>>();
+        writeSet = new HashMap<K, ObjectVersionDB<K,V>>();
     }
 
     @Override
@@ -40,12 +40,12 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
             return (V) readSet.get(key).getValue();
         }
 
-        ObjectDb<?,?> obj = getKeyDatabase(key);
+        ObjectVersionDB<K,V> obj = (ObjectVersionDB) getKeyDatabase(key);
         if (obj == null)
             return null;
 
         if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            addObjectDbToReadBuffer((K) key, new BufferObjectDb(key, obj.getValue(), obj.getVersion(), obj, false)); // isNew = false
+            addObjectDbToReadBuffer((K) key, new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false)); // isNew = false
             V value = (V) obj.getValue();
             obj.unlock_read();
             return value;
@@ -65,33 +65,24 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
         if(!isActive)
             return;
 
-        if (readSet.containsKey(key)){ // O objecto buffer muda para o writeset com o novo valor
-            ObjectDb<K,V> objectDb = readSet.get(key);
-            readSet.remove(key);
-
-            objectDb.setValue(value);
-            writeSet.put(key, objectDb);
-            return;
-        }
-
         if(writeSet.containsKey(key)){
             ObjectDb<K,V> objectDb = writeSet.get(key);
             objectDb.setValue(value);
             return;
         }
 
-        ObjectDb<?,?> obj = getKeyDatabase(key);
+        ObjectVersionDB<K,V> obj = (ObjectVersionDB) getKeyDatabase(key);
         if (obj == null) {
-            obj = new ObjectDbImpl<K,V>(value); // A thread fica com o write lock
+            obj = new ObjectVersionDBImpl<K,V>(value); // A thread fica com o write lock
 //            db.putIfAbsent(key, null);
-            addObjectDbToWriteBuffer(key, new BufferObjectDb(key, obj.getValue(), obj.getVersion(), obj, true)); // isNew = true
+            addObjectDbToWriteBuffer(key, new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, true)); // isNew = true
             obj.unlock_write();
             return;
         }
 
         // o objecto esta na base de dados
         if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            ObjectDb<K,V> buffer = new BufferObjectDb(key, obj.getValue(), obj.getVersion(), obj, false);
+            ObjectVersionDB<K,V> buffer = new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false);
             buffer.setValue(value);
             addObjectDbToWriteBuffer((K) key, buffer);
             obj.unlock_read();
@@ -108,8 +99,8 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
 
         Set<ObjectDb<K,V>> lockObjects = new HashSet<>();
 
-        for (ObjectDb<K,V> buffer : writeSet.values()){
-            ObjectDb<K,V> objectDb = buffer.getObjectDb();
+        for (ObjectVersionDB<K,V> buffer : writeSet.values()){
+            ObjectVersionDB<K,V> objectDb = (ObjectVersionDB) buffer.getObjectDb();
             if(objectDb.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
                 lockObjects.add(objectDb);
 
@@ -135,8 +126,8 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
         }
 
         // Validate Read Set
-        for (ObjectDb<K,V> buffer : readSet.values()){ // BufferObject
-            ObjectDb<K,V> objectDb = buffer.getObjectDb();
+        for (ObjectVersionDB<K,V> buffer : readSet.values()){ // BufferObject
+            ObjectVersionDB<K,V> objectDb = (ObjectVersionDB) buffer.getObjectDb();
             if(objectDb.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
 
                 if (buffer.getVersion() == objectDb.getVersion()) {
@@ -194,11 +185,11 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
         return;
     }
 
-    void addObjectDbToReadBuffer(K key, ObjectDb objectDb){
+    void addObjectDbToReadBuffer(K key, ObjectVersionDB<K,V> objectDb){
         readSet.put(key, objectDb);
     }
 
-    void addObjectDbToWriteBuffer(K key, ObjectDb objectDb){
+    void addObjectDbToWriteBuffer(K key, ObjectVersionDB objectDb){
         writeSet.put(key, objectDb);
     }
 

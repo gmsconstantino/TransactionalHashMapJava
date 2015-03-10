@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by gomes on 28/02/15.
  */
-public class BufferObjectDb<K,V> implements ObjectDb<K,V> {
+public class BufferObjectVersionDB<K,V> implements ObjectVersionDB<K,V> {
 
     K key;
     V value;
@@ -15,27 +15,27 @@ public class BufferObjectDb<K,V> implements ObjectDb<K,V> {
     ObjectDb<K,V> objectDb;
     private boolean isNew;
 
-    public BufferObjectDb(V value, ObjectDb<K, V> obj) {
+    public BufferObjectVersionDB(V value, ObjectDb<K, V> obj) {
         this.value = value;
         this.objectDb = obj;
         isNew = false;
     }
 
-    public BufferObjectDb(V value, long version, ObjectDb<K, V> obj) {
+    public BufferObjectVersionDB(V value, long version, ObjectDb<K, V> obj) {
         this.value = value;
         this.version = version;
         this.objectDb = obj;
         isNew = false;
     }
 
-    public BufferObjectDb(V value, long version, ObjectDb<K, V> obj, boolean isNew) {
+    public BufferObjectVersionDB(V value, long version, ObjectDb<K, V> obj, boolean isNew) {
         this.value = value;
         this.version = version;
         this.objectDb = obj;
         this.isNew = isNew;
     }
 
-    public BufferObjectDb(K key, V value, long version, ObjectDb<K, V> obj, boolean isNew) {
+    public BufferObjectVersionDB(K key, V value, long version, ObjectDb<K, V> obj, boolean isNew) {
         this.key = key;
         this.value = value;
         this.version = version;

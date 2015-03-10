@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by gomes on 26/02/15.
  */
-public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
+public class ObjectVersionDBImpl<K,V> implements ObjectVersionDB<K,V> {
 
     V value;
     long version;
@@ -16,7 +16,7 @@ public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
     private boolean isNew;
     private RwLock rwlock;
 
-    ObjectDbImpl(V value){
+    ObjectVersionDBImpl(V value){
         rwlock = new RwLock();
         rwlock.lock_write();
 

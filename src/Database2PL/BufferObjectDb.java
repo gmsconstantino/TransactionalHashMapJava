@@ -11,7 +11,7 @@ public class BufferObjectDb<K,V> implements ObjectDb<K,V> {
 
     K key;
     V value;
-    long version;
+
     ObjectDb<K,V> objectDb;
     private boolean isNew;
 
@@ -21,28 +21,6 @@ public class BufferObjectDb<K,V> implements ObjectDb<K,V> {
         isNew = false;
     }
 
-    public BufferObjectDb(V value, long version, ObjectDb<K, V> obj) {
-        this.value = value;
-        this.version = version;
-        this.objectDb = obj;
-        isNew = false;
-    }
-
-    public BufferObjectDb(V value, long version, ObjectDb<K, V> obj, boolean isNew) {
-        this.value = value;
-        this.version = version;
-        this.objectDb = obj;
-        this.isNew = isNew;
-    }
-
-    public BufferObjectDb(K key, V value, long version, ObjectDb<K, V> obj, boolean isNew) {
-        this.key = key;
-        this.value = value;
-        this.version = version;
-        this.objectDb = obj;
-        this.isNew = isNew;
-    }
-
     @Override
     public V getValue() {
         return value;
@@ -50,11 +28,6 @@ public class BufferObjectDb<K,V> implements ObjectDb<K,V> {
 
     public K getKey() {
         return key;
-    }
-
-    @Override
-    public long getVersion() {
-        return version;
     }
 
     @Override
@@ -101,7 +74,6 @@ public class BufferObjectDb<K,V> implements ObjectDb<K,V> {
     public String toString() {
         return "BufferObjectDb{" +
                 "value=" + value +
-                ", version=" + version +
                 ", isNew=" + isNew +
                 ", objectDb=" + objectDb +
                 '}';

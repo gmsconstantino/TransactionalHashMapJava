@@ -12,7 +12,7 @@ public interface ObjectDb<K,V> {
 
     public V getValue();
     public K getKey();
-    public long getVersion();
+
     public void setValue(V value);
 
     public ObjectDb getObjectDb();
