@@ -37,16 +37,6 @@ public class ObjectVersionDBImpl<K,V> implements ObjectVersionDB<K,V> {
         return rwlock.try_lock_read_for(time, unit);
     }
 
-//    public boolean upgrade_lock() throws IllegalMonitorStateException {
-//        if (rwlock.lock.getWriteHoldCount()>0){
-//            return true;
-//        } else if(rwlock.lock.getReadHoldCount() > 0){
-//            return rwlock.upgrade_lock();
-//        } else {
-//            throw new IllegalMonitorStateException();
-//        }
-//    }
-
     public synchronized void unlock_read() throws IllegalMonitorStateException {
         rwlock.unlock_read();
     }
@@ -92,6 +82,7 @@ public class ObjectVersionDBImpl<K,V> implements ObjectVersionDB<K,V> {
     @Override
     public void setValue(V value) {
         this.value = value;
+        version = ObjectDb.timestamp.getAndIncrement();
     }
 
     @Override

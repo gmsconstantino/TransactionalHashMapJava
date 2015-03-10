@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public interface ObjectDb<K,V> {
 
-    static AtomicLong timestamp = new AtomicLong(0);
+    AtomicLong timestamp = new AtomicLong(-1L);
 
     public V getValue();
     public K getKey();

@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class Database<K,V> {
 
-    public static AtomicLong timestamp = new AtomicLong(0);
+    public static AtomicLong timestamp = new AtomicLong(1);
     ConcurrentHashMap<K, ObjectDb<K,V>> concurrentHashMap;
 
     public Database(){

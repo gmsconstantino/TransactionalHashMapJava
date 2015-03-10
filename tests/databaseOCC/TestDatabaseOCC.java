@@ -94,8 +94,8 @@ public class TestDatabaseOCC {
         t2.join();
 
 //        if ()
-        assertEquals(v2[0], null);
-        assertEquals(v2[1], null);
+        assertEquals(null, v2[0]);
+        assertEquals(null, v2[1]);
     }
 
     @org.junit.Test
@@ -250,6 +250,8 @@ public class TestDatabaseOCC {
     @org.junit.Test
     public void testAbort() throws Exception {
 
+        final Integer[] v2 = new Integer[3];
+
         Thread t1 = new Thread(){
             @Override
             public void run() {
@@ -266,37 +268,6 @@ public class TestDatabaseOCC {
             }
         };
 
-
-
-        t1.start();
-        t1.join();
-
-        assertEquals(db.size(), 0);
-    }
-
-    @org.junit.Test
-    public void testThreadPut() throws Exception {
-
-        final Integer[] v2 = new Integer[2];
-        final Long[] transaction_commit = new Long[2];
-
-        long commit_id = Database.timestamp.get();
-
-        Thread t1 = new Thread(){
-            @Override
-            public void run() {
-                super.run();
-
-                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.OCC);
-
-                t.put(10, 5);
-                t.put(20, 15);
-
-                t.commit();
-                transaction_commit[0] = t.getCommitId();
-            }
-        };
-
         Thread t2 = new Thread(){
             @Override
             public void run() {
@@ -306,29 +277,25 @@ public class TestDatabaseOCC {
 
                 v2[0] = t.get(10);
                 v2[1] = t.get(20);
+                v2[2] = t.get(25);
 
                 t.commit();
-                transaction_commit[1] = t.getCommitId();
             }
         };
 
         t1.start();
-        t2.start();
-
         t1.join();
+
+        t2.start();
         t2.join();
 
-        if (transaction_commit[0] < transaction_commit[1]) {
-            assertEquals(v2[0].intValue(), 5);
-            assertEquals(v2[1].intValue(), 15);
-        } else {
-            assertEquals(v2[0],null);
-            assertEquals(v2[1],null);
+        for (Integer v : v2){
+            assertEquals(null, v);
         }
     }
 
     @org.junit.Test
-    public void testThreadPut_2() throws Exception {
+    public void testThreadPut() throws Exception {
 
         final Integer[] v2 = new Integer[6];
         final Long[] transaction_commit = new Long[2];
@@ -394,13 +361,13 @@ public class TestDatabaseOCC {
         t3.join();
 
 
-        if (transaction_commit[0] < transaction_commit[1]) { /// T1 < T2
+        if (transaction_commit[0] != null) { /// T1 < T2
             for (int j = 1; j <= 5; j++) {
-                    assertEquals(j+20, v2[j].intValue());
+                    assertEquals(j, v2[j].intValue());
             }
         } else {
             for (int j = 1; j <= 5; j++) {
-                assertEquals(j, v2[j].intValue());
+                assertEquals(j+20, v2[j].intValue());
             }
         }
     }

@@ -26,29 +26,33 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
     }
 
     @Override
-    public V get(K key) throws TransactionTimeoutException {
+    public V get(K key) throws TransactionTimeoutException, TransactionAbortException {
         if (!isActive)
             return null;
 
         if(writeSet.containsKey(key)){
-//            if (readSet.containsKey(key)){
-//                readSet.remove(key);
-//            }
             return (V) writeSet.get(key).getValue();
-        } else if (readSet.containsKey(key)){
-            // ir a BD,
-            return (V) readSet.get(key).getValue();
         }
 
         ObjectVersionDB<K,V> obj = (ObjectVersionDB) getKeyDatabase(key);
-        if (obj == null)
+        if (obj == null || obj.getVersion() == -1)
             return null;
 
         if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            addObjectDbToReadBuffer((K) key, new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false)); // isNew = false
-            V value = (V) obj.getValue();
-            obj.unlock_read();
-            return value;
+
+            if (readSet.containsKey(key)){
+                if (obj.getVersion() == readSet.get(key).getVersion())
+                    return obj.getValue();
+                else {
+                    abort();
+                    throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change - key:"+key);
+                }
+            } else {
+                addObjectDbToReadBuffer((K) key, new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false)); // isNew = false
+                V value = (V) obj.getValue();
+                obj.unlock_read();
+                return value;
+            }
         } else {
             abort();
             throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
@@ -73,10 +77,16 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
 
         ObjectVersionDB<K,V> obj = (ObjectVersionDB) getKeyDatabase(key);
         if (obj == null) {
-            obj = new ObjectVersionDBImpl<K,V>(value); // A thread fica com o write lock
-//            db.putIfAbsent(key, null);
-            addObjectDbToWriteBuffer(key, new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, true)); // isNew = true
+            obj = new ObjectVersionDBImpl<K,V>(null); // A thread fica com o write lock
+            ObjectVersionDB<K,V> objdb = (ObjectVersionDB) putIfAbsent(key, obj);
             obj.unlock_write();
+
+            if (objdb != null)
+                obj = objdb;
+
+            ObjectVersionDB<K,V> buffer = new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, true); // isNew = true
+            buffer.setValue(value);
+            addObjectDbToWriteBuffer(key, buffer);
             return;
         }
 
@@ -84,7 +94,7 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
         if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
             ObjectVersionDB<K,V> buffer = new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false);
             buffer.setValue(value);
-            addObjectDbToWriteBuffer((K) key, buffer);
+            addObjectDbToWriteBuffer(key, buffer);
             obj.unlock_read();
         } else {
             abort();
@@ -93,7 +103,7 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
     }
 
     @Override
-    public boolean commit() throws TransactionTimeoutException{
+    public boolean commit() throws TransactionTimeoutException, TransactionAbortException {
         if(!isActive)
             return success;
 
@@ -104,19 +114,10 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
             if(objectDb.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
                 lockObjects.add(objectDb);
 
-                if (buffer.isNew()) {
-                    ObjectDb<K, V> map_obj = putIfAbsent(buffer.getKey(), buffer.getObjectDb());
-                    if (map_obj != null){
-                        unlockWrite_objects(lockObjects);
-                        abort();
-                        return false;
-                    }
-                }
-
-                if (buffer.getVersion() == objectDb.getVersion())
+                if (buffer.getVersion() == objectDb.getVersion()) {
                     continue;
-                else {
-                    abort();
+                } else {
+                    abortVersions(lockObjects);
                     return false;
                 }
             } else {
@@ -134,7 +135,7 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
                     objectDb.unlock_read();
                     continue;
                 } else {
-                    abort();
+                    abortVersions(lockObjects);
                     return false;
                 }
             } else {
@@ -144,15 +145,10 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
 
         // Escrita
         for (ObjectDb<K,V> buffer : writeSet.values()){
-            if (buffer.isNew()) {
-                ObjectDb<K, V> map_obj = putIfAbsent(buffer.getKey(), buffer.getObjectDb());
-                if (map_obj != null){
-                    unlockWrite_objects(lockObjects);
-                    abort();
-                    return false;
-                }
-            }
             ObjectDb<K,V> objectDb = buffer.getObjectDb();
+            if (buffer.isNew()) {
+                objectDb.setOld();
+            }
             objectDb.setValue(buffer.getValue());
         }
 
@@ -170,6 +166,12 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
         throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - commit");
     }
 
+    private void abortVersions(Set<ObjectDb<K,V>> lockObjects) throws TransactionTimeoutException{
+        unlockWrite_objects(lockObjects);
+        abort();
+        throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
+    }
+
     private void unlockWrite_objects(Set<ObjectDb<K,V>> set){
         Iterator<ObjectDb<K,V>> it_locks = set.iterator();
         while (it_locks.hasNext()) {
@@ -179,10 +181,10 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
     }
 
     @Override
-    public void abort() throws TransactionTimeoutException{
+    public void abort() throws TransactionAbortException{
         isActive = false;
         success = false;
-        return;
+        commitId = -1;
     }
 
     void addObjectDbToReadBuffer(K key, ObjectVersionDB<K,V> objectDb){
@@ -191,14 +193,6 @@ public class TransactionOCC<K,V> extends Transaction<K,V> {
 
     void addObjectDbToWriteBuffer(K key, ObjectVersionDB objectDb){
         writeSet.put(key, objectDb);
-    }
-
-    ObjectDb<?,?> getObjectFromReadBuffer(K key){
-        return (readSet.get(key)!=null) ? readSet.get(key).getObjectDb() : null;
-    }
-
-    ObjectDb<?,?> getObjectFromWriteBuffer(K key){
-        return (writeSet.get(key)!=null) ? writeSet.get(key).getObjectDb() : null;
     }
 
     @Override
