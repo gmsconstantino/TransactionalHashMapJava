@@ -9,12 +9,12 @@ import java.util.*;
  * Created by gomes on 26/02/15.
  */
 
-public class TransactionOCC<K,V> extends Transaction<K,V> {
+public class Transaction<K,V> extends database.Transaction<K,V> {
 
     protected Map<K, ObjectVersionDB<K,V>> readSet; //set , conf se add nao altera
     protected Map<K, ObjectVersionDB<K,V>> writeSet;
 
-    public TransactionOCC(Database db) {
+    public Transaction(Database db) {
         super(db);
     }
 

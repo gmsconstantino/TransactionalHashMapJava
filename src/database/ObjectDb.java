@@ -11,7 +11,6 @@ public interface ObjectDb<K,V> {
     AtomicLong timestamp = new AtomicLong(-1L);
 
     public V getValue();
-    public K getKey();
 
     public void setValue(V value);
 

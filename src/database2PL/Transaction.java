@@ -8,12 +8,12 @@ import java.util.*;
  * Created by gomes on 26/02/15.
  */
 
-public class Transaction2PL<K,V> extends Transaction<K,V> {
+public class Transaction<K,V> extends database.Transaction<K,V> {
 
     protected Set<K> readSet;
     protected Map<K, ObjectDb<K,V>> writeSet;
 
-    public Transaction2PL(Database db) {
+    public Transaction(Database db) {
         super(db);
     }
 

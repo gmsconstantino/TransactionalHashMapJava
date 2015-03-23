@@ -1,4 +1,4 @@
-package databaseOCC;
+package databaseOCCMulti;
 
 import database.ObjectDb;
 import structures.RwLock;
@@ -6,9 +6,9 @@ import structures.RwLock;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by gomes on 26/02/15.
+ * Created by gomes on 23/03/15.
  */
-public class ObjectVersionDBImpl<K,V> implements ObjectVersionDB<K,V> {
+public class ObjectMultiVersionDB<K,V> implements databaseOCC.ObjectVersionDB<K,V> {
 
     V value;
     long version;
@@ -16,7 +16,12 @@ public class ObjectVersionDBImpl<K,V> implements ObjectVersionDB<K,V> {
     private boolean isNew;
     private RwLock rwlock;
 
-    ObjectVersionDBImpl(V value){
+    // TODO: fazer
+    ObjectMultiVersionDB(){
+
+    }
+
+    ObjectMultiVersionDB(V value){
         rwlock = new RwLock();
         rwlock.lock_write();
 
@@ -70,11 +75,6 @@ public class ObjectVersionDBImpl<K,V> implements ObjectVersionDB<K,V> {
     }
 
     @Override
-    public K getKey() {
-        return null;
-    }
-
-    @Override
     public long getVersion() {
         return version;
     }
@@ -88,5 +88,14 @@ public class ObjectVersionDBImpl<K,V> implements ObjectVersionDB<K,V> {
     @Override
     public ObjectDb getObjectDb() {
         return this;
+    }
+
+    // TODO: fazer
+    public Long getLastVersion() {
+        return null;
+    }
+
+    public V getValueVersionLess(long startTime) {
+        return null;
     }
 }
