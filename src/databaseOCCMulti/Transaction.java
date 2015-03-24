@@ -43,6 +43,8 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return (V) writeSet.get(key).getValue();
         }
 
+        V returnValue = null;
+
         ObjectMultiVersionDB<K,V> obj = (ObjectMultiVersionDB) getKeyDatabase(key);
         if (obj == null || obj.getVersion() == -1)
             return null;
@@ -50,23 +52,19 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
 
             if (readSet.containsKey(key)){
-                if (obj.getVersion() == readSet.get(key))
-                    return obj.getValue();
-                else {
-                    abort();
-                    throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change - key:"+key);
-                }
+                    returnValue = obj.getValueVersionLess(startTime);
             } else {
-//                addObjectDbToReadBuffer((K) key, new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false)); // isNew = false
                 addObjectDbToReadBuffer((K) key, obj.getVersion());
-                V value = (V) obj.getValueVersionLess(startTime);
-                obj.unlock_read();
-                return value;
+                returnValue = (V) obj.getValueVersionLess(startTime);
             }
         } else {
+            obj.unlock_read();
             abort();
             throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
         }
+
+        obj.unlock_read();
+        return returnValue;
     }
 
     @Override
@@ -85,10 +83,11 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return;
         }
 
-        ObjectVersionDB<K,V> obj = (ObjectVersionDB) getKeyDatabase(key);
+        ObjectMultiVersionDB<K,V> obj = (ObjectMultiVersionDB) getKeyDatabase(key);
+        //Nao existe nenhuma
         if (obj == null) {
             obj = new ObjectMultiVersionDB<>(); // A thread fica com o write lock
-            ObjectVersionDB<K,V> objdb = (ObjectVersionDB) putIfAbsent(key, obj);
+            ObjectMultiVersionDB<K,V> objdb = (ObjectMultiVersionDB) putIfAbsent(key, obj);
             obj.unlock_write();
 
             if (objdb != null)
@@ -117,6 +116,12 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         if(!isActive)
             return success;
 
+        if (writeSet.size() == 0){
+            isActive = false;
+            success = true;
+            return true;
+        }
+
         Set<ObjectDb<K,V>> lockObjects = new HashSet<>();
 
         for (ObjectVersionDB<K,V> buffer : writeSet.values()){
@@ -124,6 +129,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             if(objectDb.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
                 lockObjects.add(objectDb);
 
+                // buffer.version == objectDb.last_version
                 if (buffer.getVersion() == objectDb.getVersion()) {
                     continue;
                 } else {
@@ -136,16 +142,22 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             }
         }
 
+
+        //Nao percebo a condicao de validate do readset
+
         // Validate Read Set
         Iterator<Map.Entry<K, Long>> it = readSet.entrySet().iterator();
         while (it.hasNext()){
-            Map.Entry<K, Long> obj = it.next();
-            ObjectMultiVersionDB<K,V> objectDb = (ObjectMultiVersionDB) getKeyDatabase(obj.getKey());
+            Map.Entry<K, Long> obj_readSet = it.next();
+            ObjectMultiVersionDB<K,V> objectDb = (ObjectMultiVersionDB) getKeyDatabase(obj_readSet.getKey());
             if(objectDb.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-                if (obj.getValue() == objectDb.getLastVersion()) {
+
+                // readSet.version == objectDb.last_version
+                if (obj_readSet.getValue() == objectDb.getVersion()) {
                     objectDb.unlock_read();
                     continue;
                 } else {
+                    objectDb.unlock_read();
                     abortVersions(lockObjects);
                     return false;
                 }
@@ -154,17 +166,13 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             }
         }
 
-
+        commitId = Transaction.timestamp.getAndIncrement();
         // Escrita
         for (ObjectDb<K,V> buffer : writeSet.values()){
-            ObjectDb<K,V> objectDb = buffer.getObjectDb();
-            if (buffer.isNew()) {
-                objectDb.setOld();
-            }
-            objectDb.setValue(buffer.getValue());
+            ObjectMultiVersionDB<K,V> objectDb = (ObjectMultiVersionDB) buffer.getObjectDb();
+            objectDb.addNewVersionObject(commitId, buffer.getValue());
         }
 
-        commitId = Database.timestamp.getAndIncrement();
         unlockWrite_objects(lockObjects);
 
         isActive = false;

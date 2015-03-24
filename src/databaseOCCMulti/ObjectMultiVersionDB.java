@@ -1,88 +1,65 @@
 package databaseOCCMulti;
 
 import database.ObjectDb;
+import database2PL.Config;
+import databaseOCC.ObjectVersionDB;
+import databaseOCC.ObjectVersionDBImpl;
 import structures.RwLock;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Created by gomes on 23/03/15.
  */
-public class ObjectMultiVersionDB<K,V> implements databaseOCC.ObjectVersionDB<K,V> {
+public class ObjectMultiVersionDB<K,V> implements ObjectVersionDB<K,V>{
 
-    V value;
-    long version;
+    long last_version;
+    LinkedList<Pair<Long, ObjectVersionDB<K,V>>> objects;
+    RwLock lock;
 
-    private boolean isNew;
-    private RwLock rwlock;
 
-    // TODO: fazer
     ObjectMultiVersionDB(){
-
+        objects = new LinkedList<>();
+        lock = new RwLock();
+        last_version = -1;
+        lock.lock_write();
     }
 
-    ObjectMultiVersionDB(V value){
-        rwlock = new RwLock();
-        rwlock.lock_write();
-
-        version = ObjectDb.timestamp.getAndIncrement();
-        isNew = true;
-        this.value = value;
+    public long getVersion() {
+        return last_version;
     }
 
-
-    public boolean try_lock_write_for(long time, TimeUnit unit){
-        if(rwlock.lock.isWriteLockedByCurrentThread()){
-            return true;
+    public V getValueVersionLess(long startTime) {
+        for(Pair<Long, ObjectVersionDB<K,V>> pair : objects){
+            if(pair.f <= startTime){
+                return pair.s.getValue();
+            }
         }
-        return rwlock.try_lock_write_for(time, unit);
+        return null;
     }
 
-    public boolean try_lock_read_for(long time, TimeUnit unit){
-        return rwlock.try_lock_read_for(time, unit);
-    }
-
-    public synchronized void unlock_read() throws IllegalMonitorStateException {
-        rwlock.unlock_read();
-    }
-
-    public synchronized void unlock_write() throws IllegalMonitorStateException {
-        rwlock.unlock_write();
-    }
-
-    @Override
-    public boolean isNew() {
-        return isNew;
-    }
-
-    @Override
-    public void setOld() {
-        isNew = false;
-    }
-
-    @Override
-    public String toString() {
-        return "ObjectDbImpl{" +
-                "value=" + value +
-                ", version=" + version +
-                ", isNew=" + isNew +
-                '}';
+    public void addNewVersionObject(Long version, V value){
+        last_version = version;
+        ObjectVersionDBImpl<K,V> obj = new ObjectVersionDBImpl<K,V>(value);
+        objects.addFirst(new Pair(version, obj));
+        obj.unlock_write();
     }
 
     @Override
     public V getValue() {
-        return value;
-    }
-
-    @Override
-    public long getVersion() {
-        return version;
+        if(last_version == -1)
+            return null;
+        return objects.getFirst().s.getValue();
     }
 
     @Override
     public void setValue(V value) {
-        this.value = value;
-        version = ObjectDb.timestamp.getAndIncrement();
+
     }
 
     @Override
@@ -90,12 +67,42 @@ public class ObjectMultiVersionDB<K,V> implements databaseOCC.ObjectVersionDB<K,
         return this;
     }
 
-    // TODO: fazer
-    public Long getLastVersion() {
-        return null;
+    @Override
+    public boolean try_lock_write_for(long time, TimeUnit unit) {
+        return lock.try_lock_write_for(time, unit);
     }
 
-    public V getValueVersionLess(long startTime) {
-        return null;
+    @Override
+    public boolean try_lock_read_for(long time, TimeUnit unit) {
+        return lock.try_lock_read_for(time,unit);
     }
+
+    @Override
+    public void unlock_read() {
+        lock.unlock_read();
+    }
+
+    @Override
+    public void unlock_write() {
+        lock.unlock_write();
+    }
+
+    @Override
+    public boolean isNew() {
+        return false;
+    }
+
+    @Override
+    public void setOld() {
+
+    }
+
+    @Override
+    public String toString() {
+        return "ObjectMultiVersionDB{" +
+                "last_version=" + last_version +
+                ", objects=" + objects +
+                '}';
+    }
+
 }
