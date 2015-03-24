@@ -11,7 +11,7 @@ import java.util.*;
 
 public class Transaction<K,V> extends database.Transaction<K,V> {
 
-    protected Map<K, ObjectVersionDB<K,V>> readSet; //set , conf se add nao altera
+    protected Map<K, ObjectVersionDB<K,V>> readSet;
     protected Map<K, ObjectVersionDB<K,V>> writeSet;
 
     public Transaction(Database db) {
@@ -34,6 +34,8 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return (V) writeSet.get(key).getValue();
         }
 
+        V returnValue;
+
         ObjectVersionDB<K,V> obj = (ObjectVersionDB) getKeyDatabase(key);
         if (obj == null || obj.getVersion() == -1)
             return null;
@@ -42,21 +44,22 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
 
             if (readSet.containsKey(key)){
                 if (obj.getVersion() == readSet.get(key).getVersion())
-                    return obj.getValue();
+                    returnValue = obj.getValue();
                 else {
                     abort();
                     throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change - key:"+key);
                 }
             } else {
                 addObjectDbToReadBuffer((K) key, new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false)); // isNew = false
-                V value = (V) obj.getValue();
-                obj.unlock_read();
-                return value;
+                returnValue = (V) obj.getValue();
             }
         } else {
             abort();
             throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
         }
+
+        obj.unlock_read();
+        return returnValue;
     }
 
     @Override
@@ -135,6 +138,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
                     objectDb.unlock_read();
                     continue;
                 } else {
+                    objectDb.unlock_read();
                     abortVersions(lockObjects);
                     return false;
                 }

@@ -16,7 +16,7 @@ public class ObjectVersionDBImpl<K,V> implements databaseOCC.ObjectVersionDB<K,V
     private boolean isNew;
     private RwLock rwlock;
 
-    ObjectVersionDBImpl(V value){
+    public ObjectVersionDBImpl(V value){
         rwlock = new RwLock();
         rwlock.lock_write();
 

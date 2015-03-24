@@ -77,11 +77,6 @@ public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
     }
 
     @Override
-    public K getKey() {
-        return null;
-    }
-
-    @Override
     public void setValue(V value) {
         this.value = value;
     }
