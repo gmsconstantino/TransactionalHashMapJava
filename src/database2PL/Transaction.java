@@ -11,6 +11,8 @@ import java.util.*;
 public class Transaction<K,V> extends database.Transaction<K,V> {
 
     protected Set<K> readSet;
+
+    // Write set guarda o valor antigo que estava antes da transacao
     protected Map<K, ObjectDb<K,V>> writeSet;
 
     public Transaction(Database db) {
@@ -38,6 +40,8 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
 
         if (obj == null)
             return null;
+
+        System.out.println("Read "+key+" -> "+obj.toString());
 
         if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
             addObjectDbToReadBuffer((K) key);

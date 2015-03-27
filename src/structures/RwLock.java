@@ -69,4 +69,12 @@ public class RwLock {
 //            return r;
 //    }
 
+
+    @Override
+    public String toString() {
+        return "RwLock{" +
+                "w=" + w +
+                ", r=" + r +
+                '}';
+    }
 }

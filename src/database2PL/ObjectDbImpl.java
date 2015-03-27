@@ -63,11 +63,21 @@ public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
         isNew = false;
     }
 
+//    @Override
+//    public String toString() {
+//        return "ObjectDbImpl{" +
+//                "value=" + value +
+//                ", isNew=" + isNew +
+//                '}';
+//    }
+
+
     @Override
     public String toString() {
         return "ObjectDbImpl{" +
                 "value=" + value +
                 ", isNew=" + isNew +
+                ", rwlock=" + rwlock +
                 '}';
     }
 

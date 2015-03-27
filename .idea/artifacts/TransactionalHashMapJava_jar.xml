@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="TransactionalHashMapJava:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/TransactionalHashMapJava_jar</output-path>
+    <root id="archive" name="TransactionalHashMapJava.jar">
+      <element id="module-output" name="TransactionalHashMapJava" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/junit-4.7.jar" path-in-jar="/" />
+      <element id="dir-copy" path="$PROJECT_DIR$/src" />
+    </root>
+  </artifact>
+</component>
