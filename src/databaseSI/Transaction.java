@@ -1,9 +1,10 @@
-package databaseOCCMulti;
+package databaseSI;
 
 import database.*;
 import database2PL.Config;
 import databaseOCC.BufferObjectVersionDB;
 import databaseOCC.ObjectVersionDB;
+import databaseOCCMulti.ObjectMultiVersionDB;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -16,7 +17,6 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
 
     static AtomicInteger timestamp = new AtomicInteger(0);
 
-    protected Map<K, Long> readSet; //set , conf se add nao altera
     protected Map<K, ObjectVersionDB<K,V>> writeSet;
 
     private long startTime;
@@ -28,10 +28,8 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
 
     protected synchronized void init(){
         super.init();
-        readSet = new HashMap<K, Long>();
         writeSet = new HashMap<K, ObjectVersionDB<K,V>>();
-
-        startTime = timestamp.get();
+        startTime = Transaction.timestamp.get();
     }
 
     @Override
@@ -50,13 +48,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return null;
 
         if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-
-            if (readSet.containsKey(key)){
-                    returnValue = obj.getValueVersionLess(startTime);
-            } else {
-                addObjectDbToReadBuffer((K) key, obj.getVersion());
-                returnValue = (V) obj.getValueVersionLess(startTime);
-            }
+            returnValue = obj.getValueVersionLess(startTime);
         } else {
             obj.unlock_read();
             abort();
@@ -130,7 +122,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
                 lockObjects.add(objectDb);
 
                 // buffer.version == objectDb.last_version
-                if (buffer.getVersion() == objectDb.getVersion()) {
+                if (objectDb.getVersion() < startTime) {
                     continue;
                 } else {
                     abortVersions(lockObjects);
@@ -142,27 +134,6 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             }
         }
 
-
-        // Validate Read Set
-        Iterator<Map.Entry<K, Long>> it = readSet.entrySet().iterator();
-        while (it.hasNext()){
-            Map.Entry<K, Long> obj_readSet = it.next();
-            ObjectMultiVersionDB<K,V> objectDb = (ObjectMultiVersionDB) getKeyDatabase(obj_readSet.getKey());
-            if(objectDb.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-
-                // readSet.version == objectDb.last_version
-                if (obj_readSet.getValue() == objectDb.getVersion()) {
-                    objectDb.unlock_read();
-                    continue;
-                } else {
-                    objectDb.unlock_read();
-                    abortVersions(lockObjects);
-                    return false;
-                }
-            } else {
-                abortTimeout(lockObjects);
-            }
-        }
 
         commitId = Transaction.timestamp.getAndIncrement();
         // Escrita
@@ -205,11 +176,6 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         commitId = -1;
     }
 
-
-    void addObjectDbToReadBuffer(K key, Long version){
-        readSet.put(key, version);
-    }
-
     void addObjectDbToWriteBuffer(K key, ObjectVersionDB objectDb){
         writeSet.put(key, objectDb);
     }
@@ -219,7 +185,6 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
     public String toString() {
         return "Transaction{" +
                 "id=" + id +
-                ", readSet=" + readSet +
                 ", writeSet=" + writeSet +
                 ", isActive=" + isActive +
                 ", success=" + success +

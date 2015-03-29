@@ -7,7 +7,7 @@ import databaseOCC.Transaction;
  */
 public class TransactionFactory {
 
-    public enum type { TWOPL, OCC, OCC_MULTI }
+    public enum type { TWOPL, OCC, OCC_MULTI, SI }
 
     public static database.Transaction createTransaction(type t, Database db){
         switch (t){
@@ -17,6 +17,8 @@ public class TransactionFactory {
                 return new databaseOCC.Transaction(db);
             case OCC_MULTI:
                 return new databaseOCCMulti.Transaction(db);
+            case SI:
+                return new databaseSI.Transaction(db);
             default:
                 return null;
         }

@@ -23,7 +23,7 @@ public class ObjectMultiVersionDB<K,V> implements ObjectVersionDB<K,V>{
     RwLock lock;
 
 
-    ObjectMultiVersionDB(){
+    public ObjectMultiVersionDB(){
         objects = new LinkedList<>();
         lock = new RwLock();
         last_version = -1;
