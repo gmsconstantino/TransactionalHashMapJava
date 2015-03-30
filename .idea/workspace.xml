@@ -7,28 +7,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b342a00b-805f-4a85-8ebc-7140dedae6a4" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/database/ObjectLockDb.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/databaseOCC/ObjectVersionLockDB.java" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/database2PL/ObjectDbImpl.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/databaseOCC/ObjectVersionDB.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/databaseOCC/ObjectVersionDBImpl.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/databaseOCCMulti/ObjectMultiVersionDB.java" afterPath="" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/database2PL/ObjectDbImpl.java" afterPath="$PROJECT_DIR$/src/database2PL/ObjectLockDbImpl.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/databaseOCC/ObjectVersionDBImpl.java" afterPath="$PROJECT_DIR$/src/databaseOCC/ObjectVersionLockDBImpl.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/databaseOCCMulti/ObjectMultiVersionDB.java" afterPath="$PROJECT_DIR$/src/databaseOCCMulti/ObjectMultiVersionLockDB.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/database2PL/BufferObjectDb.java" afterPath="$PROJECT_DIR$/src/database2PL/BufferObjectDb.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/databaseOCC/BufferObjectVersionDB.java" afterPath="$PROJECT_DIR$/src/databaseOCC/BufferObjectVersionDB.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/bindings/DctTxWrapper.java" afterPath="$PROJECT_DIR$/src/bindings/DctTxWrapper.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/databaseBlotter/ObjectBlotterDb.java" afterPath="$PROJECT_DIR$/src/databaseBlotter/ObjectBlotterDb.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/databaseBlotter/ObjectBlotterDbImpl.java" afterPath="$PROJECT_DIR$/src/databaseBlotter/ObjectBlotterDbImpl.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/database/ObjectDb.java" afterPath="$PROJECT_DIR$/src/database/ObjectDb.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/databaseOCCMulti/Pair.java" afterPath="$PROJECT_DIR$/src/databaseOCCMulti/Pair.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/database2PL/Transaction.java" afterPath="$PROJECT_DIR$/src/database2PL/Transaction.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/databaseBlotter/Transaction.java" afterPath="$PROJECT_DIR$/src/databaseBlotter/Transaction.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/databaseOCC/Transaction.java" afterPath="$PROJECT_DIR$/src/databaseOCC/Transaction.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/databaseOCCMulti/Transaction.java" afterPath="$PROJECT_DIR$/src/databaseOCCMulti/Transaction.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/databaseSI/Transaction.java" afterPath="$PROJECT_DIR$/src/databaseSI/Transaction.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/database/TransactionFactory.java" afterPath="$PROJECT_DIR$/src/database/TransactionFactory.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="TransactionalHashMapJava.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -73,8 +52,8 @@
       <file leaf-file-name="ObjectBlotterDbImpl.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/databaseBlotter/ObjectBlotterDbImpl.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="15" max-vertical-offset="1770">
-              <caret line="24" column="44" selection-start-line="24" selection-start-column="44" selection-end-line="24" selection-end-column="44" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="1036" max-vertical-offset="1770">
+              <caret line="24" column="61" selection-start-line="24" selection-start-column="61" selection-end-line="24" selection-end-column="61" />
               <folding>
                 <element signature="e#949#950#0" expanded="true" />
                 <element signature="e#985#986#0" expanded="true" />
@@ -90,11 +69,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Transaction.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="Transaction.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/databaseBlotter/Transaction.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="1096" max-vertical-offset="2490">
-              <caret line="59" column="13" selection-start-line="59" selection-start-column="13" selection-end-line="59" selection-end-column="13" />
+            <state vertical-scroll-proportion="1.8866906" vertical-offset="1051" max-vertical-offset="2490">
+              <caret line="148" column="57" selection-start-line="148" selection-start-column="57" selection-end-line="148" selection-end-column="57" />
               <folding>
                 <element signature="e#598#599#0" expanded="true" />
                 <element signature="e#623#624#0" expanded="true" />
@@ -103,11 +82,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="test7.txt" pinned="false" current-in-tab="true">
+      <file leaf-file-name="test7.txt" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/data/test7.txt">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.027075812" vertical-offset="0" max-vertical-offset="870">
-              <caret line="1" column="0" selection-start-line="1" selection-start-column="0" selection-end-line="48" selection-end-column="8" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="316" max-vertical-offset="870">
+              <caret line="31" column="0" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -477,6 +456,22 @@
     <property name="project.structure.side.proportion" value="0.2" />
     <property name="restartRequiresConfirmation" value="true" />
     <property name="aspect.path.notification.shown" value="true" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth0" value="98" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder0" value="0" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth1" value="100" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth2" value="103" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder2" value="2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth3" value="898" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder3" value="3" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth0" value="98" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder0" value="0" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth1" value="100" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth2" value="103" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder2" value="2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth3" value="898" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder3" value="3" />
   </component>
   <component name="RecentsManager">
     <key name="CreateTestDialog.RecentsKey">
@@ -898,17 +893,17 @@
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="160172000" />
+    <option name="totallyTimeSpent" value="160544000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="1680" height="960" extended-state="0" />
-    <editor active="true" />
+    <editor active="false" />
     <layout>
       <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32718894" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32718894" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32718894" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -925,7 +920,7 @@
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.24969475" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32949308" sideWeight="0.49959317" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32949308" sideWeight="0.49959317" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Documentation" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="FLOATING" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" x="100" y="123" width="1480" height="760" />
       <window_info id="Coverage" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32967034" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="3" side_tool="false" content_ui="combo" />
@@ -1473,10 +1468,18 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/data/test7.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="316" max-vertical-offset="870">
+          <caret line="31" column="0" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/databaseBlotter/ObjectBlotterDbImpl.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="15" max-vertical-offset="1770">
-          <caret line="24" column="44" selection-start-line="24" selection-start-column="44" selection-end-line="24" selection-end-column="44" />
+        <state vertical-scroll-proportion="0.0" vertical-offset="1036" max-vertical-offset="1770">
+          <caret line="24" column="61" selection-start-line="24" selection-start-column="61" selection-end-line="24" selection-end-column="61" />
           <folding>
             <element signature="e#949#950#0" expanded="true" />
             <element signature="e#985#986#0" expanded="true" />
@@ -1493,20 +1496,12 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/databaseBlotter/Transaction.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="1096" max-vertical-offset="2490">
-          <caret line="59" column="13" selection-start-line="59" selection-start-column="13" selection-end-line="59" selection-end-column="13" />
+        <state vertical-scroll-proportion="1.8866906" vertical-offset="1051" max-vertical-offset="2490">
+          <caret line="148" column="57" selection-start-line="148" selection-start-column="57" selection-end-line="148" selection-end-column="57" />
           <folding>
             <element signature="e#598#599#0" expanded="true" />
             <element signature="e#623#624#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/data/test7.txt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.027075812" vertical-offset="0" max-vertical-offset="870">
-          <caret line="1" column="0" selection-start-line="1" selection-start-column="0" selection-end-line="48" selection-end-column="8" />
-          <folding />
         </state>
       </provider>
     </entry>
