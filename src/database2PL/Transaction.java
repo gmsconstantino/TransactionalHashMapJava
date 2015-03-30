@@ -13,7 +13,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
     protected Set<K> readSet;
 
     // Write set guarda o valor antigo que estava antes da transacao
-    protected Map<K, ObjectDb<K,V>> writeSet;
+    protected Map<K, ObjectLockDb<K,V>> writeSet;
 
     public Transaction(Database db) {
         super(db);
@@ -36,7 +36,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         }
 
         // Passa a ser um objecto do tipo ObjectDbImpl
-        ObjectDb<?,?> obj = getKeyDatabase(key);
+        ObjectLockDb<?,?> obj = (ObjectLockDb) getKeyDatabase(key);
 
         if (obj == null)
             return null;
@@ -55,13 +55,13 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         if (!isActive)
             return null;
 
-        ObjectDb<K,V> obj = getObjectFromWriteBuffer(key);
+        ObjectLockDb<K,V> obj = getObjectFromWriteBuffer(key);
         if (obj != null){
             return obj.getValue();
         }
 
         // Passa a ser um objecto do tipo ObjectDbImpl
-        obj = getKeyDatabase(key);
+        obj = (ObjectLockDb) getKeyDatabase(key);
 
         if (obj == null)
             return null;
@@ -81,19 +81,19 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return;
 
         // Se esta na cache é pq ja tenho o write lock do objecto
-        ObjectDb<K,V> obj = getObjectFromWriteBuffer(key);
+        ObjectLockDb<K,V> obj = getObjectFromWriteBuffer(key);
         if (obj != null){
             obj.setValue(value);
             return;
         }
 
         // Search
-        obj = getKeyDatabase(key); // Passa a ser um objecto do tipo ObjectDbImpl
+        obj = (ObjectLockDb) getKeyDatabase(key); // Passa a ser um objecto do tipo ObjectDbImpl
 
         if(obj == null){
-            obj = new ObjectDbImpl<K,V>(value); // A thread fica com o write lock
+            obj = new ObjectLockDbImpl<K,V>(value); // A thread fica com o write lock
 
-            ObjectDb<K,V> map_obj = putIfAbsent(key, obj);
+            ObjectLockDb<K,V> map_obj = (ObjectLockDb) putIfAbsent(key, obj);
             obj = map_obj!=null? map_obj : obj;
 
             addObjectDbToWriteBuffer(key, obj);
@@ -117,9 +117,9 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
 
         commitId = Database.timestamp.getAndIncrement();
 
-        Set<Map.Entry<K,ObjectDb<K,V>>> entrySet =  writeSet.entrySet();
-        for (Map.Entry<K,ObjectDb<K,V>> obj : entrySet){
-            ObjectDb objectDb = obj.getValue();
+        Set<Map.Entry<K, ObjectLockDb<K,V>>> entrySet =  writeSet.entrySet();
+        for (Map.Entry<K, ObjectLockDb<K,V>> obj : entrySet){
+            ObjectLockDb objectDb = obj.getValue();
             objectDb.setOld();
         }
 
@@ -133,14 +133,14 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
     @Override
     public void abort() {
         // Cleanup
-        Set<Map.Entry<K,ObjectDb<K,V>>> entrySet =  writeSet.entrySet();
-        for (Map.Entry<K,ObjectDb<K,V>> obj : entrySet){
-            ObjectDb objectDb = obj.getValue();
+        Set<Map.Entry<K, ObjectLockDb<K,V>>> entrySet =  writeSet.entrySet();
+        for (Map.Entry<K, ObjectLockDb<K,V>> obj : entrySet){
+            ObjectLockDb objectDb = obj.getValue();
             if (objectDb.isNew()){
                 removeKey(obj.getKey());
                 readSet.remove(obj.getKey());
             } else {
-                objectDb.getObjectDb().setValue(objectDb.getValue());
+                ((ObjectLockDb) objectDb.getObjectDb()).setValue(objectDb.getValue());
             }
         }
 
@@ -153,11 +153,11 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         Iterator<K> it_keys = readSet.iterator();
         while (it_keys.hasNext()) {
             K key = it_keys.next();
-            ObjectDb objectDb = getKeyDatabase(key);
+            ObjectLockDb objectDb = (ObjectLockDb) getKeyDatabase(key);
             objectDb.unlock_read();
         }
 
-        for (ObjectDb objectDb : writeSet.values()) {
+        for (ObjectLockDb objectDb : writeSet.values()) {
             objectDb.unlock_write();
         }
     }
@@ -166,12 +166,12 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         readSet.add(key);
     }
 
-    void addObjectDbToWriteBuffer(K key, ObjectDb obj){
+    void addObjectDbToWriteBuffer(K key, ObjectLockDb obj){
         writeSet.put(key, obj);
     }
 
-    ObjectDb<K,V> getObjectFromWriteBuffer(K key){
-        return (writeSet.get(key)!=null) ? writeSet.get(key).getObjectDb() : null;
+    ObjectLockDb<K,V> getObjectFromWriteBuffer(K key){
+        return (ObjectLockDb) ((writeSet.get(key)!=null) ? writeSet.get(key).getObjectDb() : null);
     }
 
     @Override

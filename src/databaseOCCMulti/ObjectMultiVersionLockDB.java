@@ -1,29 +1,24 @@
 package databaseOCCMulti;
 
-import database.ObjectDb;
-import database2PL.Config;
-import databaseOCC.ObjectVersionDB;
-import databaseOCC.ObjectVersionDBImpl;
+import database.ObjectLockDb;
+import databaseOCC.ObjectVersionLockDB;
+import databaseOCC.ObjectVersionLockDBImpl;
 import structures.RwLock;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Created by gomes on 23/03/15.
  */
-public class ObjectMultiVersionDB<K,V> implements ObjectVersionDB<K,V>{
+public class ObjectMultiVersionLockDB<K,V> implements ObjectVersionLockDB<K,V> {
 
     long last_version;
-    LinkedList<Pair<Long, ObjectVersionDB<K,V>>> objects;
+    LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>> objects;
     RwLock lock;
 
 
-    public ObjectMultiVersionDB(){
+    public ObjectMultiVersionLockDB(){
         objects = new LinkedList<>();
         lock = new RwLock();
         last_version = -1;
@@ -35,7 +30,7 @@ public class ObjectMultiVersionDB<K,V> implements ObjectVersionDB<K,V>{
     }
 
     public V getValueVersionLess(long startTime) {
-        for(Pair<Long, ObjectVersionDB<K,V>> pair : objects){
+        for(Pair<Long, ObjectVersionLockDB<K,V>> pair : objects){
             if(pair.f <= startTime){
                 return pair.s.getValue();
             }
@@ -45,7 +40,7 @@ public class ObjectMultiVersionDB<K,V> implements ObjectVersionDB<K,V>{
 
     public void addNewVersionObject(Long version, V value){
         last_version = version;
-        ObjectVersionDBImpl<K,V> obj = new ObjectVersionDBImpl<K,V>(value);
+        ObjectVersionLockDBImpl<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
         objects.addFirst(new Pair(version, obj));
         obj.unlock_write();
     }
@@ -63,7 +58,7 @@ public class ObjectMultiVersionDB<K,V> implements ObjectVersionDB<K,V>{
     }
 
     @Override
-    public ObjectDb getObjectDb() {
+    public ObjectLockDb getObjectDb() {
         return this;
     }
 

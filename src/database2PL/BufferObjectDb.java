@@ -1,13 +1,14 @@
 package database2PL;
 
 import database.ObjectDb;
+import database.ObjectLockDb;
 
 import java.util.concurrent.TimeUnit;
 
 /**
  * Created by gomes on 28/02/15.
  */
-public class BufferObjectDb<K,V> implements ObjectDb<K,V> {
+public class BufferObjectDb<K,V> implements ObjectLockDb<K,V> {
 
     K key;
     V value;

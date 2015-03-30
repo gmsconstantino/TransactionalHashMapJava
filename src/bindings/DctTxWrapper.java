@@ -13,7 +13,7 @@ import pt.dct.cli.Tx;
  */
 public class DctTxWrapper implements Tx {
 
-    static final TransactionFactory.type TYPE = TransactionFactory.type.SI;
+    static final TransactionFactory.type TYPE = TransactionFactory.type.BLOTTER;
 
     protected Database<String,Integer> db;
     protected Transaction<String,Integer> tx;

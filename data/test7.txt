@@ -1,0 +1,52 @@
+# Example paper blotter
+start 1
+begin
+# X
+write 100 5
+# Y
+write 110 8
+# W
+write 111 12
+commit
+
+# t
+start 2
+begin
+read 100
+
+# tr
+start 3
+begin
+read 100
+
+# tn
+start 4
+begin
+write 100 8
+write 110 10
+commit
+
+switch 2
+# read value 8
+read 110
+
+# to
+start 5
+begin
+read 110
+write 111 15
+commit
+
+switch 3
+read 110
+write 110 30
+commit
+
+switch 2
+read 111
+commit
+
+switch 3
+commit
+
+exit

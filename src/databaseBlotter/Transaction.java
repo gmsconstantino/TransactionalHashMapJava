@@ -1,10 +1,11 @@
 package databaseBlotter;
 
 import database.*;
+import database2PL.BufferObjectDb;
 import database2PL.Config;
 import databaseOCC.BufferObjectVersionDB;
-import databaseOCC.ObjectVersionDB;
-import databaseOCCMulti.ObjectMultiVersionDB;
+import databaseOCC.ObjectVersionLockDB;
+import databaseOCCMulti.Pair;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,10 +18,10 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
 
     static AtomicInteger identifier = new AtomicInteger(0);
 
-    protected Map<K, ObjectVersionDB<K,V>> writeSet;
+    Set<Long> aggStarted;
+    protected Map<K, BufferObjectDb<K,V>> writeSet;
 
     private long id;
-    private long commitTime;
 
     public Transaction(Database db) {
         super(db);
@@ -28,7 +29,8 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
 
     protected synchronized void init(){
         super.init();
-        writeSet = new HashMap<K, ObjectVersionDB<K,V>>();
+        aggStarted = new HashSet<>();
+        writeSet = new HashMap<K, BufferObjectDb<K,V>>();
         id = Transaction.identifier.get();
     }
 
@@ -41,22 +43,18 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return (V) writeSet.get(key).getValue();
         }
 
-        V returnValue = null;
-
-        ObjectMultiVersionDB<K,V> obj = (ObjectMultiVersionDB) getKeyDatabase(key);
-        if (obj == null || obj.getVersion() == -1)
+        ObjectBlotterDb<K,V> obj = (ObjectBlotterDb) getKeyDatabase(key);
+        if (obj == null || obj.getLastVersion() == -1)
             return null;
 
-        if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            returnValue = obj.getValueVersionLess(id);
-        } else {
-            obj.unlock_read();
-            abort();
-            throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
+        Pair<V,List<Long>> r = obj.getValueTransaction(id);
+
+        if (r!=null) {
+            aggStarted.addAll(r.s);
+            return r.f;
         }
 
-        obj.unlock_read();
-        return returnValue;
+        return null;
     }
 
     @Override
@@ -70,37 +68,24 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return;
 
         if(writeSet.containsKey(key)){
-            ObjectDb<K,V> objectDb = writeSet.get(key);
+            BufferObjectDb<K,V> objectDb = writeSet.get(key);
             objectDb.setValue(value);
             return;
         }
 
-        ObjectMultiVersionDB<K,V> obj = (ObjectMultiVersionDB) getKeyDatabase(key);
+        ObjectBlotterDb<K,V> obj = (ObjectBlotterDb) getKeyDatabase(key);
         //Nao existe nenhuma
         if (obj == null) {
-            obj = new ObjectMultiVersionDB<>(); // A thread fica com o write lock
-            ObjectMultiVersionDB<K,V> objdb = (ObjectMultiVersionDB) putIfAbsent(key, obj);
-            obj.unlock_write();
+            obj = new ObjectBlotterDbImpl<>(); // A thread fica com o write lock
+            ObjectBlotterDbImpl<K,V> objdb = (ObjectBlotterDbImpl) putIfAbsent(key, obj);
 
             if (objdb != null)
                 obj = objdb;
-
-            ObjectVersionDB<K,V> buffer = new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, true); // isNew = true
-            buffer.setValue(value);
-            addObjectDbToWriteBuffer(key, buffer);
-            return;
         }
 
-        // o objecto esta na base de dados
-        if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            ObjectVersionDB<K,V> buffer = new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false);
-            buffer.setValue(value);
-            addObjectDbToWriteBuffer(key, buffer);
-            obj.unlock_read();
-        } else {
-            abort();
-            throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
-        }
+        BufferObjectDb<K,V> buffer = new BufferObjectDb(value ,obj);
+        buffer.setValue(value);
+        addObjectDbToWriteBuffer(key, buffer);
     }
 
     @Override
@@ -114,58 +99,49 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return true;
         }
 
-        Set<ObjectDb<K,V>> lockObjects = new HashSet<>();
+        Set<ObjectBlotterDbImpl<K,V>> lockObjects = new HashSet<>();
 
-        for (ObjectVersionDB<K,V> buffer : writeSet.values()){
-            ObjectVersionDB<K,V> objectDb = (ObjectVersionDB) buffer.getObjectDb();
-            if(objectDb.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
+        for (BufferObjectDb<K, V> buffer : writeSet.values()) {
+            ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
+
+            if (objectDb.preWrite(id, buffer.getValue())) {
                 lockObjects.add(objectDb);
-
-                // buffer.version == objectDb.last_version
-                if (objectDb.getVersion() < id) {
-                    continue;
-                } else {
-                    abortVersions(lockObjects);
-                    return false;
-                }
             } else {
-                abortTimeout(lockObjects);
-                return false;
+                abortVersions(lockObjects);
             }
         }
 
-
         commitId = Transaction.identifier.getAndIncrement();
+
         // Escrita
         for (ObjectDb<K,V> buffer : writeSet.values()){
-            ObjectMultiVersionDB<K,V> objectDb = (ObjectMultiVersionDB) buffer.getObjectDb();
-            objectDb.addNewVersionObject(commitId, buffer.getValue());
+            ObjectBlotterDbImpl<K,V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
+            aggStarted.addAll(objectDb.snapshots.keySet());
         }
 
-        unlockWrite_objects(lockObjects);
+        for (ObjectDb<K,V> buffer : writeSet.values()) {
+            ObjectBlotterDbImpl<K,V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
+            objectDb.write(aggStarted);
+        }
+
+            unlockWrite_objects(lockObjects);
 
         isActive = false;
         success = true;
         return true;
     }
 
-    private void abortTimeout(Set<ObjectDb<K,V>> lockObjects) throws TransactionTimeoutException{
-        unlockWrite_objects(lockObjects);
-        abort();
-        throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - commit");
-    }
-
-    private void abortVersions(Set<ObjectDb<K,V>> lockObjects) throws TransactionTimeoutException{
+    private void abortVersions(Set<ObjectBlotterDbImpl<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
         throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
     }
 
-    private void unlockWrite_objects(Set<ObjectDb<K,V>> set){
-        Iterator<ObjectDb<K,V>> it_locks = set.iterator();
+    private void unlockWrite_objects(Set<ObjectBlotterDbImpl<K,V>> set){
+        Iterator<ObjectBlotterDbImpl<K,V>> it_locks = set.iterator();
         while (it_locks.hasNext()) {
-            ObjectDb<K,V> objectDb = it_locks.next();
-            objectDb.unlock_write();
+            ObjectBlotterDbImpl<K,V> objectDb = it_locks.next();
+            objectDb.unPreWrite();
         }
     }
 
@@ -176,7 +152,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         commitId = -1;
     }
 
-    void addObjectDbToWriteBuffer(K key, ObjectVersionDB objectDb){
+    private void addObjectDbToWriteBuffer(K key, BufferObjectDb objectDb){
         writeSet.put(key, objectDb);
     }
 

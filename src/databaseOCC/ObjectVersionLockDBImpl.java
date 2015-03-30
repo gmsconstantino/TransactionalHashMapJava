@@ -1,6 +1,6 @@
-package database2PL;
+package databaseOCC;
 
-import database.ObjectDb;
+import database.ObjectLockDb;
 import structures.RwLock;
 
 import java.util.concurrent.TimeUnit;
@@ -8,17 +8,19 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by gomes on 26/02/15.
  */
-public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
+public class ObjectVersionLockDBImpl<K,V> implements ObjectVersionLockDB<K,V> {
 
     V value;
+    long version;
 
     private boolean isNew;
     private RwLock rwlock;
 
-    ObjectDbImpl(V value){
+    public ObjectVersionLockDBImpl(V value){
         rwlock = new RwLock();
         rwlock.lock_write();
 
+        version = ObjectLockDb.timestamp.getAndIncrement();
         isNew = true;
         this.value = value;
     }
@@ -34,16 +36,6 @@ public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
     public boolean try_lock_read_for(long time, TimeUnit unit){
         return rwlock.try_lock_read_for(time, unit);
     }
-
-//    public boolean upgrade_lock() throws IllegalMonitorStateException {
-//        if (rwlock.lock.getWriteHoldCount()>0){
-//            return true;
-//        } else if(rwlock.lock.getReadHoldCount() > 0){
-//            return rwlock.upgrade_lock();
-//        } else {
-//            throw new IllegalMonitorStateException();
-//        }
-//    }
 
     public synchronized void unlock_read() throws IllegalMonitorStateException {
         rwlock.unlock_read();
@@ -63,21 +55,12 @@ public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
         isNew = false;
     }
 
-//    @Override
-//    public String toString() {
-//        return "ObjectDbImpl{" +
-//                "value=" + value +
-//                ", isNew=" + isNew +
-//                '}';
-//    }
-
-
     @Override
     public String toString() {
         return "ObjectDbImpl{" +
                 "value=" + value +
+                ", version=" + version +
                 ", isNew=" + isNew +
-                ", rwlock=" + rwlock +
                 '}';
     }
 
@@ -87,12 +70,18 @@ public class ObjectDbImpl<K,V> implements ObjectDb<K,V> {
     }
 
     @Override
-    public void setValue(V value) {
-        this.value = value;
+    public long getVersion() {
+        return version;
     }
 
     @Override
-    public ObjectDb getObjectDb() {
+    public void setValue(V value) {
+        this.value = value;
+        version = ObjectLockDb.timestamp.getAndIncrement();
+    }
+
+    @Override
+    public ObjectLockDb getObjectDb() {
         return this;
     }
 }

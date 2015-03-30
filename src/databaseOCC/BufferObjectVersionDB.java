@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by gomes on 28/02/15.
  */
-public class BufferObjectVersionDB<K,V> implements ObjectVersionDB<K,V> {
+public class BufferObjectVersionDB<K,V> implements ObjectVersionLockDB<K,V> {
 
     K key;
     V value;
@@ -57,7 +57,6 @@ public class BufferObjectVersionDB<K,V> implements ObjectVersionDB<K,V> {
         return version;
     }
 
-    @Override
     public ObjectDb getObjectDb(){
         return objectDb;
     }
