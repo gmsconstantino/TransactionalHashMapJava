@@ -5,20 +5,28 @@ import databaseOCCMulti.Pair;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by gomes on 29/03/15.
  */
 public interface ObjectBlotterDb<K,V> extends ObjectDb<K,V> {
 
-    public Pair<V,List<Long>> getValueTransaction(long id);
+    public Long getVersionForTransaction(long id);
 
-    public boolean preWrite(long id, V value);
+    public Pair<V,List<Long>> getValueVersion(long version);
 
-    public void unPreWrite();
-
-    public void write(Set<Long> agg);
+    public void setValue(V value);
 
     public Long getLastVersion();
 
+    public Long incrementAndGetVersion();
+
+    public void lock();
+
+    public boolean tryLock(long timeout, TimeUnit unit);
+
+    public void unlock();
+
+    void putSnapshot(long id, Long v);
 }

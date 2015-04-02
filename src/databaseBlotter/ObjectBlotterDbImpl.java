@@ -9,49 +9,77 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by gomes on 23/03/15.
  */
 public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
 
-    public AtomicInteger prewrite;
-    public V nextValue;
-
     AtomicLong version;
 
     LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>> objects;
     ConcurrentHashMap<Long, Long> snapshots; //Devia ter ttl
 
+    ReentrantLock lock;
+
     public ObjectBlotterDbImpl(){
-        prewrite = new AtomicInteger(0);
         version = new AtomicLong(-1L);
 
         objects = new LinkedList<>();
         snapshots = new ConcurrentHashMap<>();
+
+        lock = new ReentrantLock();
     }
 
+    @Override
     public Long getLastVersion() {
         return version.get();
     }
 
-    public Pair<V,List<Long>> getValueTransaction(long id) {
-        Long lVersion = snapshots.get(id);
+    @Override
+    public Long incrementAndGetVersion() {
+        return version.incrementAndGet();
+    }
 
-        if (lVersion==null){
-            while (!prewrite.compareAndSet(0,1)){}
-            snapshots.put(id, version.get());
-            lVersion = version.get();
-            prewrite.set(0);
+    @Override
+    public void lock() {
+        lock.lock();
+    }
+
+    @Override
+    public boolean tryLock(long timeout, TimeUnit unit) {
+        try {
+            return lock.tryLock(timeout, unit);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
         }
+    }
 
+    @Override
+    public void unlock() {
+        lock.unlock();
+    }
+
+    @Override
+    public void putSnapshot(long id, Long v) {
+        snapshots.put(id,v);
+    }
+
+    public Long getVersionForTransaction(long id){
+        return snapshots.get(id);
+    }
+
+    public Pair<V,List<Long>> getValueVersion(long version) {
         Pair<V,List<Long>> p = new Pair<V,List<Long>>();
         p.s = new LinkedList<>();
 
         for(Pair<Long, ObjectVersionLockDB<K,V>> pair : objects){
-            if(p.f==null && pair.f <= lVersion){
+            if(p.f==null && pair.f <= version){
                 p.f = pair.s.getValue();
                 break;
             }
@@ -59,7 +87,7 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
 
         if (p.f != null){
             for (Long tid : snapshots.keySet()){
-                if (snapshots.get(tid) < lVersion)
+                if (snapshots.get(tid) < version)
                     p.s.add(tid);
             }
             return p;
@@ -68,38 +96,16 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
         return null;
     }
 
+    /**
+     * Add object with value and increment the version
+     * @param value
+     */
     @Override
-    public boolean preWrite(long id, V value) {
-
-        while (!prewrite.compareAndSet(0,1)){}
-
-        if(snapshots.get(id) != null && snapshots.get(id) < version.get()){
-            prewrite.set(0);
-            return false;
-        }
-
-        nextValue = value;
-        return true;
-    }
-
-    @Override
-    public void unPreWrite() {
-        prewrite.set(0);
-    }
-
-    @Override
-    public void write(Set<Long> agg) {
-
-        for (Long tid : agg){
-            if (!snapshots.contains(tid))
-                snapshots.put(tid, version.get());
-        }
-
-        Long v = version.incrementAndGet();
-
-        ObjectVersionLockDBImpl<K,V> obj = new ObjectVersionLockDBImpl<K,V>(nextValue);
-        objects.addFirst(new Pair(v, obj));
+    public void setValue(V value) {
+        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<>(value);
+        objects.addFirst(new Pair(version.incrementAndGet(), obj));
         obj.unlock_write();
+
     }
 
     @Override

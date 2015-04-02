@@ -5,6 +5,7 @@ import database2PL.BufferObjectDb;
 import database2PL.Config;
 import databaseOCC.BufferObjectVersionDB;
 import databaseOCC.ObjectVersionLockDB;
+import databaseOCC.ObjectVersionLockDBImpl;
 import databaseOCCMulti.Pair;
 
 import java.util.*;
@@ -47,8 +48,16 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         if (obj == null || obj.getLastVersion() == -1)
             return null;
 
-        Pair<V,List<Long>> r = obj.getValueTransaction(id);
+        Long v = obj.getVersionForTransaction(id);
 
+        if (v==null){
+            obj.lock();
+            v = obj.getLastVersion();
+            obj.putSnapshot(id, v);
+            obj.unlock();
+        }
+
+        Pair<V,List<Long>> r = obj.getValueVersion(v);
         if (r!=null) {
             aggStarted.addAll(r.s);
             return r.f;
@@ -104,27 +113,35 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
             ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
 
-            if (objectDb.preWrite(id, buffer.getValue())) {
+            if (objectDb.tryLock(Config.TIMEOUT,Config.TIMEOUT_UNIT)) {
                 lockObjects.add(objectDb);
+
+                Long v = objectDb.getVersionForTransaction(id);
+                if(v != null && v < objectDb.getLastVersion()){
+                    abortVersions(lockObjects);
+                    return false;
+                } else {
+                    // Line 22
+                    aggStarted.addAll(objectDb.snapshots.keySet());
+                }
             } else {
                 abortVersions(lockObjects);
             }
         }
 
-        commitId = Transaction.identifier.getAndIncrement();
 
-        // Escrita
-        for (ObjectDb<K,V> buffer : writeSet.values()){
-            ObjectBlotterDbImpl<K,V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
-            aggStarted.addAll(objectDb.snapshots.keySet());
+        for (BufferObjectDb<K, V> buffer : writeSet.values()) {
+            ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
+
+            for (Long tid : aggStarted){
+                if (!objectDb.snapshots.contains(tid))
+                    objectDb.putSnapshot(tid, objectDb.getLastVersion());
+            }
+
+            objectDb.setValue(buffer.getValue());
         }
 
-        for (ObjectDb<K,V> buffer : writeSet.values()) {
-            ObjectBlotterDbImpl<K,V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
-            objectDb.write(aggStarted);
-        }
-
-            unlockWrite_objects(lockObjects);
+        unlockWrite_objects(lockObjects);
 
         isActive = false;
         success = true;
@@ -141,7 +158,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         Iterator<ObjectBlotterDbImpl<K,V>> it_locks = set.iterator();
         while (it_locks.hasNext()) {
             ObjectBlotterDbImpl<K,V> objectDb = it_locks.next();
-            objectDb.unPreWrite();
+            objectDb.unlock();
         }
     }
 
