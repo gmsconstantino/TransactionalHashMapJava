@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Transaction<K,V> extends database.Transaction<K,V> {
 
-    static AtomicInteger identifier = new AtomicInteger(0);
+    static AtomicInteger identifier = new AtomicInteger(-1);
 
     Set<Long> aggStarted;
     protected Map<K, BufferObjectDb<K,V>> writeSet;
@@ -32,7 +32,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         super.init();
         aggStarted = new HashSet<>();
         writeSet = new HashMap<K, BufferObjectDb<K,V>>();
-        id = Transaction.identifier.get();
+        id = Transaction.identifier.incrementAndGet();
     }
 
     @Override

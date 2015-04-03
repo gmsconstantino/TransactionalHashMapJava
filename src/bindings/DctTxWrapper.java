@@ -1,9 +1,6 @@
 package bindings;
 
-import database.Database;
-import database.Transaction;
-import database.TransactionFactory;
-import database.TransactionTimeoutException;
+import database.*;
 import pt.dct.cli.AbortException;
 import pt.dct.cli.KeyNotFoundException;
 import pt.dct.cli.Tx;
@@ -27,7 +24,15 @@ public class DctTxWrapper implements Tx {
 
     @Override
     public boolean commit() {
-        return tx.commit();
+        boolean b = false;
+        try {
+            b = tx.commit();
+        } catch (TransactionTimeoutException e){
+
+        } catch (TransactionAbortException e){
+
+        }
+        return b;
     }
 
     @Override

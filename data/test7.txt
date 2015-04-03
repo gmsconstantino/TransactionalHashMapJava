@@ -46,7 +46,4 @@ switch 2
 read 111
 commit
 
-switch 3
-commit
-
 exit
