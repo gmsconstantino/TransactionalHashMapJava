@@ -13,8 +13,8 @@ public class DTx {
 	public int wmin;
 	public int wmax;
 	
-	public List<P<DObject,Object>> readSet = new ArrayList<>();
-	public List<DObject> undoLog = new ArrayList<>();
+	public List<P<DObject,Object>> readSet = new ArrayList<P<DObject,Object>>();
+	public List<DObject> undoLog = new ArrayList<DObject>();
 	
 	public int txId;
 	

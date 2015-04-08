@@ -6,7 +6,7 @@ import pt.dct.DTxBody;
 
 public class Counter {
 	
-	private DObject<Integer> counter = new DObject<>(0);
+	private DObject<Integer> counter = new DObject<Integer>(0);
 	
 	public void inc() {
 		DTx.runTx(new DTxBody<Void>() {

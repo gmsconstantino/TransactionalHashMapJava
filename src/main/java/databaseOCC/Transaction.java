@@ -110,7 +110,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         if(!isActive)
             return success;
 
-        Set<ObjectLockDb<K,V>> lockObjects = new HashSet<>();
+        Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
         for (ObjectVersionLockDB<K,V> buffer : writeSet.values()){
             ObjectVersionLockDB<K,V> objectDb = (ObjectVersionLockDB) buffer.getObjectDb();

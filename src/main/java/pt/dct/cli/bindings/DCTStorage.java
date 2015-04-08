@@ -13,7 +13,7 @@ public class DCTStorage implements TxStorage {
 	
 	@Override
 	public void init() {
-		store = new HashMap<>();
+		store = new HashMap<String,DObject<Integer>>();
 	}
 
 	@Override

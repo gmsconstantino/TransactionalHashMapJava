@@ -86,7 +86,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         ObjectMultiVersionLockDB<K,V> obj = (ObjectMultiVersionLockDB) getKeyDatabase(key);
         //Nao existe nenhuma
         if (obj == null) {
-            obj = new ObjectMultiVersionLockDB<>(); // A thread fica com o write lock
+            obj = new ObjectMultiVersionLockDB<K,V>(); // A thread fica com o write lock
             ObjectMultiVersionLockDB<K,V> objdb = (ObjectMultiVersionLockDB) putIfAbsent(key, obj);
             obj.unlock_write();
 
@@ -122,7 +122,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return true;
         }
 
-        Set<ObjectLockDb<K,V>> lockObjects = new HashSet<>();
+        Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
         for (ObjectVersionLockDB<K,V> buffer : writeSet.values()){
             ObjectVersionLockDB<K,V> objectDb = (ObjectVersionLockDB) buffer.getObjectDb();

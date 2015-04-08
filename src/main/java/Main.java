@@ -46,7 +46,7 @@ public class Main {
     }
 
     public static boolean finish = false;
-    public static Map<String,ClientThread> clientThreads = new HashMap<>();
+    public static Map<String,ClientThread> clientThreads = new HashMap<String,ClientThread>();
     public static ClientThread currentThread = null;
 
     public static TxStorage storage = new DctStorage();
@@ -76,16 +76,24 @@ public class Main {
     }
 
     public static void execCommand(String[] tokens) {
-        switch (tokens[0].toLowerCase()) {
-            case EXIT_CMD: exitCmd(); break;
-            case START_THREAD_CMD: startThreadCmd(tokens); break;
-            case SWITCH_TO_CMD: switchToCmd(tokens); break;
-            case STATUS_CMD: statusCmd(); break;
-            case THREAD_CMD: threadCmd(tokens); break;
-            case BEGIN_CMD: beginCmd(); break;
-            case COMMIT_CMD: commitCmd(); break;
-            case READ_CMD: readCmd(tokens); break;
-            case WRITE_CMD: writeCmd(tokens); break;
+        if (tokens[0].toLowerCase().equals(EXIT_CMD)){
+            exitCmd();
+        } else if (tokens[0].toLowerCase().equals(START_THREAD_CMD)){
+            startThreadCmd(tokens);
+        } else if (tokens[0].toLowerCase().equals(SWITCH_TO_CMD)){
+            switchToCmd(tokens);
+        } else if (tokens[0].toLowerCase().equals(STATUS_CMD)){
+            statusCmd();
+        } else if (tokens[0].toLowerCase().equals(THREAD_CMD)){
+            threadCmd(tokens);
+        } else if (tokens[0].toLowerCase().equals(BEGIN_CMD)){
+            beginCmd();
+        } else if (tokens[0].toLowerCase().equals(COMMIT_CMD)){
+            commitCmd();
+        } else if (tokens[0].toLowerCase().equals(READ_CMD)){
+            readCmd(tokens);
+        } else if (tokens[0].toLowerCase().equals(WRITE_CMD)){
+            writeCmd(tokens);
         }
     }
 

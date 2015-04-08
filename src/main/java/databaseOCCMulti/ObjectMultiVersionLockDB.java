@@ -19,7 +19,7 @@ public class ObjectMultiVersionLockDB<K,V> implements ObjectVersionLockDB<K,V> {
 
 
     public ObjectMultiVersionLockDB(){
-        objects = new LinkedList<>();
+        objects = new LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>>();
         lock = new RwLock();
         last_version = -1;
         lock.lock_write();

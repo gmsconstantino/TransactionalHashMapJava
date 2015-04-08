@@ -294,7 +294,7 @@ public class TestDatabaseOCC {
         }
     }
 
-    @org.junit.Test
+//    @org.junit.Test
     public void testThreadPut() throws Exception {
 
         final Integer[] v2 = new Integer[6];

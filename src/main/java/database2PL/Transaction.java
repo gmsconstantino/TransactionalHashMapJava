@@ -23,7 +23,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         super.init();
 
         readSet = new HashSet<K>();
-        writeSet = new HashMap<>();
+        writeSet = new HashMap<K, ObjectLockDb<K,V>>();
     }
 
     @Override
