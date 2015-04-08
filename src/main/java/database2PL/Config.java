@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class Config {
 
-    public static final long TIMEOUT = 200;
+    public static final long TIMEOUT = 1000;
     public static final TimeUnit TIMEOUT_UNIT = TimeUnit.MICROSECONDS;
     
 

@@ -4,6 +4,7 @@ import database.ObjectDb;
 import databaseOCCMulti.Pair;
 
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -14,7 +15,7 @@ public interface ObjectBlotterDb<K,V> extends ObjectDb<K,V> {
 
     public Long getVersionForTransaction(long id);
 
-    public Pair<V,List<Long>> getValueVersion(long version);
+    public Pair<V,ListIterator<Long>> getValueVersion(long version);
 
     public void setValue(V value);
 
@@ -22,11 +23,14 @@ public interface ObjectBlotterDb<K,V> extends ObjectDb<K,V> {
 
     public Long incrementAndGetVersion();
 
-    public void lock();
+    public void lock_read();
+    public void lock_write();
 
-    public boolean tryLock(long timeout, TimeUnit unit);
+    public boolean try_lock_write_for(long time, TimeUnit unit);
+    public boolean try_lock_read_for(long time, TimeUnit unit);
 
-    public void unlock();
+    public void unlock_read();
+    public void unlock_write();
 
     void putSnapshot(long id, Long v);
 }

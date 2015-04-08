@@ -7,6 +7,8 @@ import databaseOCC.BufferObjectVersionDB;
 import databaseOCC.ObjectVersionLockDB;
 import databaseOCC.ObjectVersionLockDBImpl;
 import databaseOCCMulti.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Transaction<K,V> extends database.Transaction<K,V> {
 
 
-
+    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
     static AtomicInteger identifier = new AtomicInteger(-1);
 
     Set<Long> aggStarted;
@@ -52,22 +54,25 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
 
         Long v = obj.getVersionForTransaction(id);
         if (v==null){
-            obj.lock();
-            v = obj.getVersionForTransaction(id);
-            if(v==null){
-                v = obj.getLastVersion();
-                obj.putSnapshot(id, v);
-            }
-            obj.unlock();
+            obj.lock_write();
+                v = obj.getVersionForTransaction(id);
+                if(v==null){
+                    v = obj.getLastVersion();
+                    obj.putSnapshot(id, v);
+                }
+            obj.unlock_write();
         }
 
-        Pair<V,List<Long>> r = obj.getValueVersion(v);
-        if (r!=null) {
-            aggStarted.addAll(r.s);
-            return r.f;
-        }
+        obj.lock_read();
 
-        return null;
+        Pair<V,ListIterator<Long>> r = obj.getValueVersion(v);
+        assert  (r!=null);
+        while (r.s.hasPrevious())
+            aggStarted.add(r.s.previous());
+
+        obj.unlock_read();
+
+        return r.f;
     }
 
     @Override
@@ -120,7 +125,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             }
 
 
-            if (objectDb.tryLock(Config.TIMEOUT,Config.TIMEOUT_UNIT)) {
+            if (objectDb.try_lock_write_for(Config.TIMEOUT,Config.TIMEOUT_UNIT)) {
                 lockObjects.add(objectDb);
 
                 Long v = objectDb.getVersionForTransaction(id);
@@ -132,6 +137,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
                     aggStarted.addAll(objectDb.snapshots.keySet());
                 }
             } else {
+                logger.debug("Transaction abort because cant get Write Lock. - commit");
                 abortVersions(lockObjects);
             }
         }
@@ -165,7 +171,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         Iterator<ObjectBlotterDbImpl<K,V>> it_locks = set.iterator();
         while (it_locks.hasNext()) {
             ObjectBlotterDbImpl<K,V> objectDb = it_locks.next();
-            objectDb.unlock();
+            objectDb.unlock_write();
         }
     }
 

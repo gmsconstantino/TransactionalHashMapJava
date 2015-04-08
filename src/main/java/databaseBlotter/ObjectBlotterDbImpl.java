@@ -6,9 +6,11 @@ import databaseOCC.ObjectVersionLockDBImpl;
 import databaseOCCMulti.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import structures.RwLock;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -28,17 +30,19 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
 
     LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>> objects; //Devia remover objectos antigos
     ConcurrentHashMap<Long, Long> snapshots; //Devia ter ttl
+    ListIndexable<Long> versionToTid; // version -> tid das transacoes
 
-    ReentrantLock lock;
+    RwLock rwlock;
 
     public ObjectBlotterDbImpl(){
         version = new AtomicLong(-1L);
 
         objects = new LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>>();
         snapshots = new ConcurrentHashMap<Long,Long>();// tid -> version
+        versionToTid = new ListIndexable<Long>(); // version -> tid das transacoes
 
-        lock = new ReentrantLock();
-        lock.lock();
+        rwlock = new RwLock();
+        rwlock.lock_write();
     }
 
     @Override
@@ -52,41 +56,49 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
     }
 
     @Override
-    public void lock() {
-        lock.lock();
+    public void lock_read() {
+        rwlock.lock_read();
     }
 
     @Override
-    public boolean tryLock(long timeout, TimeUnit unit) {
-        try {
-            return lock.tryLock(timeout, unit);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            return false;
+    public void lock_write() {
+        rwlock.lock_write();
+    }
+
+    public boolean try_lock_write_for(long time, TimeUnit unit){
+        if(rwlock.lock.isWriteLockedByCurrentThread()){
+            return true;
         }
+        return rwlock.try_lock_write_for(time, unit);
+    }
+
+    public boolean try_lock_read_for(long time, TimeUnit unit){
+        return rwlock.try_lock_read_for(time, unit);
+    }
+
+    public synchronized void unlock_read() throws IllegalMonitorStateException {
+        rwlock.unlock_read();
+    }
+
+    public synchronized void unlock_write() throws IllegalMonitorStateException {
+        rwlock.unlock_write();
     }
 
     @Override
-    public void unlock() {
-        while(lock.getHoldCount()>0)
-            lock.unlock();
+    public void putSnapshot(long tid, Long v) {
+        snapshots.put(tid,v);
+        versionToTid.putObject(v, tid);
     }
 
-    @Override
-    public void putSnapshot(long id, Long v) {
-        snapshots.put(id,v);
+    public Long getVersionForTransaction(long tid){
+        return snapshots.get(tid);
     }
 
-    public Long getVersionForTransaction(long id){
-        return snapshots.get(id);
-    }
+    public Pair<V,ListIterator<Long>> getValueVersion(long version) {
+        if (version > getLastVersion())
+            return null;
 
-    public Pair<V,List<Long>> getValueVersion(long version) {
-//        if (version > getLastVersion())
-//            return null;
-
-        Pair<V,List<Long>> p = new Pair<V,List<Long>>();
-        p.s = new LinkedList<Long>();
+        Pair<V,ListIterator<Long>> p = new Pair<V,ListIterator<Long>>();
 
         for(Pair<Long, ObjectVersionLockDB<K,V>> pair : objects){
             if(pair.f <= version){
@@ -94,13 +106,8 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
                 break;
             }
         }
-        //TODO: Remove assert if never break
-        assert(p.f!=null);
 
-        for (Long tid : snapshots.keySet()){
-            if (snapshots.get(tid) < version)
-                p.s.add(tid);
-        }
+        p.s = versionToTid.objectLessThan(version);
         return p;
     }
 
