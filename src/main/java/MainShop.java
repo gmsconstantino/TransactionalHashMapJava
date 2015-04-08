@@ -143,7 +143,7 @@ public class MainShop {
         Arrays.sort(array, new Comparator<Transaction>() {
             @Override
             public int compare(Transaction o1, Transaction o2) {
-                return Long.compare(o1.getCommitId(), o2.getCommitId());
+                return  (new Long(o1.getCommitId())).compareTo(o2.getCommitId());
             }
         });
 

@@ -80,7 +80,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         if (!isActive)
             return;
 
-        // Se esta na cache é pq ja tenho o write lock do objecto
+        // Se esta na cache e pq ja tenho o write lock do objecto
         ObjectLockDb<K,V> obj = getObjectFromWriteBuffer(key);
         if (obj != null){
             obj.setValue(value);
