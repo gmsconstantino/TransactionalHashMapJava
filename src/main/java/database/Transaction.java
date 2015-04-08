@@ -49,7 +49,7 @@ public abstract class Transaction<K,V> implements Comparable {
     @Override
     public int compareTo(Object o) {
         Transaction t = (Transaction) o;
-        return Long.compare(this.id, t.id);
+        return (new Long(this.id)).compareTo(t.id);
     }
 
     public long getId() {
