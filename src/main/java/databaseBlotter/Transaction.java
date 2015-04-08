@@ -17,6 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Transaction<K,V> extends database.Transaction<K,V> {
 
+
+
     static AtomicInteger identifier = new AtomicInteger(-1);
 
     Set<Long> aggStarted;
@@ -30,7 +32,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
 
     protected synchronized void init(){
         super.init();
-        aggStarted = new HashSet<>();
+        aggStarted = new HashSet<Long>();
         writeSet = new HashMap<K, BufferObjectDb<K,V>>();
         id = Transaction.identifier.incrementAndGet();
     }
@@ -49,11 +51,13 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return null;
 
         Long v = obj.getVersionForTransaction(id);
-
         if (v==null){
             obj.lock();
-            v = obj.getLastVersion();
-            obj.putSnapshot(id, v);
+            v = obj.getVersionForTransaction(id);
+            if(v==null){
+                v = obj.getLastVersion();
+                obj.putSnapshot(id, v);
+            }
             obj.unlock();
         }
 
@@ -82,17 +86,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return;
         }
 
-        ObjectBlotterDb<K,V> obj = (ObjectBlotterDb) getKeyDatabase(key);
-        //Nao existe nenhuma
-        if (obj == null) {
-            obj = new ObjectBlotterDbImpl<>(); // A thread fica com o write lock
-            ObjectBlotterDbImpl<K,V> objdb = (ObjectBlotterDbImpl) putIfAbsent(key, obj);
-
-            if (objdb != null)
-                obj = objdb;
-        }
-
-        BufferObjectDb<K,V> buffer = new BufferObjectDb(value ,obj);
+        BufferObjectDb<K,V> buffer = new BufferObjectDb(key, value);
         buffer.setValue(value);
         addObjectDbToWriteBuffer(key, buffer);
     }
@@ -108,10 +102,23 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return true;
         }
 
-        Set<ObjectBlotterDbImpl<K,V>> lockObjects = new HashSet<>();
+        Set<ObjectBlotterDbImpl<K,V>> lockObjects = new HashSet<ObjectBlotterDbImpl<K,V>>();
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
-            ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
+//            ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
+
+            ObjectBlotterDbImpl<K,V> objectDb = (ObjectBlotterDbImpl) getKeyDatabase(buffer.getKey());
+            //Nao existe nenhuma
+            if (objectDb == null) {
+                ObjectBlotterDbImpl<K,V> obj = new ObjectBlotterDbImpl<K,V>(); // Thread tem o lock do objecto
+                ObjectBlotterDbImpl<K,V> objdb = (ObjectBlotterDbImpl) putIfAbsent(buffer.getKey(), obj);
+                if (objdb != null) {
+                    obj = null;
+                    objectDb = objdb;
+                }else
+                    objectDb = obj;
+            }
+
 
             if (objectDb.tryLock(Config.TIMEOUT,Config.TIMEOUT_UNIT)) {
                 lockObjects.add(objectDb);
@@ -131,7 +138,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
 
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
-            ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
+            ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) getKeyDatabase(buffer.getKey());
 
             for (Long tid : aggStarted){
                 if (!objectDb.snapshots.contains(tid))

@@ -4,6 +4,8 @@ import database.ObjectDb;
 import databaseOCC.ObjectVersionLockDB;
 import databaseOCC.ObjectVersionLockDBImpl;
 import databaseOCCMulti.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -19,9 +21,12 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
 
+    private static final Logger logger = LoggerFactory.getLogger(ObjectBlotterDbImpl.class);
+    boolean isDebug = logger.isDebugEnabled();
+
     AtomicLong version;
 
-    LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>> objects;
+    LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>> objects; //Devia remover objectos antigos
     ConcurrentHashMap<Long, Long> snapshots; //Devia ter ttl
 
     ReentrantLock lock;
@@ -29,10 +34,11 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
     public ObjectBlotterDbImpl(){
         version = new AtomicLong(-1L);
 
-        objects = new LinkedList<>();
-        snapshots = new ConcurrentHashMap<>();
+        objects = new LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>>();
+        snapshots = new ConcurrentHashMap<Long,Long>();// tid -> version
 
         lock = new ReentrantLock();
+        lock.lock();
     }
 
     @Override
@@ -62,7 +68,8 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
 
     @Override
     public void unlock() {
-        lock.unlock();
+        while(lock.getHoldCount()>0)
+            lock.unlock();
     }
 
     @Override
@@ -75,25 +82,26 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
     }
 
     public Pair<V,List<Long>> getValueVersion(long version) {
+//        if (version > getLastVersion())
+//            return null;
+
         Pair<V,List<Long>> p = new Pair<V,List<Long>>();
-        p.s = new LinkedList<>();
+        p.s = new LinkedList<Long>();
 
         for(Pair<Long, ObjectVersionLockDB<K,V>> pair : objects){
-            if(p.f==null && pair.f <= version){
+            if(pair.f <= version){
                 p.f = pair.s.getValue();
                 break;
             }
         }
+        //TODO: Remove assert if never break
+        assert(p.f!=null);
 
-        if (p.f != null){
-            for (Long tid : snapshots.keySet()){
-                if (snapshots.get(tid) < version)
-                    p.s.add(tid);
-            }
-            return p;
+        for (Long tid : snapshots.keySet()){
+            if (snapshots.get(tid) < version)
+                p.s.add(tid);
         }
-
-        return null;
+        return p;
     }
 
     /**
@@ -102,7 +110,7 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
      */
     @Override
     public void setValue(V value) {
-        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<>(value);
+        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
         objects.addFirst(new Pair(version.incrementAndGet(), obj));
         obj.unlock_write();
 
