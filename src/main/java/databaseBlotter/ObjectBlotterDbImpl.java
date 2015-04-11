@@ -8,10 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import structures.RwLock;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,7 +27,7 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
 
     LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>> objects; //Devia remover objectos antigos
     ConcurrentHashMap<Long, Long> snapshots; //Devia ter ttl
-    ListIndexable<Long> versionToTid; // version -> tid das transacoes
+    ConcurrentHashMap<Long,List<Long>> versionToTid; // version -> tid das transacoes
 
     RwLock rwlock;
 
@@ -39,7 +36,7 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
 
         objects = new LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>>();
         snapshots = new ConcurrentHashMap<Long,Long>();// tid -> version
-        versionToTid = new ListIndexable<Long>(); // version -> tid das transacoes
+        versionToTid = new ConcurrentHashMap<Long,List<Long>>(); // version -> tid das transacoes
 
         rwlock = new RwLock();
         rwlock.lock_write();
@@ -53,6 +50,57 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
     @Override
     public Long incrementAndGetVersion() {
         return version.incrementAndGet();
+    }
+
+    @Override
+    public void putSnapshot(long tid, Long v) {
+        snapshots.put(tid,v);
+        versionToTid.get(v).add(tid);
+    }
+
+    public Long getVersionForTransaction(long tid){
+        return snapshots.get(tid);
+    }
+
+    public Pair<V,ListIterator<Long>> getValueVersion(long version) {
+        if (version > getLastVersion())
+            return null;
+
+        Pair<V,ListIterator<Long>> p = new Pair<V,ListIterator<Long>>();
+
+        for(Pair<Long, ObjectVersionLockDB<K,V>> pair : objects){
+            if(pair.f <= version){
+                p.f = pair.s.getValue();
+                break;
+            }
+        }
+
+        p.s = versionToTid.get(version).listIterator();
+        return p;
+    }
+
+    /**
+     * Add object with value and increment the version
+     * @param value
+     */
+    @Override
+    public void setValue(V value) {
+        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
+        obj.unlock_write();
+        objects.addFirst(new Pair(version.incrementAndGet(), obj));
+
+        LinkedList<Long> list = new LinkedList<Long>(versionToTid.get(version.get()-1));
+        versionToTid.put(getLastVersion(), Collections.synchronizedList(list));
+    }
+
+    @Override
+    public ObjectDb getObjectDb() {
+        return this;
+    }
+
+    @Override
+    public V getValue() {
+        return null;
     }
 
     @Override
@@ -82,55 +130,6 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
 
     public synchronized void unlock_write() throws IllegalMonitorStateException {
         rwlock.unlock_write();
-    }
-
-    @Override
-    public void putSnapshot(long tid, Long v) {
-        snapshots.put(tid,v);
-        versionToTid.putObject(v, tid);
-    }
-
-    public Long getVersionForTransaction(long tid){
-        return snapshots.get(tid);
-    }
-
-    public Pair<V,ListIterator<Long>> getValueVersion(long version) {
-        if (version > getLastVersion())
-            return null;
-
-        Pair<V,ListIterator<Long>> p = new Pair<V,ListIterator<Long>>();
-
-        for(Pair<Long, ObjectVersionLockDB<K,V>> pair : objects){
-            if(pair.f <= version){
-                p.f = pair.s.getValue();
-                break;
-            }
-        }
-
-        p.s = versionToTid.objectLessThan(version);
-        return p;
-    }
-
-    /**
-     * Add object with value and increment the version
-     * @param value
-     */
-    @Override
-    public void setValue(V value) {
-        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
-        objects.addFirst(new Pair(version.incrementAndGet(), obj));
-        obj.unlock_write();
-
-    }
-
-    @Override
-    public ObjectDb getObjectDb() {
-        return this;
-    }
-
-    @Override
-    public V getValue() {
-        return null;
     }
 
     @Override

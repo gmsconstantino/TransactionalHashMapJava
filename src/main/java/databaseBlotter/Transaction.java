@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Transaction<K,V> extends database.Transaction<K,V> {
 
 
-    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
+//    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
     static AtomicInteger identifier = new AtomicInteger(-1);
 
     Set<Long> aggStarted;
@@ -52,23 +52,18 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         if (obj == null || obj.getLastVersion() == -1)
             return null;
 
+        obj.lock_read();
+
         Long v = obj.getVersionForTransaction(id);
         if (v==null){
-            obj.lock_write();
-                v = obj.getVersionForTransaction(id);
-                if(v==null){
-                    v = obj.getLastVersion();
-                    obj.putSnapshot(id, v);
-                }
-            obj.unlock_write();
+            v = obj.getLastVersion();
+            obj.putSnapshot(id, v);
         }
-
-        obj.lock_read();
 
         Pair<V,ListIterator<Long>> r = obj.getValueVersion(v);
         assert  (r!=null);
-        while (r.s.hasPrevious())
-            aggStarted.add(r.s.previous());
+        while (r.s.hasNext())
+            aggStarted.add(r.s.next());
 
         obj.unlock_read();
 
@@ -107,6 +102,9 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             return true;
         }
 
+//        logger.debug("Commit Write Set size: "+writeSet.size());
+//        logger.debug("Commit Aggregated Set Tids size: "+aggStarted.size());
+
         Set<ObjectBlotterDbImpl<K,V>> lockObjects = new HashSet<ObjectBlotterDbImpl<K,V>>();
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
@@ -137,7 +135,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
                     aggStarted.addAll(objectDb.snapshots.keySet());
                 }
             } else {
-                logger.debug("Transaction abort because cant get Write Lock. - commit");
+//                logger.debug("Transaction abort because cant get Write Lock. - commit");
                 abortVersions(lockObjects);
             }
         }
