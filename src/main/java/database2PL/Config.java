@@ -9,6 +9,7 @@ public class Config {
 
     public static final long TIMEOUT = 1000;
     public static final TimeUnit TIMEOUT_UNIT = TimeUnit.MICROSECONDS;
-    
+
+    public static final int WEAK_QUEUE_REFRESH = 1000;
 
 }

@@ -1,6 +1,11 @@
 package databaseBlotter;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 import database.ObjectDb;
+import database2PL.Config;
 import databaseOCC.ObjectVersionLockDB;
 import databaseOCC.ObjectVersionLockDBImpl;
 import databaseOCCMulti.Pair;
@@ -8,7 +13,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import structures.RwLock;
 
-import java.util.*;
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
+import java.util.LinkedList;
+import java.util.ListIterator;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,8 +39,9 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
     AtomicLong version;
 
     LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>> objects; //Devia remover objectos antigos
+
     ConcurrentHashMap<Long, Long> snapshots; //Devia ter ttl
-    ConcurrentHashMap<Long,List<Long>> versionToTid; // version -> tid das transacoes
+//    public Cache<Long, Long> snapshots;
 
     RwLock rwlock;
 
@@ -35,8 +49,18 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
         version = new AtomicLong(-1L);
 
         objects = new LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>>();
-        snapshots = new ConcurrentHashMap<Long,Long>();// tid -> version
-        versionToTid = new ConcurrentHashMap<Long,List<Long>>(); // version -> tid das transacoes
+        snapshots = new ConcurrentHashMap<Long, Long>();
+//        snapshots = CacheBuilder.newBuilder()
+//                .concurrencyLevel(16)
+//                .weakKeys()
+//                .removalListener(new RemovalListener<Long, Long>() {
+//                    @Override
+//                    public void onRemoval(RemovalNotification<Long, Long> removalNotification) {
+//                        System.out.println("Remove key: " + removalNotification.getKey() + " " + removalNotification.getValue());
+//                        logger.info("Remove key: " + removalNotification.getKey());
+//                    }
+//                })
+//                .build(); // tid -> version
 
         rwlock = new RwLock();
         rwlock.lock_write();
@@ -53,30 +77,35 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
     }
 
     @Override
-    public void putSnapshot(long tid, Long v) {
-        snapshots.put(tid,v);
-        versionToTid.get(v).add(tid);
+    public void putSnapshot(Long tid, Long v) {
+        snapshots.put(tid, v);
     }
 
-    public Long getVersionForTransaction(long tid){
+    public Long getVersionForTransaction(Long tid){
         return snapshots.get(tid);
     }
 
-    public Pair<V,ListIterator<Long>> getValueVersion(long version) {
+    public V getValueVersion(long version, Set<Long> aggrDataTx) {
         if (version > getLastVersion())
             return null;
 
-        Pair<V,ListIterator<Long>> p = new Pair<V,ListIterator<Long>>();
+        V value = null;
 
         for(Pair<Long, ObjectVersionLockDB<K,V>> pair : objects){
             if(pair.f <= version){
-                p.f = pair.s.getValue();
+                value = pair.s.getValue();
                 break;
             }
         }
 
-        p.s = versionToTid.get(version).listIterator();
-        return p;
+        // Add tids to transaction metadata
+        for (Long tid : snapshots.keySet()) {
+            Long v = snapshots.get(tid);
+            if (v != null && v < version)
+                aggrDataTx.add(tid);
+        }
+
+        return value;
     }
 
     /**
@@ -88,9 +117,6 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
         ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
         obj.unlock_write();
         objects.addFirst(new Pair(version.incrementAndGet(), obj));
-
-        LinkedList<Long> list = new LinkedList<Long>(versionToTid.get(version.get()-1));
-        versionToTid.put(getLastVersion(), Collections.synchronizedList(list));
     }
 
     @Override

@@ -20,13 +20,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Transaction<K,V> extends database.Transaction<K,V> {
 
 
-//    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
+    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
     static AtomicInteger identifier = new AtomicInteger(-1);
 
     Set<Long> aggStarted;
     protected Map<K, BufferObjectDb<K,V>> writeSet;
 
-    private long id;
+    private Long id;
 
     public Transaction(Database db) {
         super(db);
@@ -36,7 +36,7 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
         super.init();
         aggStarted = new HashSet<Long>();
         writeSet = new HashMap<K, BufferObjectDb<K,V>>();
-        id = Transaction.identifier.incrementAndGet();
+        id = new Long(Transaction.identifier.incrementAndGet());
     }
 
     @Override
@@ -60,14 +60,11 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             obj.putSnapshot(id, v);
         }
 
-        Pair<V,ListIterator<Long>> r = obj.getValueVersion(v);
-        assert  (r!=null);
-        while (r.s.hasNext())
-            aggStarted.add(r.s.next());
+        V r = obj.getValueVersion(v, aggStarted);
 
         obj.unlock_read();
 
-        return r.f;
+        return r;
     }
 
     @Override
@@ -126,6 +123,9 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
             if (objectDb.try_lock_write_for(Config.TIMEOUT,Config.TIMEOUT_UNIT)) {
                 lockObjects.add(objectDb);
 
+                buffer.setObjectDb(objectDb); // Set reference to Object, para que no ciclo seguindo
+                                              // nao seja necessario mais uma pesquisa no hashmap
+
                 Long v = objectDb.getVersionForTransaction(id);
                 if(v != null && v < objectDb.getLastVersion()){
                     abortVersions(lockObjects);
@@ -142,10 +142,10 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
 
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
-            ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) getKeyDatabase(buffer.getKey());
+            ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
 
             for (Long tid : aggStarted){
-                if (!objectDb.snapshots.contains(tid))
+                if (objectDb.snapshots.get(tid) == null)
                     objectDb.putSnapshot(tid, objectDb.getLastVersion());
             }
 
@@ -195,4 +195,16 @@ public class Transaction<K,V> extends database.Transaction<K,V> {
                 '}';
     }
 
+    public void finalize() throws Throwable {
+//        System.out.println("Transaction "+id+" finalize.");
+
+        for (BufferObjectDb<K, V> buffer : writeSet.values()){
+            if (buffer.getObjectDb()!=null){
+                ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
+                objectDb.snapshots.remove(id);
+            }
+        }
+
+        super.finalize();
+    }
 }

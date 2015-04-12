@@ -42,6 +42,10 @@ public class BufferObjectDb<K,V> implements ObjectLockDb<K,V> {
         return objectDb;
     }
 
+    public void setObjectDb(ObjectDb<K, V> objectDb) {
+        this.objectDb = objectDb;
+    }
+
     @Override
     public void setValue(V value) {
         this.value = value;
