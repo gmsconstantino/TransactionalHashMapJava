@@ -1,6 +1,6 @@
-import database.Database;
-import database.Transaction;
-import database.TransactionFactory;
+import fct.thesis.database.Database;
+import fct.thesis.database.Transaction;
+import fct.thesis.database.TransactionFactory;
 
 /**
  * Created by gomes on 10/03/15.

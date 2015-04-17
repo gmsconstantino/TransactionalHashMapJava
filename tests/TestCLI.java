@@ -1,4 +1,4 @@
-import database.Database;
+import fct.thesis.database.Database;
 
 import java.io.ByteArrayOutputStream;
 
