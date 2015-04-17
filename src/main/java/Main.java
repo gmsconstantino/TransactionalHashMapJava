@@ -1,5 +1,4 @@
-import bindings.DctStorage;
-import pt.dct.cli.CLI;
+import fct.thesis.bindings.DctStorage;
 import pt.dct.cli.ClientThread;
 import pt.dct.cli.TxCmd;
 import pt.dct.cli.TxStorage;
