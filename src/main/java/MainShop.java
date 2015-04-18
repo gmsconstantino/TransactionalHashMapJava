@@ -1,7 +1,7 @@
-import database.Database;
-import database.Transaction;
-import database.TransactionFactory;
-import database.TransactionTimeoutException;
+import fct.thesis.database.Database;
+import fct.thesis.database.Transaction;
+import fct.thesis.database.TransactionFactory;
+import fct.thesis.database.TransactionTimeoutException;
 
 
 import java.util.*;

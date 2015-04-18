@@ -43,6 +43,7 @@ write 110 30
 commit
 
 switch 2
+# read value 12
 read 111
 commit
 

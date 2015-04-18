@@ -58,7 +58,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
                 returnValue = (V) obj.getValueVersionLess(startTime);
             }
         } else {
-            obj.unlock_read();
+//            obj.unlock_read();
             abort();
             throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
         }
