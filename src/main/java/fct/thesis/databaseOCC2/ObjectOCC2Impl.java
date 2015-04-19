@@ -18,8 +18,6 @@ public class ObjectOCC2Impl<K,V> implements ObjectOCC2<K,V> {
 
     public ObjectOCC2Impl(V value){
         rwlock = new RwLock();
-        rwlock.lock_write();
-
         version = new AtomicLong(-1L);
         this.value = value;
     }
@@ -40,11 +38,11 @@ public class ObjectOCC2Impl<K,V> implements ObjectOCC2<K,V> {
         rwlock.lock_read();
     }
 
-    public synchronized void unlock_read() throws IllegalMonitorStateException {
+    public void unlock_read() throws IllegalMonitorStateException {
         rwlock.unlock_read();
     }
 
-    public synchronized void unlock_write() throws IllegalMonitorStateException {
+    public void unlock_write() throws IllegalMonitorStateException {
         rwlock.unlock_write();
     }
 

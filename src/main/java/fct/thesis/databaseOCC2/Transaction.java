@@ -71,7 +71,6 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if (obj == null) {
             obj = new ObjectOCC2Impl<K,V>(null); // A thread fica com o write lock
             ObjectOCC2<K,V> objdb = (ObjectOCC2) putIfAbsent(key, obj);
-            obj.unlock_write();
 
             if (objdb != null)
                 obj = objdb;
