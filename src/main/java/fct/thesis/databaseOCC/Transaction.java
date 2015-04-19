@@ -59,7 +59,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
 //            }
         } else {
             abort();
-            throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
+            throw new TransactionTimeoutException("GET: Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
         }
 
         obj.unlock_read();
@@ -105,7 +105,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
             obj.unlock_read();
         } else {
             abort();
-            throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
+            throw new TransactionTimeoutException("PUT: Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
         }
     }
 
@@ -171,13 +171,13 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
     private void abortTimeout(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
-        throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - commit");
+        throw new TransactionTimeoutException("COMMIT: Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - commit");
     }
 
     private void abortVersions(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
-        throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
+        throw new TransactionAbortException("COMMIT: Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
     }
 
     private void unlockWrite_objects(Set<ObjectLockDb<K,V>> set){
