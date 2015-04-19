@@ -21,6 +21,13 @@ public class BufferObjectVersionDB<K,V> implements ObjectVersionLockDB<K,V> {
         isNew = false;
     }
 
+    public BufferObjectVersionDB(K key, V value, ObjectDb<K, V> obj) {
+        this.key = key;
+        this.value = value;
+        this.objectDb = obj;
+        isNew = false;
+    }
+
     public BufferObjectVersionDB(V value, long version, ObjectDb<K, V> obj) {
         this.value = value;
         this.version = version;

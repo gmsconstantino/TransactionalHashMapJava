@@ -21,7 +21,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         super(db);
     }
 
-    protected synchronized void init(){
+    protected void init(){
         super.init();
 
         readSet = new HashMap<K,Long>();
@@ -44,25 +44,14 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
             return null;
 
         if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-
-//            if (readSet.contains(key)){
-//                if (obj.getVersion() == readSet.get(key).getVersion())
-//                    returnValue = obj.getValue();
-//                else {
-//                    abort();
-//                    throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change - key:"+key);
-//                }
-//            } else {
-//                addObjectDbToReadBuffer((K) key, new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false)); // isNew = false
             readSet.put(key, obj.getVersion());
             returnValue = (V) obj.getValue();
-//            }
+            obj.unlock_read();
         } else {
             abort();
             throw new TransactionTimeoutException("GET: Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
         }
 
-        obj.unlock_read();
         return returnValue;
     }
 
@@ -86,27 +75,22 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if (obj == null) {
             obj = new ObjectVersionLockDBImpl<K,V>(null); // A thread fica com o write lock
             ObjectVersionLockDB<K,V> objdb = (ObjectVersionLockDB) putIfAbsent(key, obj);
-            obj.unlock_write();
+//            obj.unlock_write();
 
             if (objdb != null)
                 obj = objdb;
-
-            ObjectVersionLockDB<K,V> buffer = new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, true); // isNew = true
-            buffer.setValue(value);
-            addObjectDbToWriteBuffer(key, buffer);
-            return;
         }
 
         // o objecto esta na base de dados
-        if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            ObjectVersionLockDB<K,V> buffer = new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false);
-            buffer.setValue(value);
-            addObjectDbToWriteBuffer(key, buffer);
-            obj.unlock_read();
-        } else {
-            abort();
-            throw new TransactionTimeoutException("PUT: Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
-        }
+//        if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
+        ObjectVersionLockDB<K,V> buffer = new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false);
+        buffer.setValue(value);
+        addObjectDbToWriteBuffer(key, buffer);
+//            obj.unlock_read();
+//        } else {
+//            abort();
+//            throw new TransactionTimeoutException("PUT: Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
+//        }
     }
 
     @Override

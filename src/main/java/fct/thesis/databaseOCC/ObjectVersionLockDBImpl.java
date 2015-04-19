@@ -18,7 +18,7 @@ public class ObjectVersionLockDBImpl<K,V> implements ObjectVersionLockDB<K,V> {
 
     public ObjectVersionLockDBImpl(V value){
         rwlock = new RwLock();
-        rwlock.lock_write();
+//        rwlock.lock_write();
 
         version = ObjectLockDb.timestamp.getAndIncrement();
         isNew = true;

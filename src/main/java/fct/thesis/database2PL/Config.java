@@ -7,8 +7,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class Config {
 
-    public static final long TIMEOUT = 200;
-    public static final TimeUnit TIMEOUT_UNIT = TimeUnit.MICROSECONDS;
+    public static final long TIMEOUT = 1;
+    public static final TimeUnit TIMEOUT_UNIT = TimeUnit.MILLISECONDS;
 
     public static final int WEAK_QUEUE_REFRESH = 1000;
 
