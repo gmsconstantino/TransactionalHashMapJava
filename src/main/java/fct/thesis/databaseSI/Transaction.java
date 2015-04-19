@@ -26,7 +26,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         super(db);
     }
 
-    protected synchronized void init(){
+    protected void init(){
         super.init();
         writeSet = new HashMap<K, ObjectVersionLockDB<K,V>>();
         startTime = Transaction.timestamp.get();

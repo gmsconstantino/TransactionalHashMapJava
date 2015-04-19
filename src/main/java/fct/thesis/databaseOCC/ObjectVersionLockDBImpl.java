@@ -37,11 +37,11 @@ public class ObjectVersionLockDBImpl<K,V> implements ObjectVersionLockDB<K,V> {
         return rwlock.try_lock_read_for(time, unit);
     }
 
-    public synchronized void unlock_read() throws IllegalMonitorStateException {
+    public void unlock_read() throws IllegalMonitorStateException {
         rwlock.unlock_read();
     }
 
-    public synchronized void unlock_write() throws IllegalMonitorStateException {
+    public void unlock_write() throws IllegalMonitorStateException {
         rwlock.unlock_write();
     }
 
