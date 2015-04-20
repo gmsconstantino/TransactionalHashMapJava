@@ -44,8 +44,17 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
             return null;
 
         obj.lock_read();
-        readSet.put(key, obj.getVersion());
-        returnValue = obj.getValue();
+        if (readSet.containsKey(key)){
+            if (readSet.get(key) == obj.getVersion())
+                returnValue = obj.getValue();
+            else {
+                abort();
+                throw new TransactionAbortException("GET: Transaction Abort " + getId() +": "+Thread.currentThread().getName()+" - Version change - key:"+key);
+            }
+        } else {
+            readSet.put(key, obj.getVersion());
+            returnValue = obj.getValue();
+        }
         obj.unlock_read();
 
         return returnValue;
