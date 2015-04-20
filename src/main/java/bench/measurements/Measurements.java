@@ -166,6 +166,7 @@ public class Measurements
 	}
 
     public void cleanMeasurements(){
+        data = null;
         data = new HashMap<String, OneMeasurement>();
     }
 }

@@ -80,54 +80,57 @@ public class MainBench {
         properties.put("histogram.buckets","50");
         Measurements.setProperties(properties);
 
-        Vector<Thread> threads=new Vector<Thread>();
-        int threadcount = Integer.parseInt(args[1]);;
-        for (int threadid=0; threadid<threadcount; threadid++)
-        {
+        int[] test_thread = new int[]{1,2,4,8,16,32,64};
 
-            Thread t=new ClientThread(db,workload);
-            threads.add(t);
-            //t.start();
-        }
+        for (int i : test_thread) {
 
-        //TODO: Remove Scanner
-//        System.out.println("Press ENTER to continue!!");
-//        Scanner in = new Scanner(System.in);
-//        in.nextLine();
+            System.out.println("\nTest with threads "+i+"\n");
 
-        long st=System.currentTimeMillis();
-        for (Thread t : threads)
-        {
-            t.start();
-        }
+            Vector<Thread> threads = new Vector<Thread>();
+            int threadcount = i;
+            for (int threadid = 0; threadid < threadcount; threadid++) {
 
-        Thread terminator = new TerminatorThread(60, threads, workload);
-        terminator.start();
-
-        int opsDone = 0;
-
-        for (Thread t : threads)
-        {
-            try
-            {
-                t.join();
-                opsDone += ((ClientThread)t).getOpsDone();
+                Thread t = new ClientThread(db, workload);
+                threads.add(t);
+                //t.start();
             }
-            catch (InterruptedException e)
-            {
+
+            //TODO: Remove Scanner
+//            System.out.println("Press ENTER to continue!!");
+//            Scanner in = new Scanner(System.in);
+//            in.nextLine();
+
+            long st = System.currentTimeMillis();
+            for (Thread t : threads) {
+                t.start();
             }
-        }
 
-        long en=System.currentTimeMillis();
+            Thread terminator = new TerminatorThread(60, threads, workload);
+            terminator.start();
 
-        if (terminator != null && !terminator.isInterrupted()) {
-            terminator.interrupt();
-        }
+            int opsDone = 0;
 
-        try {
-            exportMeasurements(new Properties(), opsDone, en-st);
-        } catch (IOException e) {
-            e.printStackTrace();
+            for (Thread t : threads) {
+                try {
+                    t.join();
+                    opsDone += ((ClientThread) t).getOpsDone();
+                } catch (InterruptedException e) {
+                }
+            }
+
+            long en = System.currentTimeMillis();
+
+            if (terminator != null && !terminator.isInterrupted()) {
+                terminator.interrupt();
+            }
+
+            try {
+                exportMeasurements(new Properties(), opsDone, en - st);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            Measurements.getMeasurements().cleanMeasurements();
         }
     }
 
