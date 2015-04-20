@@ -91,6 +91,13 @@ public class MyTxWorkload {
     }
 
     /**
+     * Allows scheduling a request to reset the bench.workload.
+     */
+    public void resetStop() {
+        stopRequested.set(false);
+    }
+
+    /**
      * Allows scheduling a request to stop the bench.workload.
      */
     public void requestStop() {

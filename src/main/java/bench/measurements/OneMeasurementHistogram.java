@@ -1,12 +1,12 @@
-/**                                                                                                                                                                                
+/**
  * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
- *                                                                                                                                                                                 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
  * may not use this file except in compliance with the License. You                                                                                                                
  * may obtain a copy of the License at                                                                                                                                             
- *                                                                                                                                                                                 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0                                                                                                                                      
- *                                                                                                                                                                                 
+ *
  * Unless required by applicable law or agreed to in writing, software                                                                                                             
  * distributed under the License is distributed on an "AS IS" BASIS,                                                                                                               
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or                                                                                                                 
@@ -28,7 +28,7 @@ import java.util.Properties;
 
 /**
  * Take bench.measurements and maintain a histogram of a given metric, such as READ LATENCY.
- * 
+ *
  * @author cooperb
  *
  */
@@ -36,17 +36,20 @@ public class OneMeasurementHistogram extends OneMeasurement
 {
 	public static final String BUCKETS="histogram.buckets";
 	public static final String BUCKETS_DEFAULT="1000";
+    public static final String BUCKETS_LIMIT="histogram.limit";
+    public static final String BUCKETS_LIMIT_DEFAULT="-1";
 
 	int _buckets;
-	int[] histogram;
+    int _limit;
+    int[] histogram;
 	int histogramoverflow;
 	int operations;
 	long totallatency;
-	
+
 	//keep a windowed version of these stats for printing status
 	int windowoperations;
 	long windowtotallatency;
-	
+
 	int min;
 	int max;
 	HashMap<Integer,int[]> returncodes;
@@ -55,7 +58,8 @@ public class OneMeasurementHistogram extends OneMeasurement
 	{
 		super(name);
 		_buckets=Integer.parseInt(props.getProperty(BUCKETS, BUCKETS_DEFAULT));
-		histogram=new int[_buckets];
+        _limit=Integer.parseInt(props.getProperty(BUCKETS_LIMIT, BUCKETS_LIMIT_DEFAULT));
+        histogram=new int[_buckets];
 		histogramoverflow=0;
 		operations=0;
 		totallatency=0;
@@ -119,7 +123,7 @@ public class OneMeasurementHistogram extends OneMeasurement
     exporter.write(getName(), "AverageLatency(us)", (((double)totallatency)/((double)operations)));
     exporter.write(getName(), "MinLatency(us)", min);
     exporter.write(getName(), "MaxLatency(us)", max);
-    
+
     int opcounter=0;
     boolean done95th=false;
     for (int i=0; i<_buckets; i++)
@@ -141,9 +145,10 @@ public class OneMeasurementHistogram extends OneMeasurement
     {
       int[] val=returncodes.get(I);
       exporter.write(getName(), "Return="+I, val[0]);
-    }     
+    }
 
-    for (int i=0; i<_buckets; i++)
+      int limit = (_limit<0)?_buckets:_limit;
+    for (int i=0; i<limit; i++)
     {
       exporter.write(getName(), Integer.toString(i), histogram[i]);
     }
