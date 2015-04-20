@@ -74,8 +74,10 @@ public class MainBench {
         MyTxWorkload workload = new MyTxWorkload(_keyspace);
 
         Properties properties = new Properties();
-        properties.put("measurementtype","timeseries");
-        properties.put("timeseries.granularity","10000");
+//        properties.put("measurementtype","timeseries");
+//        properties.put("timeseries.granularity","10000");
+        properties.put("measurementtype","histogram");
+        properties.put("histogram.buckets","50");
         Measurements.setProperties(properties);
 
         Vector<Thread> threads=new Vector<Thread>();

@@ -77,10 +77,10 @@ public class MyTxWorkload {
             }
         } catch(TransactionTimeoutException e){
 //            e.printStackTrace();
-            Measurements.getMeasurements().reportReturnCode("Tx", -1);
+            Measurements.getMeasurements().reportReturnCode("Tx", -2);
         } catch (TransactionAbortException e){
 //            System.err.println(e.getMessage());
-            Measurements.getMeasurements().reportReturnCode("Tx", -1);
+            Measurements.getMeasurements().reportReturnCode("Tx", -3);
         }
 
         return true;

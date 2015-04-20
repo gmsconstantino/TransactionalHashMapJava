@@ -87,6 +87,11 @@
                     <excludes>
                         <excludes>resources/logback.xml</excludes>
                     </excludes>
+                    <archive>
+                        <manifest>
+                            <mainClass>bench.MainBench</mainClass>
+                        </manifest>
+                    </archive>
                 </configuration>
             </plugin>
         </plugins>
