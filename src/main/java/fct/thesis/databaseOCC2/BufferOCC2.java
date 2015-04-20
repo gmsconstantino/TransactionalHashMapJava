@@ -1,6 +1,8 @@
 package fct.thesis.databaseOCC2;
 
 import fct.thesis.database.ObjectDb;
+import fct.thesis.database.TransactionAbortException;
+import pt.dct.util.P;
 
 import java.util.concurrent.TimeUnit;
 
@@ -58,63 +60,6 @@ public class BufferOCC2<K,V> implements ObjectOCC2<K,V> {
         this.isNew = isNew;
     }
 
-    @Override
-    public V getValue() {
-        return value;
-    }
-
-    public K getKey() {
-        return key;
-    }
-
-    @Override
-    public long getVersion() {
-        return version;
-    }
-
-    @Override
-    public void lock_read() {
-
-    }
-
-    public ObjectDb getObjectDb(){
-        return objectDb;
-    }
-
-    @Override
-    public void setValue(V value) {
-        this.value = value;
-    }
-
-    @Override
-    public boolean try_lock_write_for(long time, TimeUnit unit) {
-        return true;
-    }
-
-    @Override
-    public boolean try_lock_read_for(long time, TimeUnit unit) {
-        return true;
-    }
-
-    @Override
-    public void unlock_read() {
-
-    }
-
-    @Override
-    public void unlock_write() {
-
-    }
-
-    @Override
-    public boolean isNew() {
-        return isNew;
-    }
-
-    @Override
-    public void setOld() {
-        isNew = false;
-    }
 
     @Override
     public String toString() {
@@ -124,5 +69,45 @@ public class BufferOCC2<K,V> implements ObjectOCC2<K,V> {
                 ", isNew=" + isNew +
                 ", objectDb=" + objectDb +
                 '}';
+    }
+
+    @Override
+    public V getValue() {
+        return value;
+    }
+
+    @Override
+    public void setValue(V value) {
+        this.value = value;
+    }
+
+    @Override
+    public long getVersion() {
+        return version;
+    }
+
+    @Override
+    public ObjectDb<K,V> getObjectDb() {
+        return objectDb;
+    }
+
+    @Override
+    public V readVersion(long version) throws TransactionAbortException {
+        return null;
+    }
+
+    @Override
+    public P<V, Long> readLast() throws TransactionAbortException {
+        return null;
+    }
+
+    @Override
+    public boolean try_lock(long time, TimeUnit unit) {
+        return false;
+    }
+
+    @Override
+    public void unlock() {
+
     }
 }

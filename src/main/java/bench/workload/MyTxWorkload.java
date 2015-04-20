@@ -5,6 +5,7 @@
 
 package bench.workload;
 
+import bench.MainBench;
 import fct.thesis.database.*;
 import bench.measurements.Measurements;
 
@@ -57,7 +58,7 @@ public class MyTxWorkload {
         //do the transaction here.
         long st = System.nanoTime();
 
-        TransactionFactory.type TYPE = TransactionFactory.type.OCC;
+        TransactionFactory.type TYPE = MainBench.TYPE;
         Transaction<Integer,Integer> t = db.newTransaction(TYPE);
         try {
             for(Integer key: keysRead) {

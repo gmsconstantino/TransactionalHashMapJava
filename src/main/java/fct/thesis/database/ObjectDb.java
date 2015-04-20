@@ -9,4 +9,6 @@ public interface ObjectDb<K,V> {
 
     public V getValue();
 
+    public void setValue(V value);
+
 }

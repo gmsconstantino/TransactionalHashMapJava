@@ -1,68 +1,43 @@
 package fct.thesis.databaseOCC2;
 
-import fct.thesis.database.ObjectLockDb;
-import fct.thesis.structures.RwLock;
+import fct.thesis.database.TransactionAbortException;
+import pt.dct.util.P;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by gomes on 26/02/15.
  */
 public class ObjectOCC2Impl<K,V> implements ObjectOCC2<K,V> {
 
-    V value;
-    AtomicLong version;
+    volatile V value;
+    volatile long version;
 
-    private RwLock rwlock;
+    volatile Object monitor;
+
+    private ReentrantLock lock;
 
     public ObjectOCC2Impl(V value){
-        rwlock = new RwLock();
-        version = new AtomicLong(-1L);
+        lock = new ReentrantLock();
+
+        monitor = new Object();
+        version = -1L;
         this.value = value;
     }
 
-
-    public boolean try_lock_write_for(long time, TimeUnit unit){
-        if(rwlock.lock.isWriteLockedByCurrentThread()){
-            return true;
+    public boolean try_lock(long time, TimeUnit unit){
+        try {
+            return lock.tryLock(time, unit);
+        } catch (InterruptedException e) {
+            return false;
         }
-        return rwlock.try_lock_write_for(time, unit);
     }
 
-    public boolean try_lock_read_for(long time, TimeUnit unit){
-        return rwlock.try_lock_read_for(time, unit);
-    }
-
-    public void lock_read(){
-        rwlock.lock_read();
-    }
-
-    public void unlock_read() throws IllegalMonitorStateException {
-        rwlock.unlock_read();
-    }
-
-    public void unlock_write() throws IllegalMonitorStateException {
-        rwlock.unlock_write();
-    }
-
-    @Override
-    public boolean isNew() {
-        return false;
-    }
-
-    @Override
-    public void setOld() {
-
-    }
-
-    @Override
-    public String toString() {
-        return "ObjectVersionLockDBImpl{" +
-                "value=" + value +
-                ", version=" + version +
-                ", rwlock=" + rwlock +
-                '}';
+    public void unlock() {
+        for (int i = 0; i < lock.getHoldCount()+1; i++) {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -72,17 +47,42 @@ public class ObjectOCC2Impl<K,V> implements ObjectOCC2<K,V> {
 
     @Override
     public long getVersion() {
-        return version.get();
+        long v = -1L;
+        synchronized (monitor){
+            v = version;
+        }
+        return version;
+    }
+
+    @Override
+    public V readVersion(long v) throws TransactionAbortException {
+        V value = null;
+        synchronized (monitor){
+            if (v==version)
+                value = this.value;
+        }
+        if (value==null)
+            throw new TransactionAbortException("ReadVersion: Version Change");
+        return value;
+    }
+
+    @Override
+    public P<V, Long> readLast() throws TransactionAbortException {
+        Long version = getVersion();
+        V v = readVersion(version);
+        return new P<V, Long>(value, version);
     }
 
     @Override
     public void setValue(V value) {
-        this.value = value;
-        version.incrementAndGet();
+        synchronized (monitor){
+            this.value = value;
+            ++version;
+        }
     }
 
     @Override
-    public ObjectLockDb getObjectDb() {
+    public ObjectOCC2 getObjectDb() {
         return this;
     }
 }

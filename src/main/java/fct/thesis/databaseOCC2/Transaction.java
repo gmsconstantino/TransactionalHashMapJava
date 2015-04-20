@@ -1,10 +1,8 @@
 package fct.thesis.databaseOCC2;
 
-import fct.thesis.database.Database;
-import fct.thesis.database.ObjectLockDb;
-import fct.thesis.database.TransactionAbortException;
-import fct.thesis.database.TransactionTimeoutException;
+import fct.thesis.database.*;
 import fct.thesis.database2PL.Config;
+import pt.dct.util.P;
 
 import java.util.*;
 
@@ -43,19 +41,18 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if (obj == null || obj.getVersion() == -1)
             return null;
 
-        obj.lock_read();
         if (readSet.containsKey(key)){
-            if (readSet.get(key) == obj.getVersion())
-                returnValue = obj.getValue();
-            else {
+            try {
+                returnValue = obj.readVersion(readSet.get(key));
+            } catch (TransactionAbortException e){
                 abort();
                 throw new TransactionAbortException("GET: Transaction Abort " + getId() +": "+Thread.currentThread().getName()+" - Version change - key:"+key);
             }
         } else {
-            readSet.put(key, obj.getVersion());
-            returnValue = obj.getValue();
+            P<V,Long> r = obj.readLast();
+            readSet.put(key, r.s);
+            returnValue = r.f;
         }
-        obj.unlock_read();
 
         return returnValue;
     }
@@ -71,7 +68,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
             return;
 
         if(writeSet.containsKey(key)){
-            ObjectLockDb<K,V> objectDb = writeSet.get(key);
+            ObjectDb<K,V> objectDb = writeSet.get(key);
             objectDb.setValue(value);
             return;
         }
@@ -85,7 +82,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
                 obj = objdb;
         }
 
-        ObjectOCC2<K,V> buffer = new BufferOCC2(key, value, obj);
+        ObjectOCC2<K,V> buffer = new BufferOCC2(key, value, obj.getVersion(), obj);
         writeSet.put(key, buffer);
         return;
     }
@@ -95,11 +92,11 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if(!isActive)
             return success;
 
-        Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
+        Set<ObjectOCC2<K,V>> lockObjects = new HashSet<ObjectOCC2<K,V>>();
 
         for (ObjectOCC2<K,V> buffer : writeSet.values()){
             ObjectOCC2<K,V> objectDb = (ObjectOCC2) buffer.getObjectDb();
-            if(objectDb.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
+            if(objectDb.try_lock(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
                 lockObjects.add(objectDb);
 
                 if (buffer.getVersion() == objectDb.getVersion()) {
@@ -126,8 +123,8 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         }
 
         // Escrita
-        for (ObjectLockDb<K,V> buffer : writeSet.values()){
-            ObjectLockDb<K,V> objectDb = (ObjectLockDb) buffer.getObjectDb();
+        for (ObjectOCC2<K,V> buffer : writeSet.values()){
+            ObjectOCC2<K,V> objectDb = (ObjectOCC2) buffer.getObjectDb();
             objectDb.setValue(buffer.getValue());
         }
 
@@ -138,23 +135,23 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         return true;
     }
 
-    private void abortTimeout(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
+    private void abortTimeout(Set<ObjectOCC2<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
         throw new TransactionTimeoutException("COMMIT: Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - commit");
     }
 
-    private void abortVersions(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
+    private void abortVersions(Set<ObjectOCC2<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
         throw new TransactionAbortException("COMMIT: Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
     }
 
-    private void unlockWrite_objects(Set<ObjectLockDb<K,V>> set){
-        Iterator<ObjectLockDb<K,V>> it_locks = set.iterator();
+    private void unlockWrite_objects(Set<ObjectOCC2<K,V>> set){
+        Iterator<ObjectOCC2<K,V>> it_locks = set.iterator();
         while (it_locks.hasNext()) {
-            ObjectLockDb<K,V> objectDb = it_locks.next();
-            objectDb.unlock_write();
+            ObjectOCC2<K,V> objectDb = it_locks.next();
+            objectDb.unlock();
         }
     }
 

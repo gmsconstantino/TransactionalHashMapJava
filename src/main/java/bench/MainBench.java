@@ -55,10 +55,11 @@ public class MainBench {
         }
     }
 
+    public static final TransactionFactory.type TYPE = TransactionFactory.type.OCC2;
+
     public static void main(String[] args) {
 
         Random random = new Random();
-        TransactionFactory.type TYPE = TransactionFactory.type.OCC;
         Database<Integer,Integer> db = (Database<Integer,Integer>) DatabaseFactory.createDatabase(TYPE);
 
         int _keyspace = Integer.parseInt(args[0]);
