@@ -74,11 +74,11 @@ public class MainBench {
         MyTxWorkload workload = new MyTxWorkload(_keyspace);
 
         Properties properties = new Properties();
-//        properties.put("measurementtype","timeseries");
-//        properties.put("timeseries.granularity","10000");
-        properties.put("measurementtype","histogram");
-        properties.put("histogram.buckets","60000");
-        properties.put("histogram.limit","50");
+        properties.put("measurementtype","timeseries");
+        properties.put("timeseries.granularity","10000");
+//        properties.put("measurementtype","histogram");
+//        properties.put("histogram.buckets","60000");
+//        properties.put("histogram.limit","50");
         Measurements.setProperties(properties);
 
         int[] test_thread = new int[]{1,2,4,8,16,32,64};

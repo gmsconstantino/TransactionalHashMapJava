@@ -11,7 +11,7 @@ import pt.dct.cli.TxStorage;
  */
 public class DctStorage implements TxStorage {
 
-    static final TransactionFactory.type TYPE = TransactionFactory.type.BLOTTER;
+    static final TransactionFactory.type TYPE = TransactionFactory.type.OCC;
     protected Database<String,Integer> db;
 
     @Override
