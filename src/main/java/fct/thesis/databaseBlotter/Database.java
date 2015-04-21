@@ -71,9 +71,10 @@ public class Database<K,V> extends fct.thesis.database.Database{
                     }
                 }
 
-                Iterator<ObjectDb<K,V>> it = concurrentHashMap.values().iterator();
-                while (it.hasNext()){
-                    ObjectBlotterDb<K,V> objectDb = (ObjectBlotterDb) it.next();
+//                Iterator<ObjectDb<K,V>> it = concurrentHashMap.values().iterator();
+//                while (it.hasNext()){
+                for (ObjectDb<K,V> obj : db) {
+                    ObjectBlotterDb<K,V> objectDb = (ObjectBlotterDb) obj;
                     for (Long tid : cleanTid)
                         objectDb.removeSnapshot(tid);
                 }
