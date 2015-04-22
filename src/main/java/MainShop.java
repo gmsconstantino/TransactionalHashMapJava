@@ -83,7 +83,7 @@ public class MainShop {
                                 // probability 75% of trying to lookup for 'prod_id'
 
                                 if (r.nextBoolean()) {
-                                    Integer q = t.get_to_update(prod_id);
+                                    Integer q = 9;//t.get_to_update(prod_id);
 
                                     if (q == null)
                                         continue;

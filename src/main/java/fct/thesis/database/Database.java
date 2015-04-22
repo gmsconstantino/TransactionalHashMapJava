@@ -28,12 +28,20 @@ public class Database<K,V> {
 
     protected ObjectDb<K,V> putIfAbsent(K key, ObjectDb<K,V> obj){
 //        return concurrentHashMap.putIfAbsent(key, obj);
-        return db[(Integer) key];
+        synchronized (this){
+            if (db[(Integer) key] == null)
+                db[(Integer) key] = obj;
+            return db[(Integer) key];
+        }
     }
 
     protected ObjectDb<K,V> removeKey(K key){
 //        return concurrentHashMap.remove(key);
-        return null;
+        ObjectDb r = db[(Integer) key];
+        synchronized (this){
+            db[(Integer) key]=null;
+        }
+        return r;
     }
 
 

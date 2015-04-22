@@ -4,95 +4,54 @@ import fct.thesis.database.ObjectLockDb;
 import fct.thesis.structures.RwLock;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.StampedLock;
 
 /**
  * Created by gomes on 26/02/15.
  */
-public class ObjectLockDbImpl<K,V> implements ObjectLockDb<K,V> {
+public class ObjectLockDbImpl<K,V> extends ObjectLockDbAbs<K,V> {
 
-    V value;
-
-    private boolean isNew;
-    private RwLock rwlock;
+    private StampedLock lock;
 
     ObjectLockDbImpl(V value){
-        rwlock = new RwLock();
-        rwlock.lock_write();
-
-        isNew = true;
-        this.value = value;
+        super(value);
+        lock = new StampedLock();
     }
 
-
-    public boolean try_lock_write_for(long time, TimeUnit unit){
-        if(rwlock.lock.isWriteLockedByCurrentThread()){
-            return true;
+    public long try_lock_write(long time, TimeUnit unit){
+        try {
+            return lock.tryWriteLock(time,unit);
+        } catch (InterruptedException e) {
+            return 0L;
         }
-        return rwlock.try_lock_write_for(time, unit);
     }
 
-    public boolean try_lock_read_for(long time, TimeUnit unit){
-        return rwlock.try_lock_read_for(time, unit);
+    public long try_lock_read(long time, TimeUnit unit){
+        try {
+            return lock.tryReadLock(time, unit);
+        } catch (InterruptedException e) {
+            return 0L;
+        }
     }
 
-//    public boolean upgrade_lock() throws IllegalMonitorStateException {
-//        if (rwlock.lock.getWriteHoldCount()>0){
-//            return true;
-//        } else if(rwlock.lock.getReadHoldCount() > 0){
-//            return rwlock.upgrade_lock();
-//        } else {
-//            throw new IllegalMonitorStateException();
-//        }
-//    }
-
-    public synchronized void unlock_read() throws IllegalMonitorStateException {
-        rwlock.unlock_read();
+    public long try_upgrade(long stamp){
+        return lock.tryConvertToWriteLock(stamp);
     }
 
-    public synchronized void unlock_write() throws IllegalMonitorStateException {
-        rwlock.unlock_write();
+    public void unlock_read(long stamp) {
+        lock.unlockRead(stamp);
     }
 
-    @Override
-    public boolean isNew() {
-        return isNew;
+    public void unlock_write(long stamp) {
+        lock.unlockWrite(stamp);
     }
-
-    @Override
-    public void setOld() {
-        isNew = false;
-    }
-
-//    @Override
-//    public String toString() {
-//        return "ObjectDbImpl{" +
-//                "value=" + value +
-//                ", isNew=" + isNew +
-//                '}';
-//    }
-
 
     @Override
     public String toString() {
         return "ObjectDbImpl{" +
                 "value=" + value +
                 ", isNew=" + isNew +
-                ", rwlock=" + rwlock +
+                ", lock=" + lock +
                 '}';
-    }
-
-    @Override
-    public V getValue() {
-        return value;
-    }
-
-    @Override
-    public void setValue(V value) {
-        this.value = value;
-    }
-
-    @Override
-    public ObjectLockDb getObjectDb() {
-        return this;
     }
 }

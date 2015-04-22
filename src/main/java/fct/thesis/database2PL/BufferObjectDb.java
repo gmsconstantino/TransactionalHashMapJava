@@ -22,6 +22,13 @@ public class BufferObjectDb<K,V> implements ObjectLockDb<K,V> {
         isNew=false;
     }
 
+    public BufferObjectDb(K key, V value, ObjectDb<K, V> obj) {
+        this.key = key;
+        this.value = value;
+        this.objectDb = obj;
+        isNew = false;
+    }
+
     public BufferObjectDb(V value, ObjectDb<K, V> obj) {
         this.value = value;
         this.objectDb = obj;

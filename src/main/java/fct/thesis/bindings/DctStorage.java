@@ -11,12 +11,12 @@ import pt.dct.cli.TxStorage;
  */
 public class DctStorage implements TxStorage {
 
-    static final TransactionFactory.type TYPE = TransactionFactory.type.OCC;
-    protected Database<String,Integer> db;
+    static final TransactionFactory.type TYPE = TransactionFactory.type.TWOPL;
+    protected Database<Integer,Integer> db;
 
     @Override
     public void init() {
-        db = (Database<String,Integer>) DatabaseFactory.createDatabase(TYPE);
+        db = (Database<Integer,Integer>) DatabaseFactory.createDatabase(TYPE);
     }
 
     @Override

@@ -14,8 +14,8 @@ public class DctTxWrapper implements Tx {
 
     private static final Logger logger = LoggerFactory.getLogger(DctTxWrapper.class);
 
-    protected Database<String,Integer> db;
-    protected Transaction<String,Integer> tx;
+    protected Database<Integer,Integer> db;
+    protected Transaction<Integer,Integer> tx;
     protected DctStorage storage;
 
     public DctTxWrapper(DctStorage storage, Database _db) {
@@ -40,7 +40,7 @@ public class DctTxWrapper implements Tx {
     @Override
     public int read(String s) throws KeyNotFoundException, AbortException {
         try {
-            Integer obj = tx.get(s);
+            Integer obj = tx.get(Integer.parseInt(s));
             if (obj == null)
                 throw new KeyNotFoundException(s);
             return obj;
@@ -53,7 +53,7 @@ public class DctTxWrapper implements Tx {
     @Override
     public void write(String s, int i) throws AbortException{
         try {
-            tx.put(s, i);
+            tx.put(Integer.parseInt(s), i);
         } catch (TransactionTimeoutException e){
             logger.debug("Write Transaction Timeout",e);
             throw new AbortException("timeout key "+s);
