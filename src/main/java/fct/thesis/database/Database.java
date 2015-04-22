@@ -18,7 +18,7 @@ public class Database<K,V> {
 
     public Database(){
 //        concurrentHashMap = new ConcurrentHashMap<K, ObjectDb<K,V>>(1000000,0.75f,64);
-        db = (ObjectDb<K,V>[]) new Object[10000000];
+        db = (ObjectDb<K,V>[]) new ObjectDb[10000000];
     }
 
     protected ObjectDb<K,V> getKey(K key){
