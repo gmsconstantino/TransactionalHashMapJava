@@ -83,7 +83,7 @@ public class MainShop {
                                 // probability 75% of trying to lookup for 'prod_id'
 
                                 if (r.nextBoolean()) {
-                                    Integer q = t.get_to_update(prod_id);
+                                    Integer q = 9;//t.get_to_update(prod_id);
 
                                     if (q == null)
                                         continue;
@@ -166,18 +166,18 @@ public class MainShop {
 //        }
         System.out.println("Sizes -> DB: "+db.size()+" map: "+concurrentHashMap.size());
 
-        Iterator t = db.getIterator();
-        while (t.hasNext()){
-            Map.Entry<Integer,Integer> entry = (Map.Entry<Integer,Integer>) t.next();
-
-            Integer data = concurrentHashMap.get(entry.getKey());
-            if (entry.getValue() == null){
-                System.out.println("Warn - key:"+entry.getKey()+" was empty.");
-            }else if (data != entry.getValue()){
-                System.out.println("Error - key: "+entry.getKey()+" db: "+entry.getValue()+" hs: "+data);
-                all_ok = false;
-            }
-        }
+//        Iterator t = db.getIterator();
+//        while (t.hasNext()){
+//            Map.Entry<Integer,Integer> entry = (Map.Entry<Integer,Integer>) t.next();
+//
+//            Integer data = concurrentHashMap.get(entry.getKey());
+//            if (entry.getValue() == null){
+//                System.out.println("Warn - key:"+entry.getKey()+" was empty.");
+//            }else if (data != entry.getValue()){
+//                System.out.println("Error - key: "+entry.getKey()+" db: "+entry.getValue()+" hs: "+data);
+//                all_ok = false;
+//            }
+//        }
 
         return all_ok;
     }

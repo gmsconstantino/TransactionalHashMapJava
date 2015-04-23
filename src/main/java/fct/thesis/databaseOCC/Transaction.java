@@ -65,11 +65,6 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
     }
 
     @Override
-    public V get_to_update(K key) throws TransactionTimeoutException{
-        return get(key);
-    }
-
-    @Override
     public void put(K key, V value) throws TransactionTimeoutException{
         if(!isActive)
             return;

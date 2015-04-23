@@ -1,6 +1,7 @@
 package fct.thesis.database2PL;
 
 import fct.thesis.database.*;
+import pt.dct.util.P;
 
 import java.util.*;
 
@@ -15,6 +16,8 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
     // Write set guarda o valor antigo que estava antes da transacao
     protected Map<K, ObjectLockDb<K,V>> writeSet;
 
+    protected Map<K, P<Boolean,Long>> myLocks;
+
     public Transaction(Database db) {
         super(db);
     }
@@ -24,7 +27,10 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
 
         readSet = new HashSet<K>();
         writeSet = new HashMap<K, ObjectLockDb<K,V>>();
+        myLocks = new HashMap<K, P<Boolean,Long>>();
     }
+
+
 
     @Override
     public V get(K key) {
@@ -35,40 +41,17 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
             return (V) getKeyDatabase(key).getObjectDb().getValue();
         }
 
-        // Passa a ser um objecto do tipo ObjectDbImpl
-        ObjectLockDb<?,?> obj = (ObjectLockDb) getKeyDatabase(key);
+        // Passa a ser um objecto do tipo ObjectLockDbImpl
+        ObjectLockDbImpl<?,?> obj = (ObjectLockDbImpl) getKeyDatabase(key);
 
         if (obj == null)
             return null;
 
-        if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
+        long stamp = obj.try_lock_read(Config.TIMEOUT, Config.TIMEOUT_UNIT);
+        if(stamp!=0){
             addObjectDbToReadBuffer((K) key);
+            myLocks.put(key, new P<>(true,stamp));
             return (V) obj.getValue();
-        } else {
-            abort();
-            throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
-        }
-    }
-
-    @Override
-    public V get_to_update(K key) {
-        if (!isActive)
-            return null;
-
-        ObjectLockDb<K,V> obj = getObjectFromWriteBuffer(key);
-        if (obj != null){
-            return obj.getValue();
-        }
-
-        // Passa a ser um objecto do tipo ObjectDbImpl
-        obj = (ObjectLockDb) getKeyDatabase(key);
-
-        if (obj == null)
-            return null;
-
-        if(obj.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            addObjectDbToWriteBuffer(key, new BufferObjectDb(obj.getValue(), obj));
-            return obj.getValue();
         } else {
             abort();
             throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
@@ -81,29 +64,44 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
             return;
 
         // Se esta na cache e pq ja tenho o write lock do objecto
-        ObjectLockDb<K,V> obj = getObjectFromWriteBuffer(key);
-        if (obj != null){
-            obj.setValue(value);
+        ObjectLockDb<K,V> objBuffer = getObjectFromWriteBuffer(key);
+        if (objBuffer != null){
+            objBuffer.setValue(value);
             return;
         }
 
         // Search
-        obj = (ObjectLockDb) getKeyDatabase(key); // Passa a ser um objecto do tipo ObjectDbImpl
+        ObjectLockDbImpl<K,V> obj = (ObjectLockDbImpl<K,V>) getKeyDatabase(key); // Passa a ser um objecto do tipo ObjectDbImpl
+
+        long stamp = 0L;
 
         if(obj == null){
-            obj = new ObjectLockDbImpl<K,V>(value); // A thread fica com o write lock
+            obj = new ObjectLockDbImpl<K,V>(value);
 
-            ObjectLockDb<K,V> map_obj = (ObjectLockDb) putIfAbsent(key, obj);
+            ObjectLockDbImpl<K,V> map_obj = (ObjectLockDbImpl<K,V>) putIfAbsent(key, obj);
             obj = map_obj!=null? map_obj : obj;
-
-            addObjectDbToWriteBuffer(key, obj);
-
-            return;
         }
 
-        if(obj.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            addObjectDbToWriteBuffer(key, new BufferObjectDb<K,V>(obj.getValue(), obj));
-            obj.setValue(value);
+        if (myLocks.containsKey(key)){
+            for (int i = 0; i < 3; i++) {
+                long ws = obj.try_upgrade(myLocks.get(key).s);
+                if (ws != 0L) {
+                    stamp = ws;
+                    break;
+                }
+            }
+            if (stamp == 0){
+                abort();
+                throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - Put key:"+key+" - Cant Upgrade Lock");
+            }
+        } else {
+            stamp = obj.try_lock_write(Config.TIMEOUT, Config.TIMEOUT_UNIT);
+        }
+
+        if(stamp != 0){
+            myLocks.put(key, new P<>(false,stamp));
+            addObjectDbToWriteBuffer(key, new BufferObjectDb<K, V>(key, obj.getValue(), obj)); //No buffer o old value
+            obj.setValue(value); // Escrita no objecto da bd, nao no buffer
         } else {
             abort();
             throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - put key:"+key+" value:"+value);
@@ -115,7 +113,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if (!isActive)
             return success;
 
-        commitId = Database.timestamp.getAndIncrement();
+//        commitId = Database.timestamp.getAndIncrement();
 
         Set<Map.Entry<K, ObjectLockDb<K,V>>> entrySet =  writeSet.entrySet();
         for (Map.Entry<K, ObjectLockDb<K,V>> obj : entrySet){
@@ -153,12 +151,17 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         Iterator<K> it_keys = readSet.iterator();
         while (it_keys.hasNext()) {
             K key = it_keys.next();
-            ObjectLockDb objectDb = (ObjectLockDb) getKeyDatabase(key);
-            objectDb.unlock_read();
+            ObjectLockDbImpl objectDb = (ObjectLockDbImpl) getKeyDatabase(key);
+            P<Boolean,Long> lk = myLocks.get(key);
+            if (lk.f)
+                objectDb.unlock_read(lk.s);
         }
 
         for (ObjectLockDb objectDb : writeSet.values()) {
-            ((ObjectLockDbImpl)objectDb.getObjectDb()).unlock_write();
+            BufferObjectDb buffer = (BufferObjectDb) objectDb;
+            ObjectLockDbImpl obj = (ObjectLockDbImpl)objectDb.getObjectDb();
+            P<Boolean,Long> lk = myLocks.get(buffer.getKey());
+                obj.unlock_write(lk.s);
         }
     }
 

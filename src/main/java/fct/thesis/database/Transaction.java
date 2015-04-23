@@ -26,8 +26,6 @@ public abstract class Transaction<K,V> implements Comparable {
 
     public abstract V get(K key) throws TransactionTimeoutException, TransactionAbortException;
 
-    public abstract V get_to_update(K key) throws TransactionTimeoutException, TransactionAbortException;
-
     public abstract void put(K key, V value) throws TransactionTimeoutException, TransactionAbortException;
 
     public abstract boolean commit() throws TransactionTimeoutException, TransactionAbortException;
