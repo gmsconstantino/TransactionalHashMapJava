@@ -7,6 +7,7 @@ import fct.thesis.structures.RwLock;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.StampedLock;
 
 /**
  * Created by gomes on 26/02/15.
@@ -16,30 +17,32 @@ public class ObjectLockOCC<K,V> extends ObjectLockDbAbstract<K,V> {
     AtomicLong versionGR = new AtomicLong(-1L);
 
     private long version;
-    private RwLock rwlock;
+    private StampedLock lock;
 
     public ObjectLockOCC(V value){
         super(value);
-        rwlock = new RwLock();
+        lock = new StampedLock();
         version = versionGR.getAndIncrement();
     }
 
-    @Override
-    public void lock_write() {
-        rwlock.lock_write();
+    public long lockStamp_write() {
+        return lock.writeLock();
     }
 
-    @Override
-    public void lock_read() {
-        rwlock.lock_read();
+    public long lockStamp_read() {
+        return lock.readLock();
     }
 
-    public void unlock_read() throws IllegalMonitorStateException {
-        rwlock.unlock_read();
+    public long tryOptimisticRead(){
+        return lock.tryOptimisticRead();
     }
 
-    public void unlock_write() throws IllegalMonitorStateException {
-        rwlock.unlock_write();
+    public boolean validate(long stamp){
+        return lock.validate(stamp);
+    }
+
+    public void unlock(long stamp) {
+        lock.unlock(stamp);
     }
 
     @Override
@@ -47,7 +50,6 @@ public class ObjectLockOCC<K,V> extends ObjectLockDbAbstract<K,V> {
         return "ObjectVersionLockDBImpl{" +
                 "value=" + getValue() +
                 ", version=" + version +
-                ", rwlock=" + rwlock +
                 '}';
     }
 

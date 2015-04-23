@@ -41,10 +41,18 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if (obj == null || obj.getVersion() == -1)
             return null;
 
-        obj.lock_read();
+        long stamp = obj.tryOptimisticRead();
         returnValue = obj.getValue();
         versionObj = obj.getVersion();
-        obj.unlock_read();
+        if (!obj.validate(stamp)) {
+            stamp = obj.lockStamp_read();
+            try {
+                returnValue = obj.getValue();
+                versionObj = obj.getVersion();
+            } finally {
+                obj.unlock(stamp);
+            }
+        }
 
         if (readSet.containsKey(key)){
             if (versionObj != readSet.get(key).getVersion()) {
@@ -103,18 +111,24 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
             }
         }
 
+        long stamp = 0;
         // Validate Read Set
         for (BufferDb<K,V> buffer : readSet.values()){ // BufferObject
             ObjectLockOCC<K,V> objectDb = (ObjectLockOCC) buffer.getObjectDb();
 
-            objectDb.lock_read();
+            stamp = objectDb.tryOptimisticRead();
+            if (buffer.getVersion() == objectDb.getVersion())
+                continue;
+            if (!objectDb.validate(stamp)) {
+                objectDb.lock_read();
 
-            if (buffer.getVersion() == objectDb.getVersion()) {
-                objectDb.unlock_read();
-            } else {
-                objectDb.unlock_read();
-                abortVersions(lockObjects);
-                return false;
+                if (buffer.getVersion() == objectDb.getVersion()) {
+                    objectDb.unlock_read();
+                } else {
+                    objectDb.unlock_read();
+                    abortVersions(lockObjects);
+                    return false;
+                }
             }
         }
 
