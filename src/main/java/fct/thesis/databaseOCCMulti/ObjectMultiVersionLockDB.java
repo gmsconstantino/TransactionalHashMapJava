@@ -1,8 +1,8 @@
 package fct.thesis.databaseOCCMulti;
 
 import fct.thesis.database.ObjectLockDb;
-import fct.thesis.databaseOCC.ObjectVersionLockDB;
-import fct.thesis.databaseOCC.ObjectVersionLockDBImpl;
+import fct.thesis.database.ObjectLockDbAbstract;
+import fct.thesis.databaseOCC.ObjectLockOCC;
 import fct.thesis.structures.RwLock;
 
 import java.util.LinkedList;
@@ -11,15 +11,16 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by gomes on 23/03/15.
  */
-public class ObjectMultiVersionLockDB<K,V> implements ObjectVersionLockDB<K,V> {
+public class ObjectMultiVersionLockDB<K,V> extends ObjectLockDbAbstract<K,V> {
 
     long last_version;
-    LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>> objects;
+    LinkedList<P<Long, ObjectLockDb<K,V>>> objects;
     RwLock lock;
 
 
     public ObjectMultiVersionLockDB(){
-        objects = new LinkedList<Pair<Long, ObjectVersionLockDB<K,V>>>();
+        super();
+        objects = new LinkedList<P<Long, ObjectLockDb<K,V>>>();
         lock = new RwLock();
         last_version = -1;
         lock.lock_write();
@@ -30,7 +31,7 @@ public class ObjectMultiVersionLockDB<K,V> implements ObjectVersionLockDB<K,V> {
     }
 
     public V getValueVersionLess(long startTime) {
-        for(Pair<Long, ObjectVersionLockDB<K,V>> pair : objects){
+        for(P<Long, ObjectLockDb<K,V>> pair : objects){
             if(pair.f <= startTime){
                 return pair.s.getValue();
             }
@@ -40,8 +41,8 @@ public class ObjectMultiVersionLockDB<K,V> implements ObjectVersionLockDB<K,V> {
 
     public void addNewVersionObject(Long version, V value){
         last_version = version;
-        ObjectVersionLockDBImpl<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
-        objects.addFirst(new Pair(version, obj));
+        ObjectLockOCC<K,V> obj = new ObjectLockOCC<K,V>(value);
+        objects.addFirst(new P(version, obj));
         obj.unlock_write();
     }
 
@@ -82,15 +83,6 @@ public class ObjectMultiVersionLockDB<K,V> implements ObjectVersionLockDB<K,V> {
         lock.unlock_write();
     }
 
-    @Override
-    public boolean isNew() {
-        return false;
-    }
-
-    @Override
-    public void setOld() {
-
-    }
 
     @Override
     public String toString() {

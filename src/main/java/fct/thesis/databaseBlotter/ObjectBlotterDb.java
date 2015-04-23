@@ -1,7 +1,6 @@
 package fct.thesis.databaseBlotter;
 
 import fct.thesis.database.ObjectDb;
-import fct.thesis.databaseOCCMulti.Pair;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;

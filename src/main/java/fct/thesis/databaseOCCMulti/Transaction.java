@@ -2,8 +2,6 @@ package fct.thesis.databaseOCCMulti;
 
 import fct.thesis.database.*;
 import fct.thesis.database2PL.Config;
-import fct.thesis.databaseOCC.BufferObjectVersionDB;
-import fct.thesis.databaseOCC.ObjectVersionLockDB;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,7 +15,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
     static AtomicInteger timestamp = new AtomicInteger(0);
 
     protected Map<K, Long> readSet; //set , conf se add nao altera
-    protected Map<K, ObjectVersionLockDB<K,V>> writeSet;
+    protected Map<K, BufferDb<K,V>> writeSet;
 
     private long startTime;
     private long commitTime;
@@ -29,7 +27,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
     protected synchronized void init(){
         super.init();
         readSet = new HashMap<K, Long>();
-        writeSet = new HashMap<K, ObjectVersionLockDB<K,V>>();
+        writeSet = new HashMap<K, BufferDb<K,V>>();
 
         startTime = timestamp.get();
     }
@@ -73,8 +71,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
             return;
 
         if(writeSet.containsKey(key)){
-            ObjectLockDb<K,V> objectDb = writeSet.get(key);
-            objectDb.setValue(value);
+            writeSet.get(key).setValue(value);
             return;
         }
 
@@ -87,17 +84,11 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
 
             if (objdb != null)
                 obj = objdb;
-
-            ObjectVersionLockDB<K,V> buffer = new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, true); // isNew = true
-            buffer.setValue(value);
-            addObjectDbToWriteBuffer(key, buffer);
-            return;
         }
 
         // o objecto esta na base de dados
         if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            ObjectVersionLockDB<K,V> buffer = new BufferObjectVersionDB(key, obj.getValue(), obj.getVersion(), obj, false);
-            buffer.setValue(value);
+            BufferDb<K,V> buffer = new BufferObjectDb(key, value, obj.getVersion(), obj);
             addObjectDbToWriteBuffer(key, buffer);
             obj.unlock_read();
         } else {
@@ -119,8 +110,8 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
 
         Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
-        for (ObjectVersionLockDB<K,V> buffer : writeSet.values()){
-            ObjectVersionLockDB<K,V> objectDb = (ObjectVersionLockDB) buffer.getObjectDb();
+        for (BufferDb<K,V> buffer : writeSet.values()){
+            ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) buffer.getObjectDb();
             if(objectDb.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
                 lockObjects.add(objectDb);
 
@@ -161,7 +152,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
 
         commitId = Transaction.timestamp.getAndIncrement();
         // Escrita
-        for (ObjectLockDb<K,V> buffer : writeSet.values()){
+        for (BufferDb<K,V> buffer : writeSet.values()){
             ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) buffer.getObjectDb();
             objectDb.addNewVersionObject(commitId, buffer.getValue());
         }
@@ -205,7 +196,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         readSet.put(key, version);
     }
 
-    void addObjectDbToWriteBuffer(K key, ObjectVersionLockDB objectDb){
+    void addObjectDbToWriteBuffer(K key, BufferDb objectDb){
         writeSet.put(key, objectDb);
     }
 

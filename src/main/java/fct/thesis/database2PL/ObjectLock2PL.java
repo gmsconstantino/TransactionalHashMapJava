@@ -1,7 +1,6 @@
 package fct.thesis.database2PL;
 
-import fct.thesis.database.ObjectLockDb;
-import fct.thesis.structures.RwLock;
+import fct.thesis.database.ObjectLockDbAbstract;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.StampedLock;
@@ -9,13 +8,15 @@ import java.util.concurrent.locks.StampedLock;
 /**
  * Created by gomes on 26/02/15.
  */
-public class ObjectLockDbImpl<K,V> extends ObjectLockDbAbs<K,V> {
+public class ObjectLock2PL<K,V> extends ObjectLockDbAbstract<K,V> {
 
     private StampedLock lock;
+    private boolean isNew;
 
-    ObjectLockDbImpl(V value){
+    ObjectLock2PL(V value){
         super(value);
         lock = new StampedLock();
+        isNew = true;
     }
 
     public long try_lock_write(long time, TimeUnit unit){
@@ -46,10 +47,18 @@ public class ObjectLockDbImpl<K,V> extends ObjectLockDbAbs<K,V> {
         lock.unlockWrite(stamp);
     }
 
+    public boolean isNew() {
+        return isNew;
+    }
+
+    public void setOld() {
+        isNew = false;
+    }
+
     @Override
     public String toString() {
         return "ObjectDbImpl{" +
-                "value=" + value +
+                "value=" + getValue() +
                 ", isNew=" + isNew +
                 ", lock=" + lock +
                 '}';

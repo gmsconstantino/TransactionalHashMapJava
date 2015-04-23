@@ -1,17 +1,15 @@
 package fct.thesis.databaseBlotter;
 
-import fct.thesis.database.*;
-import fct.thesis.database2PL.BufferObjectDb;
+import fct.thesis.database.BufferObjectDb;
+import fct.thesis.database.TransactionAbortException;
+import fct.thesis.database.TransactionTimeoutException;
 import fct.thesis.database2PL.Config;
-import fct.thesis.databaseOCC.BufferObjectVersionDB;
-import fct.thesis.databaseOCC.ObjectVersionLockDB;
-import fct.thesis.databaseOCC.ObjectVersionLockDBImpl;
-import fct.thesis.databaseOCCMulti.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**

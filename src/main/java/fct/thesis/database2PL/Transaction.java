@@ -14,7 +14,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
     protected Set<K> readSet;
 
     // Write set guarda o valor antigo que estava antes da transacao
-    protected Map<K, ObjectLockDb<K,V>> writeSet;
+    protected Map<K, BufferDb<K,V>> writeSet;
 
     protected Map<K, P<Boolean,Long>> myLocks;
 
@@ -26,11 +26,9 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         super.init();
 
         readSet = new HashSet<K>();
-        writeSet = new HashMap<K, ObjectLockDb<K,V>>();
+        writeSet = new HashMap<K, BufferDb<K,V>>();
         myLocks = new HashMap<K, P<Boolean,Long>>();
     }
-
-
 
     @Override
     public V get(K key) {
@@ -42,7 +40,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         }
 
         // Passa a ser um objecto do tipo ObjectLockDbImpl
-        ObjectLockDbImpl<?,?> obj = (ObjectLockDbImpl) getKeyDatabase(key);
+        ObjectLock2PL<?,?> obj = (ObjectLock2PL) getKeyDatabase(key);
 
         if (obj == null)
             return null;
@@ -71,14 +69,14 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         }
 
         // Search
-        ObjectLockDbImpl<K,V> obj = (ObjectLockDbImpl<K,V>) getKeyDatabase(key); // Passa a ser um objecto do tipo ObjectDbImpl
+        ObjectLock2PL<K,V> obj = (ObjectLock2PL<K,V>) getKeyDatabase(key); // Passa a ser um objecto do tipo ObjectDbImpl
 
         long stamp = 0L;
 
         if(obj == null){
-            obj = new ObjectLockDbImpl<K,V>(value);
+            obj = new ObjectLock2PL<K,V>(value);
 
-            ObjectLockDbImpl<K,V> map_obj = (ObjectLockDbImpl<K,V>) putIfAbsent(key, obj);
+            ObjectLock2PL<K,V> map_obj = (ObjectLock2PL<K,V>) putIfAbsent(key, obj);
             obj = map_obj!=null? map_obj : obj;
         }
 
@@ -113,11 +111,8 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if (!isActive)
             return success;
 
-//        commitId = Database.timestamp.getAndIncrement();
-
-        Set<Map.Entry<K, ObjectLockDb<K,V>>> entrySet =  writeSet.entrySet();
-        for (Map.Entry<K, ObjectLockDb<K,V>> obj : entrySet){
-            ObjectLockDb objectDb = obj.getValue();
+        for (Map.Entry<K, BufferDb<K,V>> entry : writeSet.entrySet()){
+            ObjectLock2PL objectDb = (ObjectLock2PL) entry.getValue().getObjectDb();
             objectDb.setOld();
         }
 
@@ -131,14 +126,13 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
     @Override
     public void abort() {
         // Cleanup
-        Set<Map.Entry<K, ObjectLockDb<K,V>>> entrySet =  writeSet.entrySet();
-        for (Map.Entry<K, ObjectLockDb<K,V>> obj : entrySet){
-            ObjectLockDb objectDb = obj.getValue();
+        for (Map.Entry<K, BufferDb<K,V>> entry : writeSet.entrySet()){
+            ObjectLock2PL objectDb = (ObjectLock2PL) entry.getValue().getObjectDb();
             if (objectDb.isNew()){
-                removeKey(obj.getKey());
-                readSet.remove(obj.getKey());
+                removeKey(entry.getKey());
+                readSet.remove(entry.getKey());
             } else {
-                ((ObjectLockDb) objectDb.getObjectDb()).setValue(objectDb.getValue());
+                objectDb.setValue(entry.getValue().getValue()); // Second getValue is from buffer object, para repor o valor antes da transacao
             }
         }
 
@@ -151,17 +145,16 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         Iterator<K> it_keys = readSet.iterator();
         while (it_keys.hasNext()) {
             K key = it_keys.next();
-            ObjectLockDbImpl objectDb = (ObjectLockDbImpl) getKeyDatabase(key);
+            ObjectLock2PL objectDb = (ObjectLock2PL) getKeyDatabase(key);
             P<Boolean,Long> lk = myLocks.get(key);
             if (lk.f)
                 objectDb.unlock_read(lk.s);
         }
 
-        for (ObjectLockDb objectDb : writeSet.values()) {
-            BufferObjectDb buffer = (BufferObjectDb) objectDb;
-            ObjectLockDbImpl obj = (ObjectLockDbImpl)objectDb.getObjectDb();
-            P<Boolean,Long> lk = myLocks.get(buffer.getKey());
-                obj.unlock_write(lk.s);
+        for (BufferDb<K,V> bufferDb : writeSet.values()) {
+            ObjectLock2PL obj = (ObjectLock2PL)bufferDb.getObjectDb();
+            P<Boolean,Long> lk = myLocks.get(bufferDb.getKey());
+            obj.unlock_write(lk.s);
         }
     }
 
@@ -169,7 +162,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         readSet.add(key);
     }
 
-    void addObjectDbToWriteBuffer(K key, ObjectLockDb obj){
+    void addObjectDbToWriteBuffer(K key, BufferDb obj){
         writeSet.put(key, obj);
     }
 

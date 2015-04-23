@@ -1,10 +1,10 @@
 package fct.thesis.databaseBlotter;
 
 import fct.thesis.database.ObjectDb;
-import fct.thesis.databaseOCCMulti.Pair;
+import fct.thesis.structures.RwLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import fct.thesis.structures.RwLock;
+import pt.dct.util.P;
 
 import java.util.LinkedList;
 import java.util.Set;
@@ -22,7 +22,7 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
 
     AtomicLong version;
 
-    LinkedList<Pair<Long, V>> objects; //Devia remover objectos antigos
+    LinkedList<P<Long, V>> objects; //Devia remover objectos antigos
 
     ConcurrentHashMap<Long, Long> snapshots; //Devia ter ttl
 //    public Cache<Long, Long> snapshots;
@@ -32,7 +32,7 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
     public ObjectBlotterDbImpl(){
         version = new AtomicLong(-1L);
 
-        objects = new LinkedList<Pair<Long, V>>();
+        objects = new LinkedList<P<Long, V>>();
         snapshots = new ConcurrentHashMap<Long, Long>();
 
         rwlock = new RwLock();
@@ -69,7 +69,7 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
 
         V value = null;
 
-        for(Pair<Long, V> pair : objects){
+        for(P<Long, V> pair : objects){
             if(pair.f <= version){
                 value = pair.s;
                 break;
@@ -94,7 +94,7 @@ public class ObjectBlotterDbImpl<K,V> implements ObjectBlotterDb<K,V> {
     public void setValue(V value) {
 //        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
 //        obj.unlock_write();
-        objects.addFirst(new Pair(version.incrementAndGet(), value));
+        objects.addFirst(new P(version.incrementAndGet(), value));
     }
 
     @Override

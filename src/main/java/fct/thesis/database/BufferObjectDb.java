@@ -1,5 +1,6 @@
-package fct.thesis.database2PL;
+package fct.thesis.database;
 
+import fct.thesis.database.BufferDb;
 import fct.thesis.database.ObjectDb;
 import fct.thesis.database.ObjectLockDb;
 
@@ -8,31 +9,32 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by gomes on 28/02/15.
  */
-public class BufferObjectDb<K,V> implements ObjectLockDb<K,V> {
+public class BufferObjectDb<K,V> implements BufferDb<K,V> {
 
-    K key;
-    V value;
+    private K key;
+    private V value;
+    private long version;
 
-    ObjectDb<K,V> objectDb;
-    private boolean isNew;
+    private ObjectDb<K,V> objectDb;
 
     public BufferObjectDb(K key, V value){
         this.key = key;
         this.value = value;
-        isNew=false;
+        this.version = -1L;
     }
 
     public BufferObjectDb(K key, V value, ObjectDb<K, V> obj) {
         this.key = key;
         this.value = value;
         this.objectDb = obj;
-        isNew = false;
+        this.version = -1L;
     }
 
-    public BufferObjectDb(V value, ObjectDb<K, V> obj) {
+    public BufferObjectDb(K key, V value, long version, ObjectDb<K, V> obj) {
+        this.key = key;
         this.value = value;
+        this.version = version;
         this.objectDb = obj;
-        isNew = false;
     }
 
     @Override
@@ -42,6 +44,11 @@ public class BufferObjectDb<K,V> implements ObjectLockDb<K,V> {
 
     public K getKey() {
         return key;
+    }
+
+    @Override
+    public long getVersion() {
+        return version;
     }
 
     @Override
@@ -59,40 +66,9 @@ public class BufferObjectDb<K,V> implements ObjectLockDb<K,V> {
     }
 
     @Override
-    public boolean try_lock_write_for(long time, TimeUnit unit) {
-        return true;
-    }
-
-    @Override
-    public boolean try_lock_read_for(long time, TimeUnit unit) {
-        return true;
-    }
-
-    @Override
-    public void unlock_read() {
-
-    }
-
-    @Override
-    public void unlock_write() {
-
-    }
-
-    @Override
-    public boolean isNew() {
-        return isNew;
-    }
-
-    @Override
-    public void setOld() {
-        isNew = false;
-    }
-
-    @Override
     public String toString() {
         return "BufferObjectDb{" +
                 "value=" + value +
-                ", isNew=" + isNew +
                 ", objectDb=" + objectDb +
                 '}';
     }
