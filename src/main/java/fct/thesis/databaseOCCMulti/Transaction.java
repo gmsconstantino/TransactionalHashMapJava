@@ -47,21 +47,12 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if (obj == null || obj.getVersion() == -1)
             return null;
 
-        if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-
-            if (readSet.containsKey(key)){
-                    returnValue = obj.getValueVersionLess(startTime);
-            } else {
-                addObjectDbToReadBuffer((K) key, obj.getVersion());
-                returnValue = (V) obj.getValueVersionLess(startTime);
-            }
+        if (readSet.containsKey(key)){
+                returnValue = obj.getValueVersionLess(readSet.get(key));
         } else {
-//            obj.unlock_read();
-            abort();
-            throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
+            addObjectDbToReadBuffer((K) key, obj.getVersion());
+            returnValue = (V) obj.getValueVersionLess(startTime);
         }
-
-        obj.unlock_read();
         return returnValue;
     }
 
@@ -86,15 +77,8 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
                 obj = objdb;
         }
 
-        // o objecto esta na base de dados
-        if(obj.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-            BufferDb<K,V> buffer = new BufferObjectDb(key, value, obj.getVersion(), obj);
-            addObjectDbToWriteBuffer(key, buffer);
-            obj.unlock_read();
-        } else {
-            abort();
-            throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - get key:"+key);
-        }
+        BufferDb<K,V> buffer = new BufferObjectDb(key, value, obj.getVersion(), obj);
+        addObjectDbToWriteBuffer(key, buffer);
     }
 
     @Override
@@ -112,41 +96,30 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
 
         for (BufferDb<K,V> buffer : writeSet.values()){
             ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) buffer.getObjectDb();
-            if(objectDb.try_lock_write_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
-                lockObjects.add(objectDb);
 
-                // buffer.version == objectDb.last_version
-                if (buffer.getVersion() == objectDb.getVersion()) {
-                    continue;
-                } else {
-                    abortVersions(lockObjects);
-                    return false;
-                }
+            objectDb.lock_write();
+            lockObjects.add(objectDb);
+
+            // buffer.version == objectDb.last_version
+            if (buffer.getVersion() == objectDb.getVersion()) {
+                continue;
             } else {
-                abortTimeout(lockObjects);
+                abortVersions(lockObjects);
                 return false;
             }
         }
 
 
         // Validate Read Set
-        Iterator<Map.Entry<K, Long>> it = readSet.entrySet().iterator();
-        while (it.hasNext()){
-            Map.Entry<K, Long> obj_readSet = it.next();
+        for (Map.Entry<K, Long> obj_readSet : readSet.entrySet()){
             ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) getKeyDatabase(obj_readSet.getKey());
-            if(objectDb.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
 
-                // readSet.version == objectDb.last_version
-                if (obj_readSet.getValue() == objectDb.getVersion()) {
-                    objectDb.unlock_read();
-                    continue;
-                } else {
-                    objectDb.unlock_read();
-                    abortVersions(lockObjects);
-                    return false;
-                }
+            // readSet.version == objectDb.last_version
+            if (obj_readSet.getValue() == objectDb.getVersion()) {
+                continue;
             } else {
-                abortTimeout(lockObjects);
+                abortVersions(lockObjects);
+                return false;
             }
         }
 
@@ -155,9 +128,8 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         for (BufferDb<K,V> buffer : writeSet.values()){
             ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) buffer.getObjectDb();
             objectDb.addNewVersionObject(commitId, buffer.getValue());
+            objectDb.unlock_write();
         }
-
-        unlockWrite_objects(lockObjects);
 
         isActive = false;
         success = true;

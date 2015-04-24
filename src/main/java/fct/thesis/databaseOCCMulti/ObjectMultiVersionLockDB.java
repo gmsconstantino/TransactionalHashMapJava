@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class ObjectMultiVersionLockDB<K,V> extends ObjectLockDbAbstract<K,V> {
 
-    long last_version;
+    volatile long last_version;
     LinkedList<P<Long, ObjectLockDb<K,V>>> objects;
     RwLock lock;
 
@@ -84,6 +84,15 @@ public class ObjectMultiVersionLockDB<K,V> extends ObjectLockDbAbstract<K,V> {
         lock.unlock_write();
     }
 
+    @Override
+    public void lock_write() {
+        lock.lock_write();
+    }
+
+    @Override
+    public void lock_read() {
+        lock.lock_read();
+    }
 
     @Override
     public String toString() {
