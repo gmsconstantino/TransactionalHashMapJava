@@ -21,7 +21,7 @@ public class ObjectLock2PL<K,V> extends ObjectLockDbAbstract<K,V> {
 
     public long try_lock_write(long time, TimeUnit unit){
         try {
-            return lock.tryWriteLock(time,unit);
+            return lock.tryWriteLock(time, unit);
         } catch (InterruptedException e) {
             return 0L;
         }
