@@ -47,7 +47,7 @@ public class ObjectLockOCC<K,V> extends ObjectLockDbAbstract<K,V> {
 
     @Override
     public String toString() {
-        return "ObjectVersionLockDBImpl{" +
+        return "ObjectLockOCC{" +
                 "value=" + getValue() +
                 ", version=" + version +
                 '}';

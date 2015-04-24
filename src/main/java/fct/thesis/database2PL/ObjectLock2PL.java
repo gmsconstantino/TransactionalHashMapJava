@@ -21,7 +21,7 @@ public class ObjectLock2PL<K,V> extends ObjectLockDbAbstract<K,V> {
 
     public long try_lock_write(long time, TimeUnit unit){
         try {
-            return lock.tryWriteLock(time,unit);
+            return lock.tryWriteLock(time, unit);
         } catch (InterruptedException e) {
             return 0L;
         }
@@ -47,6 +47,10 @@ public class ObjectLock2PL<K,V> extends ObjectLockDbAbstract<K,V> {
         lock.unlockWrite(stamp);
     }
 
+    public void unlock(Long stamp) {
+        lock.unlock(stamp);
+    }
+
     public boolean isNew() {
         return isNew;
     }
@@ -57,7 +61,7 @@ public class ObjectLock2PL<K,V> extends ObjectLockDbAbstract<K,V> {
 
     @Override
     public String toString() {
-        return "ObjectDbImpl{" +
+        return "ObjectLock2PL{" +
                 "value=" + getValue() +
                 ", isNew=" + isNew +
                 ", lock=" + lock +

@@ -453,7 +453,7 @@ public class TestDatabaseOCC {
 
                 Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.OCC);
 
-//                v2[0] = t.get_to_update(10);
+                v2[0] = t.get(10);
                 assertEquals(v2[0].intValue(), 5);
 
                 t.put(10, 105);
