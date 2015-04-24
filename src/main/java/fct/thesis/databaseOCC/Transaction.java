@@ -42,18 +42,10 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if (obj == null || obj.getVersion() == -1)
             return null;
 
-        long stamp = obj.tryOptimisticRead();
+        obj.lock_read();
         returnValue = obj.getValue();
         versionObj = obj.getVersion();
-        if (!obj.validate(stamp)) {
-            stamp = obj.lockStamp_read();
-            try {
-                returnValue = obj.getValue();
-                versionObj = obj.getVersion();
-            } finally {
-                obj.unlock(stamp);
-            }
-        }
+        obj.unlock_read();
 
         if (readSet.containsKey(key)){
             if (versionObj != readSet.get(key).getVersion()) {
@@ -96,14 +88,13 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if(!isActive)
             return success;
 
-        Map<ObjectLockOCC<K,V>,Long> lockObjects = new HashMap<ObjectLockOCC<K,V>,Long>();
-        long stamp = 0;
+        Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
         for (BufferDb<K,V> buffer : writeSet.values()){
             ObjectLockOCC<K,V> objectDb = (ObjectLockOCC) buffer.getObjectDb();
 
-            stamp = objectDb.lockStamp_write();
-            lockObjects.put(objectDb, stamp);
+            objectDb.lock_write();
+            lockObjects.add(objectDb);
 
             if (buffer.getVersion() == objectDb.getVersion()) {
                 continue;
@@ -113,24 +104,18 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
             }
         }
 
-
         // Validate Read Set
         for (BufferDb<K,V> buffer : readSet.values()){ // BufferObject
             ObjectLockOCC<K,V> objectDb = (ObjectLockOCC) buffer.getObjectDb();
 
-            stamp = objectDb.tryOptimisticRead();
-            if (buffer.getVersion() == objectDb.getVersion())
-                continue;
-            if (!objectDb.validate(stamp)) {
-                objectDb.lock_read();
+            objectDb.lock_read();
 
-                if (buffer.getVersion() == objectDb.getVersion()) {
-                    objectDb.unlock_read();
-                } else {
-                    objectDb.unlock_read();
-                    abortVersions(lockObjects);
-                    return false;
-                }
+            if (buffer.getVersion() == objectDb.getVersion()) {
+                objectDb.unlock_read();
+            } else {
+                objectDb.unlock_read();
+                abortVersions(lockObjects);
+                return false;
             }
         }
 
@@ -140,7 +125,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         for (BufferDb<K,V> buffer : writeSet.values()){
             ObjectLockOCC<K,V> objectDb = (ObjectLockOCC) buffer.getObjectDb();
             objectDb.setValue(buffer.getValue());
-            objectDb.unlock(lockObjects.get(objectDb));
+            objectDb.unlock_write();
         }
 
         isActive = false;
@@ -148,21 +133,23 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         return true;
     }
 
-    private void abortTimeout(Map<ObjectLockOCC<K,V>,Long> lockObjects) throws TransactionTimeoutException{
+    private void abortTimeout(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
         throw new TransactionTimeoutException("COMMIT: Transaction " + getId() +": "+Thread.currentThread().getName()+" - commit");
     }
 
-    private void abortVersions(Map<ObjectLockOCC<K,V>,Long> lockObjects) throws TransactionTimeoutException{
+    private void abortVersions(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
         throw new TransactionAbortException("COMMIT: Transaction Abort " + getId() +": "+Thread.currentThread().getName()+" - Version change");
     }
 
-    private void unlockWrite_objects(Map<ObjectLockOCC<K,V>,Long> set){
-        for (Map.Entry<ObjectLockOCC<K,V>,Long> entry : set.entrySet()){
-            entry.getKey().unlock(entry.getValue());
+    private void unlockWrite_objects(Set<ObjectLockDb<K,V>> set){
+        Iterator<ObjectLockDb<K,V>> it_locks = set.iterator();
+        while (it_locks.hasNext()) {
+            ObjectLockDb<K,V> objectDb = it_locks.next();
+            objectDb.unlock_write();
         }
     }
 
