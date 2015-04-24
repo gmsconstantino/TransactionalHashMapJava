@@ -51,7 +51,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if (!myLocks.containsKey(key))
             stamp = obj.try_lock_read(Config.TIMEOUT, Config.TIMEOUT_UNIT);
         else
-            stamp = myLocks.get(key); // Ja tenho o writelock, mas nao preciso se saber qual é o valor do stamp
+            stamp = myLocks.get(key); // Ja tenho o writelock, mas nao preciso se saber qual e o valor do stamp
 
         if(stamp!=0){
             addObjectDbToReadBuffer((K) key);
