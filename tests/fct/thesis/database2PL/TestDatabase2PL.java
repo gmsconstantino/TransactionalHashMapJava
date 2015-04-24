@@ -142,8 +142,8 @@ public class TestDatabase2PL {
         t2.join();
 
 //        if ()
-        assertEquals(v2[0].intValue(), 5);
-        assertEquals(v2[1].intValue(), 15);
+        assertEquals(5,v2[0].intValue());
+        assertEquals(15,v2[1].intValue());
     }
 
     @org.junit.Test
@@ -356,7 +356,7 @@ public class TestDatabase2PL {
 
                 Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-//                v2[0] = t.get_to_update(10);
+                v2[0] = t.get(10);
                 t.put(10, 105);
 
                 v2[0] = t.get(10);
@@ -407,7 +407,7 @@ public class TestDatabase2PL {
 
                 Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.TWOPL);
 
-//                v2[0] = t.get_to_update(10);
+                v2[0] = t.get(10);
                 assertEquals(v2[0].intValue(), 5);
 
                 t.put(10, 105);
@@ -448,8 +448,8 @@ public class TestDatabase2PL {
         stop_t3[0] = 0L;
         t3.join();
 
-        assertEquals(v2[0].intValue(), 105);
-        assertEquals(v2[1].intValue(), 15);
+        assertEquals(105,v2[0].intValue());
+        assertEquals(15,v2[1].intValue());
 
     }
 

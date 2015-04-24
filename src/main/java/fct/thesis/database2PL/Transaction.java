@@ -16,7 +16,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
     // Write set guarda o valor antigo que estava antes da transacao
     protected Map<K, BufferDb<K,V>> writeSet;
 
-    protected Map<K, P<Boolean,Long>> myLocks;
+    protected Map<K,Long> myLocks;
 
     public Transaction(Database db) {
         super(db);
@@ -27,7 +27,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
 
         readSet = new HashSet<K>();
         writeSet = new HashMap<K, BufferDb<K,V>>();
-        myLocks = new HashMap<K, P<Boolean,Long>>();
+        myLocks = new HashMap<K, Long>();
     }
 
     @Override
@@ -45,10 +45,16 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         if (obj == null)
             return null;
 
-        long stamp = obj.try_lock_read(Config.TIMEOUT, Config.TIMEOUT_UNIT);
+        long stamp = 0L;
+
+        if (!myLocks.containsKey(key))
+            stamp = obj.try_lock_read(Config.TIMEOUT, Config.TIMEOUT_UNIT);
+        else
+            stamp = myLocks.get(key); // Ja tenho o writelock, mas nao preciso se saber qual e o valor do stamp
+
         if(stamp!=0){
             addObjectDbToReadBuffer((K) key);
-            myLocks.put(key, new P<>(true,stamp));
+            myLocks.put(key, stamp);
             return (V) obj.getValue();
         } else {
             abort();
@@ -82,7 +88,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
 
         if (myLocks.containsKey(key)){
             for (int i = 0; i < 3; i++) {
-                long ws = obj.try_upgrade(myLocks.get(key).s);
+                long ws = obj.try_upgrade(myLocks.get(key));
                 if (ws != 0L) {
                     stamp = ws;
                     break;
@@ -97,7 +103,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         }
 
         if(stamp != 0){
-            myLocks.put(key, new P<>(false,stamp));
+            myLocks.put(key, stamp);
             addObjectDbToWriteBuffer(key, new BufferObjectDb<K, V>(key, obj.getValue(), obj)); //No buffer o old value
             obj.setValue(value); // Escrita no objecto da bd, nao no buffer
         } else {
@@ -146,15 +152,15 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         while (it_keys.hasNext()) {
             K key = it_keys.next();
             ObjectLock2PL objectDb = (ObjectLock2PL) getKeyDatabase(key);
-            P<Boolean,Long> lk = myLocks.get(key);
-            if (lk.f)
-                objectDb.unlock_read(lk.s);
+            objectDb.unlock(myLocks.get(key));
+            myLocks.remove(key);
         }
 
         for (BufferDb<K,V> bufferDb : writeSet.values()) {
             ObjectLock2PL obj = (ObjectLock2PL)bufferDb.getObjectDb();
-            P<Boolean,Long> lk = myLocks.get(bufferDb.getKey());
-            obj.unlock_write(lk.s);
+
+            if(myLocks.containsKey(bufferDb.getKey()))
+                obj.unlock_write(myLocks.get(bufferDb.getKey()));
         }
     }
 

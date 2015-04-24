@@ -78,7 +78,7 @@ public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
         }
 
         // o objecto esta na base de dados
-        BufferObjectDb<K,V> buffer = new BufferObjectDb(key, value, obj);
+        BufferObjectDb<K,V> buffer = new BufferObjectDb(key, value, obj.getVersion(), obj);
         addObjectDbToWriteBuffer(key, buffer);
     }
 
