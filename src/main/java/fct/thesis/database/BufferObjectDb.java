@@ -70,7 +70,8 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
 
     @Override
     public boolean equals(Object obj) {
-        return key.equals(obj);
+        BufferObjectDb<K,V> buffer = (BufferObjectDb<K,V>) obj;
+        return key.equals(buffer.getKey());
     }
 
     @Override
@@ -83,6 +84,7 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
 
     @Override
     public int compareTo(Object o) {
-        return key.compareTo((K)o);
+        BufferObjectDb<K,V> buffer = (BufferObjectDb<K,V>) o;
+        return key.compareTo(buffer.getKey());
     }
 }
