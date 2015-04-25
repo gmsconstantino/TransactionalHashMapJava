@@ -4,12 +4,13 @@ import fct.thesis.database.BufferDb;
 import fct.thesis.database.ObjectDb;
 import fct.thesis.database.ObjectLockDb;
 
+import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Created by gomes on 28/02/15.
  */
-public class BufferObjectDb<K,V> implements BufferDb<K,V> {
+public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>, Comparable {
 
     private K key;
     private V value;
@@ -65,11 +66,23 @@ public class BufferObjectDb<K,V> implements BufferDb<K,V> {
         this.value = value;
     }
 
+
+
+    @Override
+    public boolean equals(Object obj) {
+        return key.equals(obj);
+    }
+
     @Override
     public String toString() {
         return "BufferObjectDb{" +
                 "value=" + value +
                 ", objectDb=" + objectDb +
                 '}';
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        return key.compareTo((K)o);
     }
 }

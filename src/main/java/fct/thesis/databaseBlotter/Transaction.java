@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Created by gomes on 26/02/15.
  */
 
-public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
+public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
 
     public final static ExecutorService service = Executors.newFixedThreadPool(10);
 

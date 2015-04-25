@@ -9,7 +9,7 @@ import java.util.*;
  * Created by gomes on 26/02/15.
  */
 
-public class Transaction<K,V> extends fct.thesis.database.Transaction<K,V> {
+public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
 
     protected Set<K> readSet;
 
