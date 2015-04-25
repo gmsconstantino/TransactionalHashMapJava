@@ -25,6 +25,11 @@ public class ObjectLockOCC<K,V> extends ObjectLockDbAbstract<K,V> {
     }
 
     @Override
+    public boolean try_lock_read_for(long time, TimeUnit unit) {
+        return rwlock.try_lock_read_for(time, unit);
+    }
+
+    @Override
     public void lock_write() {
         rwlock.lock_write();
     }

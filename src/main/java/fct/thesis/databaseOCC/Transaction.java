@@ -107,15 +107,18 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         // Validate Read Set
         for (BufferDb<K,V> buffer : readSet.values()){ // BufferObject
             ObjectLockOCC<K,V> objectDb = (ObjectLockOCC) buffer.getObjectDb();
+            if(objectDb.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
 
-            objectDb.lock_read();
-
-            if (buffer.getVersion() == objectDb.getVersion()) {
-                objectDb.unlock_read();
+                if (buffer.getVersion() == objectDb.getVersion()) {
+                    objectDb.unlock_read();
+                    continue;
+                } else {
+                    objectDb.unlock_read();
+                    abortVersions(lockObjects);
+                    return false;
+                }
             } else {
-                objectDb.unlock_read();
-                abortVersions(lockObjects);
-                return false;
+                abortTimeout(lockObjects);
             }
         }
 
