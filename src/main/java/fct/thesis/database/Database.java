@@ -30,7 +30,7 @@ public class Database<K,V> {
         return concurrentHashMap.remove(key);
     }
 
-
+    public void cleanup(){}
 
     /*
      * Public
