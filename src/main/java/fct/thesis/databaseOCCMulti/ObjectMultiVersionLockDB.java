@@ -7,6 +7,8 @@ import fct.thesis.structures.RwLock;
 import pt.dct.util.P;
 
 import java.util.LinkedList;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -15,13 +17,13 @@ import java.util.concurrent.TimeUnit;
 public class ObjectMultiVersionLockDB<K,V> extends ObjectLockDbAbstract<K,V> {
 
     volatile long last_version;
-    LinkedList<P<Long, ObjectLockDb<K,V>>> objects;
+    ConcurrentLinkedDeque<P<Long, ObjectLockDb<K,V>>> objects;
     RwLock lock;
 
 
     public ObjectMultiVersionLockDB(){
         super();
-        objects = new LinkedList<P<Long, ObjectLockDb<K,V>>>();
+        objects = new ConcurrentLinkedDeque<P<Long, ObjectLockDb<K,V>>>();
         lock = new RwLock();
         last_version = -1;
         lock.lock_write();
@@ -44,7 +46,6 @@ public class ObjectMultiVersionLockDB<K,V> extends ObjectLockDbAbstract<K,V> {
         last_version = version;
         ObjectLockOCC<K,V> obj = new ObjectLockOCC<K,V>(value);
         objects.addFirst(new P(version, obj));
-        obj.unlock_write();
     }
 
     @Override
