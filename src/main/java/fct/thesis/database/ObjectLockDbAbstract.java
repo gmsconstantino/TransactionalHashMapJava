@@ -1,4 +1,4 @@
-package fct.thesis.database2PL;
+package fct.thesis.database;
 
 import fct.thesis.database.ObjectDb;
 import fct.thesis.database.ObjectLockDb;
@@ -8,16 +8,16 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by gomes on 22/04/15.
  */
-public class ObjectLockDbAbs<K,V> implements ObjectLockDb<K,V> {
+public class ObjectLockDbAbstract<K,V> implements ObjectLockDb<K,V> {
 
-    V value;
-    boolean isNew;
+    private V value;
 
-    public ObjectLockDbAbs(V value) {
-        this.value = value;
-        this.isNew = true;
+    public ObjectLockDbAbstract() {
     }
 
+    public ObjectLockDbAbstract(V value) {
+        this.value = value;
+    }
 
     @Override
     public ObjectLockDb getObjectDb() {
@@ -34,7 +34,6 @@ public class ObjectLockDbAbs<K,V> implements ObjectLockDb<K,V> {
         this.value = value;
     }
 
-
     @Override
     public boolean try_lock_write_for(long time, TimeUnit unit) {
         return false;
@@ -43,6 +42,16 @@ public class ObjectLockDbAbs<K,V> implements ObjectLockDb<K,V> {
     @Override
     public boolean try_lock_read_for(long time, TimeUnit unit) {
         return false;
+    }
+
+    @Override
+    public void lock_write() {
+
+    }
+
+    @Override
+    public void lock_read() {
+
     }
 
     @Override
@@ -56,12 +65,8 @@ public class ObjectLockDbAbs<K,V> implements ObjectLockDb<K,V> {
     }
 
     @Override
-    public boolean isNew() {
-        return isNew;
+    public long getVersion() {
+        return -1L;
     }
 
-    @Override
-    public void setOld() {
-        isNew = false;
-    }
 }

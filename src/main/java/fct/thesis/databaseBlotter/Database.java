@@ -44,6 +44,10 @@ public class Database<K,V> extends fct.thesis.database.Database{
             }
     }
 
+    public void cleanup(){
+        fct.thesis.databaseBlotter.Transaction.service.shutdown();
+    }
+
     private class ThreadCleaner extends Thread {
 
         private final Object monitor;
@@ -59,6 +63,7 @@ public class Database<K,V> extends fct.thesis.database.Database{
                     monitor.wait();
                 } catch (InterruptedException e) {
                     System.err.println("Exception Thread Cleaner.");
+                    return;
                 }
             }
             while (true){
@@ -88,6 +93,7 @@ public class Database<K,V> extends fct.thesis.database.Database{
                     } catch (InterruptedException e) {
                         System.err.println("Exception Thread Cleaner.");
 //                    e.printStackTrace();
+                        return;
                     }
                 }
             }

@@ -44,7 +44,7 @@ public class Database<K,V> {
         return r;
     }
 
-
+    public void cleanup(){}
 
     /*
      * Public
