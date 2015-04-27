@@ -26,7 +26,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
     protected void init(){
         super.init();
-        writeSet = new HashMap<K, BufferDb<K,V>>();
+        writeSet = new TreeMap<>();
         startTime = Transaction.timestamp.get();
     }
 
