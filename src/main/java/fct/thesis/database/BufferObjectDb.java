@@ -53,6 +53,11 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
     }
 
     @Override
+    public void setVersion(long version) {
+        this.version = version;
+    }
+
+    @Override
     public ObjectDb getObjectDb(){
         return objectDb;
     }
