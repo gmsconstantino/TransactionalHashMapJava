@@ -75,7 +75,7 @@ public class RwLock {
 
     @Override
     public String toString() {
-        return "RwLock{" +
+        return "RwLock@" + hashCode()+" { "+
                 "w=" + w +
                 ", r=" + r +
                 '}';
