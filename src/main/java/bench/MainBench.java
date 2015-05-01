@@ -55,7 +55,7 @@ public class MainBench {
         }
     }
 
-    public static final TransactionFactory.type TYPE = TransactionFactory.type.OCC2;
+    public static final TransactionFactory.type TYPE = TransactionFactory.type.OCC;
 
     public static void main(String[] args) {
 

@@ -27,7 +27,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     protected synchronized void init(){
         super.init();
         readSet = new HashMap<K, Long>();
-        writeSet = new HashMap<K, BufferDb<K,V>>();
+        writeSet = new TreeMap<>();
 
         startTime = timestamp.get();
     }
@@ -71,7 +71,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (obj == null) {
             obj = new ObjectMultiVersionLockDB<K,V>(); // A thread fica com o write lock
             ObjectMultiVersionLockDB<K,V> objdb = (ObjectMultiVersionLockDB) putIfAbsent(key, obj);
-            obj.unlock_write();
 
             if (objdb != null)
                 obj = objdb;
@@ -100,10 +99,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             objectDb.lock_write();
             lockObjects.add(objectDb);
 
-            // buffer.version == objectDb.last_version
-            if (buffer.getVersion() == objectDb.getVersion()) {
-                continue;
-            } else {
+            // buffer.version != objectDb.last_version
+            if (buffer.getVersion() != objectDb.getVersion()) {
                 abortVersions(lockObjects);
                 return false;
             }
@@ -114,10 +111,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         for (Map.Entry<K, Long> obj_readSet : readSet.entrySet()){
             ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) getKeyDatabase(obj_readSet.getKey());
 
-            // readSet.version == objectDb.last_version
-            if (obj_readSet.getValue() == objectDb.getVersion()) {
-                continue;
-            } else {
+            // readSet.version != objectDb.last_version
+            if (obj_readSet.getValue() != objectDb.getVersion()) {
                 abortVersions(lockObjects);
                 return false;
             }

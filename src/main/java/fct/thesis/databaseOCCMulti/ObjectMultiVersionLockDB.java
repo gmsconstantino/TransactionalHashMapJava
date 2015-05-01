@@ -26,7 +26,6 @@ public class ObjectMultiVersionLockDB<K,V> extends ObjectLockDbAbstract<K,V> {
         objects = new ConcurrentLinkedDeque<P<Long, ObjectLockDb<K,V>>>();
         lock = new RwLock();
         last_version = -1;
-        lock.lock_write();
     }
 
     public long getVersion() {
@@ -43,9 +42,9 @@ public class ObjectMultiVersionLockDB<K,V> extends ObjectLockDbAbstract<K,V> {
     }
 
     public void addNewVersionObject(Long version, V value){
-        last_version = version;
         ObjectLockOCC<K,V> obj = new ObjectLockOCC<K,V>(value);
         objects.addFirst(new P(version, obj));
+        last_version = version;
     }
 
     @Override
