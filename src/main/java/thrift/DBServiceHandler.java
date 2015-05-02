@@ -69,4 +69,14 @@ public class DBServiceHandler implements DBService.Iface {
         }
     }
 
+    @Override
+    public boolean reset(String type) throws TException {
+        TransactionFactory.type t = TransactionTypeFactory.getType(type);
+        if (t == null)
+            return false;
+
+        DatabaseSingleton.setTransactionype(t);
+        return true;
+    }
+
 }

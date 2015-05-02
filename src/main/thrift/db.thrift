@@ -22,4 +22,5 @@ service DBService {  // defines the service to add two numbers
     map<string,binary> get(1:string key) throws (1:AbortException ae, 2:NoSuchKeyException nse);
     void put(1:string key, 2:map<string,binary> value) throws (1:AbortException e);
 
+    bool reset(1:string type);
 }

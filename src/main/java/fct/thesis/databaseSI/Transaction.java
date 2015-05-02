@@ -65,7 +65,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (obj == null) {
             obj = new ObjectMultiVersionLockDB<K,V>(); // A thread fica com o write lock
             ObjectMultiVersionLockDB<K,V> objdb = (ObjectMultiVersionLockDB) putIfAbsent(key, obj);
-            obj.unlock_write();
 
             if (objdb != null)
                 obj = objdb;

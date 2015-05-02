@@ -48,5 +48,6 @@ public class DatabaseSingleton {
     public void setType(TransactionFactory.type type) {
         this.type = type;
         db = (Database<String, HashMap<String, ByteBuffer>>) DatabaseFactory.createDatabase(type);
+        System.out.println("Set new Database Transactions Type : "+ type);
     }
 }
