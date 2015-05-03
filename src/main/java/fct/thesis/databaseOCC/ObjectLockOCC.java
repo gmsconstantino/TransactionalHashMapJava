@@ -15,7 +15,7 @@ public class ObjectLockOCC<K,V> extends ObjectLockDbAbstract<K,V> {
 
     AtomicLong versionGR = new AtomicLong(-1L);
 
-    private volatile long version;
+    private long version;
     private RwLock rwlock;
 
     public ObjectLockOCC(V value){

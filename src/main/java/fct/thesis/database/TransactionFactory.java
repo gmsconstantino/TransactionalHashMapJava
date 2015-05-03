@@ -7,7 +7,7 @@ import fct.thesis.databaseOCC.Transaction;
  */
 public class TransactionFactory {
 
-    public enum type { TWOPL, OCC, OCC2, OCC_MULTI, SI, BLOTTER }
+    public enum type { TWOPL, OCC, OCCNA, OCCLL, OCC_MULTI, SI, BLOTTER }
 
     public static fct.thesis.database.Transaction createTransaction(type t, Database db){
         switch (t){
@@ -15,8 +15,10 @@ public class TransactionFactory {
                 return new fct.thesis.database2PL.Transaction(db);
             case OCC:
                 return new fct.thesis.databaseOCC.Transaction(db);
-//            case OCC2:
-//                return new fct.thesis.databaseOCC2.Transaction(db);
+            case OCCNA:
+                return new fct.thesis.databaseOCCNoAbort.Transaction(db);
+            case OCCLL:
+                return new fct.thesis.databaseOCCLongLock.Transaction(db);
             case OCC_MULTI:
                 return new fct.thesis.databaseOCCMulti.Transaction(db);
             case SI:

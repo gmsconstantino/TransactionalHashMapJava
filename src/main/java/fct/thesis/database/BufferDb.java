@@ -7,5 +7,5 @@ public interface BufferDb<K,V> extends ObjectDb<K,V> {
 
     public K getKey();
     public long getVersion();
-
+    public void setVersion(long version);
 }

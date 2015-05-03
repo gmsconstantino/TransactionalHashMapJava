@@ -1,11 +1,10 @@
-package fct.thesis.databaseSI;
+package fct.thesis.databaseOCCNoAbort;
 
 import fct.thesis.database.*;
 import fct.thesis.database2PL.Config;
-import fct.thesis.databaseOCCMulti.ObjectMultiVersionLockDB;
+import fct.thesis.databaseOCC.ObjectLockOCC;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by gomes on 26/02/15.
@@ -13,12 +12,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
 
-    static AtomicInteger timestamp = new AtomicInteger(0);
-
+    protected Map<K, BufferDb<K,V>> readSet;
     protected Map<K, BufferDb<K,V>> writeSet;
-
-    private long startTime;
-    private long commitTime;
 
     public Transaction(Database db) {
         super(db);
@@ -26,8 +21,9 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
     protected void init(){
         super.init();
-        writeSet = new TreeMap<>();
-        startTime = Transaction.timestamp.get();
+
+        readSet = new TreeMap<K, BufferDb<K,V>>();
+        writeSet = new TreeMap<K, BufferDb<K,V>>();
     }
 
     @Override
@@ -39,13 +35,20 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return (V) writeSet.get(key).getValue();
         }
 
-        V returnValue = null;
+        V returnValue;
+        long versionObj;
 
-        ObjectMultiVersionLockDB<K,V> obj = (ObjectMultiVersionLockDB) getKeyDatabase(key);
+        ObjectLockOCC<K,V> obj = (ObjectLockOCC) getKeyDatabase(key);
         if (obj == null || obj.getVersion() == -1)
             return null;
 
-        returnValue = obj.getValueVersionLess(startTime);
+        if (readSet.containsKey(key)){
+            return readSet.get(key).getValue();
+        } else {
+            returnValue = obj.getValue();
+            versionObj = obj.getVersion();
+            addObjectDbToReadBuffer(key, new BufferObjectDb(key, returnValue, versionObj, obj));
+        }
 
         return returnValue;
     }
@@ -56,22 +59,21 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return;
 
         if(writeSet.containsKey(key)){
-            writeSet.get(key).setValue(value);
+            writeSet.get(key).setValue(value); // set new value on buffer
             return;
         }
 
-        ObjectMultiVersionLockDB<K,V> obj = (ObjectMultiVersionLockDB) getKeyDatabase(key);
-        //Nao existe nenhuma
+        ObjectLockOCC<K,V> obj = (ObjectLockOCC) getKeyDatabase(key);
         if (obj == null) {
-            obj = new ObjectMultiVersionLockDB<K,V>(); // A thread fica com o write lock
-            ObjectMultiVersionLockDB<K,V> objdb = (ObjectMultiVersionLockDB) putIfAbsent(key, obj);
+            obj = new ObjectLockOCC<K,V>(null); // A thread fica com o write lock
+            ObjectLockOCC<K,V> objdb = (ObjectLockOCC) putIfAbsent(key, obj);
 
             if (objdb != null)
                 obj = objdb;
         }
 
         // o objecto esta na base de dados
-        BufferDb<K,V> buffer = new BufferObjectDb(key, value, obj.getVersion(), obj);
+        BufferObjectDb<K,V> buffer = new BufferObjectDb(key, value, obj.getVersion(), obj);
         addObjectDbToWriteBuffer(key, buffer);
     }
 
@@ -80,21 +82,15 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if(!isActive)
             return success;
 
-        if (writeSet.size() == 0){
-            isActive = false;
-            success = true;
-            return true;
-        }
-
         Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
         for (BufferDb<K,V> buffer : writeSet.values()){
-            ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) buffer.getObjectDb();
+            ObjectLockOCC<K,V> objectDb = (ObjectLockOCC) buffer.getObjectDb();
+
             objectDb.lock_write();
             lockObjects.add(objectDb);
 
-            // buffer.version == objectDb.last_version
-            if (objectDb.getVersion() < startTime) {
+            if (buffer.getVersion() == objectDb.getVersion()) {
                 continue;
             } else {
                 abortVersions(lockObjects);
@@ -102,12 +98,30 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             }
         }
 
+        // Validate Read Set
+        for (BufferDb<K,V> buffer : readSet.values()){ // BufferObject
+            ObjectLockOCC<K,V> objectDb = (ObjectLockOCC) buffer.getObjectDb();
+            if(objectDb.try_lock_read_for(Config.TIMEOUT, Config.TIMEOUT_UNIT)){
 
-        commitId = Transaction.timestamp.getAndIncrement();
+                if (buffer.getVersion() == objectDb.getVersion()) {
+                    objectDb.unlock_read();
+                    continue;
+                } else {
+                    objectDb.unlock_read();
+                    abortVersions(lockObjects);
+                    return false;
+                }
+            } else {
+                abortTimeout(lockObjects);
+            }
+        }
+
+        commitId = Database.timestamp.getAndIncrement();
+
         // Escrita
         for (BufferDb<K,V> buffer : writeSet.values()){
-            ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) buffer.getObjectDb();
-            objectDb.addNewVersionObject(commitId, buffer.getValue());
+            ObjectLockOCC<K,V> objectDb = (ObjectLockOCC) buffer.getObjectDb();
+            objectDb.setValue(buffer.getValue());
             objectDb.unlock_write();
         }
 
@@ -119,13 +133,13 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     private void abortTimeout(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
-        throw new TransactionTimeoutException("Transaction " + getId() +": Thread "+Thread.currentThread().getName()+" - commit");
+        throw new TransactionTimeoutException("COMMIT: Transaction " + getId() +": "+Thread.currentThread().getName()+" - commit");
     }
 
     private void abortVersions(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
-        throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
+        throw new TransactionAbortException("COMMIT: Transaction Abort " + getId() +": "+Thread.currentThread().getName()+" - Version change");
     }
 
     private void unlockWrite_objects(Set<ObjectLockDb<K,V>> set){
@@ -143,15 +157,19 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         commitId = -1;
     }
 
+    void addObjectDbToReadBuffer(K key, BufferDb<K,V> objectDb){
+        readSet.put(key, objectDb);
+    }
+
     void addObjectDbToWriteBuffer(K key, BufferDb objectDb){
         writeSet.put(key, objectDb);
     }
-
 
     @Override
     public String toString() {
         return "Transaction{" +
                 "id=" + id +
+                ", readSet=" + readSet +
                 ", writeSet=" + writeSet +
                 ", isActive=" + isActive +
                 ", success=" + success +
