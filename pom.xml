@@ -3,39 +3,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-<<<<<<< HEAD
-  <groupId>dasdas</groupId>
-  <artifactId>myhashmap</artifactId>
-  <version>0.1</version>
-  <name>TransactionalHash</name>
-  <packaging>jar</packaging>
-  
-  <dependencies>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <version>1.2.17</version>
-    </dependency>
-  </dependencies>
-||||||| merged common ancestors
-  <artifactId>myhashmap</artifactId>
-  <name>TransactionalHash</name>
-  <packaging>jar</packaging>
-  
-  <dependencies>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <version>1.2.17</version>
-    </dependency>
-  </dependencies>
-=======
     <artifactId>myhashdb</artifactId>
     <groupId>com.example</groupId>
     <name>TransactionalHash</name>
     <version>1.0.3</version>
     <packaging>jar</packaging>
->>>>>>> origin/master
 
     <dependencies>
         <dependency>
