@@ -79,4 +79,11 @@ public class DBServiceHandler implements DBService.Iface {
         return true;
     }
 
+    @Override
+    public boolean shutdown() throws TException {
+        System.out.println("Stopping the Database server...");
+        ServerDB.server.stop();
+        return ServerDB.server.isServing();
+    }
+
 }

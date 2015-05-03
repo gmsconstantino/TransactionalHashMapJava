@@ -16,6 +16,8 @@ import java.util.Properties;
  */
 public class ServerDB {
 
+    static TServer server;
+
     public static void usageMessage()
     {
         System.out.println("Usage: java thrift.ServerDB [options]");
@@ -34,9 +36,9 @@ public class ServerDB {
                     .maxWorkerThreads(128).processorFactory(new ProcessorFactory());
 
             // Use this for a multithreaded server
-            TServer server = new TThreadPoolServer(args);
+            server = new TThreadPoolServer(args);
 
-            System.out.println("Starting the simple server...");
+            System.out.println("Starting the Database server...");
             server.serve();
         } catch (Exception e) {
             e.printStackTrace();
