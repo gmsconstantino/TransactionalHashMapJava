@@ -107,8 +107,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         for (BufferDb<K,V> buffer : readSet.values()){ // BufferObject
             ObjectLockOCCLongLock<K,V> objectDb = (ObjectLockOCCLongLock) buffer.getObjectDb();
 
-            if (LockHelper.getVersion(buffer.getVersion()) != LockHelper.getVersion(objectDb.getVersion()) ||
-                    (LockHelper.isLocked(objectDb.getVersion()) && !lockObjects.contains(objectDb) )) {
+            long local = buffer.getVersion();
+            long global = objectDb.getVersion();
+
+            if (LockHelper.getVersion(local) != LockHelper.getVersion(global) ||
+                    (LockHelper.isLocked(global) && !lockObjects.contains(objectDb) )) {
                 abortVersions(lockObjects);
                 return false;
             }
