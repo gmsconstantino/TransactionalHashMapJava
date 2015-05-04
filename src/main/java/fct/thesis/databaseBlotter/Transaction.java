@@ -181,6 +181,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     public void abort() throws TransactionAbortException{
         isActive = false;
         success = false;
+        addToCleaner(db, id);
         commitId = -1;
     }
 
