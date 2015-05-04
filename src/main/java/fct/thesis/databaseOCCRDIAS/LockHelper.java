@@ -1,4 +1,4 @@
-package fct.thesis.databaseOCCLongLock;
+package fct.thesis.databaseOCCRDIAS;
 
 /**
  * Created by gomes on 29/04/15.
@@ -32,23 +32,6 @@ public class LockHelper {
 
     public static long getVersion(long obj){
         return obj&ver_mask;
-    }
-
-    public static void main(String[] args) {
-        long lock = 0L;
-
-        System.out.println(lock);
-        lock(lock, 3);
-        System.out.println("Locked: "+(((lock& lock_mask)>>63)*-1L==1));
-        System.out.println("TID: "+ ((lock & tid_lock) >> 56));
-        System.out.println(lock & ver_mask);
-        setVersion(getVersion(lock)+1, lock);
-        unlock(lock);
-        System.out.println(getVersion(lock));
-        System.out.println("Locked: "+((lock & lock_mask) != 0));
-        System.out.println("TID: "+ ((lock & tid_lock) >> 56));
-
-
     }
 
 }
