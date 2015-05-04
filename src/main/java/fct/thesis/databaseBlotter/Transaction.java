@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by gomes on 26/02/15.
@@ -21,7 +22,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     public final static ExecutorService service = Executors.newFixedThreadPool(10);
 
 //    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
-    static AtomicInteger identifier = new AtomicInteger(-1);
+    static AtomicLong identifier = new AtomicLong(-1L);
 
     Set<Long> aggStarted;
     protected Map<K, BufferObjectDb<K,V>> writeSet;
@@ -32,11 +33,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         super(db);
     }
 
-    protected synchronized void init(){
+    protected void init(){
         super.init();
         aggStarted = new HashSet<Long>();
         writeSet = new HashMap<K, BufferObjectDb<K,V>>();
-        id = new Long(Transaction.identifier.incrementAndGet());
+        id = Transaction.identifier.incrementAndGet();
     }
 
     @Override
@@ -190,14 +191,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
     public static void addToCleaner(final fct.thesis.database.Database db, final Long tid) {
-        service.execute(new Runnable() {
-            public void run() {
-//                System.out.println("Asynchronous task");
-                if(db instanceof Database) {
+        service.execute(() -> {
+                try{
                     Database dbblotter = (Database) db;
                     dbblotter.addTransactiontoClean(tid);
-                }
-            }
+                } catch (Exception e){}
         });
     }
 

@@ -58,6 +58,7 @@ public class Database<K,V> extends fct.thesis.database.Database{
         }
 
         public void run(){
+            setName("Thread-Cleanner");
             synchronized (monitor){
                 try {
                     monitor.wait();
