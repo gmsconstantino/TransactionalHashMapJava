@@ -87,13 +87,17 @@ public class MyObject<K,V> implements ObjectDb<K,V> {
 
 
     public void unlock() {
-        version.set(version.get() & UNLOCK_MASK);
+        version.set(version.get() & VERSION_MASK);
     }
 
     public void unlock(long clock) {
         version.set(clock & UNLOCK_MASK);
     }
 
+
+    private long objectVersion(){
+        return version.get();
+    }
 
     public static void main(String[] args) {
         MyObject o = new MyObject();
@@ -108,6 +112,19 @@ public class MyObject<K,V> implements ObjectDb<K,V> {
         System.out.println("Locked: "+((o.version.get() & LOCK_MASK) != 0));
         System.out.println("TID: "+ ((o.version.get() & TID_MASK) >>> 55));
         System.out.println(o.checkVersion(4, 4));
+
+        System.out.println();
+        o.lock(171);
+        System.out.println(Long.toBinaryString(o.objectVersion()));
+        o.unlock();
+        System.out.println("0"+Long.toBinaryString(o.objectVersion()));
+
+        o.lock(212);
+        System.out.println(Long.toBinaryString(o.objectVersion()));
+        System.out.println(o.checkVersion(212, 0));
+        o.unlock(o.getVersion()+1);
+
+        System.out.println("0"+Long.toBinaryString(o.objectVersion()));
 
     }
 }
