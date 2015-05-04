@@ -81,6 +81,7 @@ public class DBServiceHandler implements DBService.Iface {
 
     @Override
     public boolean shutdown() throws TException {
+        DatabaseSingleton.getDatabase().cleanup();
         System.out.println("Stopping the Database server...");
         ServerDB.server.stop();
         return ServerDB.server.isServing();
