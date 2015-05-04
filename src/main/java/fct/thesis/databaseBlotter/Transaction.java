@@ -20,7 +20,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
     public final static ExecutorService service = Executors.newFixedThreadPool(10);
 
-    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
+//    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
     static AtomicInteger identifier = new AtomicInteger(-1);
 
     Set<Long> aggStarted;
@@ -60,7 +60,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             lock = true;
             v = obj.getLastVersion();
             obj.putSnapshot(id, v);
-            logger.debug("Tx "+id+" - Put on ["+obj+"] version "+v);
+//            logger.debug("Tx "+id+" - Put on ["+obj+"] version "+v);
         }
 
         V r = obj.getValueVersion(v, aggStarted);
@@ -113,14 +113,14 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                     objectDb = objdb;
                 }else {
                     objectDb = obj;
-                    logger.debug("Tx "+id+" - Create key="+buffer.getKey()+" object="+objectDb);
+//                    logger.debug("Tx "+id+" - Create key="+buffer.getKey()+" object="+objectDb);
                 }
             }
 
 
             if (objectDb.try_lock_write_for(Config.TIMEOUT,Config.TIMEOUT_UNIT)) {
                 lockObjects.add(objectDb);
-                logger.debug("Tx "+id+" - Lock object with key " + buffer.getKey() + " object:"+objectDb);
+//                logger.debug("Tx "+id+" - Lock object with key " + buffer.getKey() + " object:"+objectDb);
                 buffer.setObjectDb(objectDb); // Set reference to Object, para que no ciclo seguindo
                                               // nao seja necessario mais uma pesquisa no hashmap
 
@@ -131,7 +131,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 } else {
                     // Line 22
                     aggStarted.addAll(objectDb.snapshots.keySet());
-                    logger.debug("Tx "+id+" - Add to Set: "+objectDb.snapshots.keySet());
+//                    logger.debug("Tx "+id+" - Add to Set: "+objectDb.snapshots.keySet());
                 }
             } else {
 //                logger.debug("Transaction abort because cant get Write Lock. - commit");
@@ -139,16 +139,16 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             }
         }
 
-        logger.debug("Tx "+id+" - Aggregated Tx Ids Set size = "+aggStarted.size());
+//        logger.debug("Tx "+id+" - Aggregated Tx Ids Set size = "+aggStarted.size());
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
             ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
 
             for (Long tid : aggStarted){
-                logger.debug("Tx "+id+" - Try adding last version to Tx: "+tid+" key "+buffer.getKey()+" "+objectDb);
+//                logger.debug("Tx "+id+" - Try adding last version to Tx: "+tid+" key "+buffer.getKey()+" "+objectDb);
                 if (objectDb.snapshots.get(tid) == null){
                     objectDb.putSnapshot(tid, objectDb.getLastVersion());
-                    logger.debug("Tx "+id+" - Added last version to Tx: "+ tid+" key "+buffer.getKey()+" "+objectDb);
+//                    logger.debug("Tx "+id+" - Added last version to Tx: "+ tid+" key "+buffer.getKey()+" "+objectDb);
                 }
             }
 
