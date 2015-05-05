@@ -27,8 +27,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     Set<Long> aggStarted;
     protected Map<K, BufferObjectDb<K,V>> writeSet;
 
-    private Long id;
-
     public Transaction(fct.thesis.database.Database db) {
         super(db);
     }

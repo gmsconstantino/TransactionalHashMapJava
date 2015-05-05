@@ -117,7 +117,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             }
         }
 
-        commitId = Database.timestamp.getAndIncrement();
+//        commitId = Database.timestamp.getAndIncrement();
 
         // Escrita
         for (BufferDb<K,V> buffer : writeSet.values()){

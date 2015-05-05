@@ -19,7 +19,7 @@ public abstract class Transaction<K,V> implements Comparable {
     }
 
     protected void init(){
-        id = Database.timestamp.getAndIncrement();
+        id = -1;
         isActive = true;
         success = false;
     }
