@@ -1,15 +1,11 @@
 package bench;
 
-import bench.measurements.Measurements;
-import bench.measurements.exporter.MeasurementsExporter;
-import bench.measurements.exporter.TextMeasurementsExporter;
+import fct.thesis.database.*;
+import thrift.DatabaseSingleton;
+import thrift.TransactionTypeFactory;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.lang.reflect.Field;
-import java.nio.charset.Charset;
-import java.util.*;
+import java.util.Properties;
+import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -17,10 +13,14 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class Micro {
 
+    private static TransactionFactory.type TYPE;
+
     static class ClientThread extends Thread
     {
-        DB _db;
-        int _opsdone;
+        Database<Integer,Integer> _db;
+        TransactionFactory.type TYPE;
+        int _opsCommit;
+        int _opsAbort;
         int _threadid;
 
         int rw = global_rw;
@@ -34,16 +34,21 @@ public class Micro {
         int min_shared_key;
         int max_shared_key;
 
-        public ClientThread(DB db, int threadid)
+        public ClientThread(Database<Integer,Integer> db, int threadid)
         {
             _db=db;
-            _opsdone=0;
+            _opsCommit=0;
+            _opsAbort=0;
             _threadid = threadid;
+            TYPE = Micro.TYPE;
         }
 
-        public int getOpsDone()
-        {
-            return _opsdone;
+        public int getOpsCommit() {
+            return _opsCommit;
+        }
+
+        public int getOpsAbort() {
+            return _opsAbort;
         }
 
         public void run()
@@ -53,14 +58,6 @@ public class Micro {
 
             min_shared_key = global_txn_size*global_num_threads;
             max_shared_key = min_shared_key + global_store_size;
-
-            try {
-                _db.init();
-            } catch (DBException e) {
-                e.printStackTrace();
-                System.out.println("Failed Init Database.");
-                return;
-            }
 
             // test run
             for (int i=0; i < num_operations; i++) {
@@ -84,69 +81,45 @@ public class Micro {
         void execute_tx(Vector<Integer> keys) {
             int key_shared = ThreadLocalRandom.current().nextInt(min_shared_key, max_shared_key);
 
-            Set<String> fields = new HashSet<>();
-            fields.add("field");
+            Transaction<Integer,Integer> t = _db.newTransaction(TYPE);
 
-            HashMap<String, String> values = txBuildValues(fields);
+            try {
 
-            long st = System.nanoTime();
-            UUID id = _db.beginTx();
 
-            // read-modify-write global store
-            _db.update(key_shared, values);
+                // read-modify-write global store
+                int v = t.get(key_shared);
+                t.put(key_shared, v + 1);
 
-            int i = 0;
-            for (; i < rw; i++) {
-                _db.update(keys.get(i), values);
-            }
+                int i = 0;
+                for (; i < rw; i++) {
+                    v = t.get(keys.get(i));
+                    t.put(keys.get(i), v + 1);
+                }
 
-            for (; i < nread; i++) {
-                _db.read(keys.get(i), fields, new HashMap<String,String>());
-            }
+                for (; i < nread; i++) {
+                    t.get(keys.get(i));
+                }
 
-            for (; i < nwrite; i++) {
-                _db.insert(keys.get(i), values);
-            }
+                for (; i < nwrite; i++) {
+                    t.put(keys.get(i), i + 1);
+                }
 
-            if(_db.commit(id) == 0){
-                _opsdone++;
-                long en = System.nanoTime();
-                Measurements.getMeasurements().measure("Tx", (int)((en-st)/1000));
-                Measurements.getMeasurements().reportReturnCode("Tx", 0);
-            } else {
-                Measurements.getMeasurements().reportReturnCode("Tx", -1);
+                if (t.commit()) {
+                    _opsCommit++;
+                    _opsAbort++;
+                }
+
+            } catch (TransactionAbortException ta){
+                _opsAbort++;
+            } catch (TransactionTimeoutException tt){
+                _opsAbort++;
             }
         }
-    }
-
-    static HashMap<String, String> txBuildValues(Set<String> fields) {
-        HashMap<String,String> values=new HashMap<String,String>(fields.size());
-        for (String field : fields) {
-            byte[] arr = new byte[global_objects_size];
-            ThreadLocalRandom.current().nextBytes(arr);
-            values.put(field, new String(arr, Charset.forName("UTF-8")));
-        }
-        return values;
     }
 
     static void displayUsage () {
-        System.out.println("Usage: Micro -db CLASS_BINDING [-t num_threads] [-n num_operations] [-s transaction-size] [-c conflict-probability] [-r read-percentage] [-p name=value]");
+        System.out.println("Usage: Micro -alg ALGORITHM [-t num_threads] [-n num_operations] [-s transaction-size] [-c conflict-probability] [-r read-percentage]");
         System.exit(0);
-    }
-
-    public static final String NUM_THREADS = "num_threads";
-    public static final String NUM_OPERATIONS = "num_operations";
-    public static final String TX_SIZE = "transaction_size";
-    public static final String CONFLICT_PROB = "conflict_probability";
-    public static final String READ_PROB = "read_percentage";
-    public static final String DATABASE_CLASS = "db";
-
-    public static final String OBJECTS_SIZE = "objects_size";
-    public static final int OBJECTS_SIZE_DEFAULT = 10; //Bytes
-
-    static Set<String> fields = new HashSet<>();
-    static {
-        fields.add("field");
     }
 
     private static int global_num_threads;
@@ -160,17 +133,11 @@ public class Micro {
     private static int global_nread;
     private static int global_nwrite;
 
-    private static int global_objects_size = 10;
+    private static String global_algorithm;
 
     public static void main(String[] args) {
 
-        System.out.println("Usage: Micro -db CLASS_BINDING [-t num_threads] [-n num_operations] [-s transaction-size] [-c conflict-probability] [-r read-percentage] [-p name=value]");
-
-
-        Bundle bundle = new Bundle();
-
-        parseArguments(args,bundle);
-
+        parseArguments(args);
         initBench();
 
         System.out.println("Number of threads = "+ global_num_threads);
@@ -185,38 +152,12 @@ public class Micro {
 //        System.out.println("Read = "+global_nread);
 //        System.out.println("Write = "+global_nwrite);
 
-        String dbname = bundle.getProperty("db");
-        if (dbname == null){
-            displayUsage();
-        }
-
-        DB db=null;
-        try
-        {
-            db=DBFactory.newDB(dbname,bundle);
-        }
-        catch (UnknownDBException e)
-        {
-            System.out.println("Unknown DB "+dbname);
-            System.exit(0);
-        }
+        TYPE = TransactionTypeFactory.getType(global_algorithm);
+        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE);
         loadDatabase(db);
-
-        //set up measurements
-        Measurements.setProperties(bundle);
 
         Vector<Thread> threads = new Vector<Thread>();
         for (int threadid = 0; threadid < global_num_threads; threadid++) {
-            try
-            {
-                db=DBFactory.newDB(dbname,bundle);
-            }
-            catch (UnknownDBException e)
-            {
-                System.out.println("Unknown DB "+dbname);
-                System.exit(0);
-            }
-
             Thread t = new ClientThread(db, threadid);
             threads.add(t);
         }
@@ -228,54 +169,40 @@ public class Micro {
             t.start();
         }
 
-        int opsDone = 0;
+        int opsCommit = 0;
+        int opsAbort = 0;
 
         for (Thread t : threads) {
             try {
                 t.join();
-                opsDone += ((ClientThread) t).getOpsDone();
+                opsCommit += ((ClientThread) t).getOpsCommit();
+                opsAbort += ((ClientThread) t).getOpsAbort();
             } catch (InterruptedException e) {
             }
         }
 
         long en=System.currentTimeMillis();
 
-
-        try
-        {
-            exportMeasurements(bundle, opsDone, en - st);
-        } catch (IOException e)
-        {
-            System.err.println("Could not export measurements, error: " + e.getMessage());
-            e.printStackTrace();
-            System.exit(-1);
-        }
+        long runtime = en-st;
+        System.out.println("RunTime(ms) = "+ runtime);
+        double throughput = 1000.0 * ((double) opsCommit) / ((double) runtime);
+        System.out.println("Throughput(ops/sec) = " + throughput);
+        System.out.println("Number Commits = "+opsCommit);
+        System.out.println("Number Aborts = "+opsAbort);
 
     }
 
-    private static void loadDatabase(DB db) {
+    private static void loadDatabase(Database<Integer,Integer> db) {
 
         int total_size = global_txn_size*global_num_threads + global_store_size;
 
-        Set<String> fields = new HashSet<>();
-        fields.add("field");
+        Transaction<Integer,Integer> t = db.newTransaction(TYPE);
 
-        HashMap<String, String> values = txBuildValues(fields);
-
-        try {
-            db.init();
-        } catch (DBException e) {
-            e.printStackTrace();
-            System.err.println("Failed Loading Database.");
-            System.exit(0);
-        }
-
-        UUID id = db.beginTx();
         for (int i = 0; i < total_size; i++){
-            db.insert(i, values);
+            t.put(i, 0);
         }
 
-        if(db.commit(id) != 0){
+        if(!t.commit()){
             System.err.println("Failed Loading Database.");
             System.exit(0);
         }
@@ -298,55 +225,7 @@ public class Micro {
 
     }
 
-    private static void exportMeasurements(Properties props, int opcount, long runtime)
-            throws IOException
-    {
-        MeasurementsExporter exporter = null;
-        String exportFile = null;
-        try
-        {
-            // if no destination file is provided the results will be written to stdout
-            OutputStream out;
-            exportFile = props.getProperty("exportfile");
-            if (exportFile == null)
-            {
-                out = System.out;
-            } else
-            {
-                out = new FileOutputStream(exportFile, true);
-            }
-
-            // if no exporter is provided the default text one will be used
-            String exporterStr = props.getProperty("exporter", "bench.measurements.exporter.TextMeasurementsExporter");
-            try
-            {
-                exporter = (MeasurementsExporter) Class.forName(exporterStr).getConstructor(OutputStream.class, Properties.class).newInstance(out, props);
-            } catch (Exception e)
-            {
-                System.err.println("Could not find exporter " + exporterStr
-                        + ", will use default text reporter.");
-//                e.printStackTrace();
-                exporter = new TextMeasurementsExporter(out, null);
-            }
-
-            exporter.write("OVERALL", "RunTime(ms)", runtime);
-            double throughput = 1000.0 * ((double) opcount) / ((double) runtime);
-            exporter.write("OVERALL", "Throughput(ops/sec)", throughput);
-
-            Measurements.getMeasurements().exportMeasurements(exporter);
-        } finally
-        {
-            exporter.flush();
-            if (exportFile != null)
-            {
-                exporter.close();
-            }
-        }
-    }
-
-
-
-    private static void parseArguments(String args[], Properties props) {
+    private static void parseArguments(String args[]) {
         //parse arguments
         int argindex=0;
 
@@ -362,15 +241,14 @@ public class Micro {
         }
 
         while (args[argindex].startsWith("-")) {
-            if (args[argindex].compareTo("-db") == 0) {
+            if (args[argindex].compareTo("-alg") == 0) {
                 argindex++;
                 if (argindex >= args.length) {
                     displayUsage();
                     System.exit(0);
                 }
 
-                String ttarget=args[argindex];
-                props.setProperty(DATABASE_CLASS, ttarget+"");
+                global_algorithm = args[argindex];
                 argindex++;
             }
             else if (args[argindex].compareTo("-t") == 0) {
@@ -381,7 +259,6 @@ public class Micro {
                 }
 
                 int ttarget=Integer.parseInt(args[argindex]);
-                props.setProperty(NUM_THREADS, ttarget+"");
                 global_num_threads = ttarget;
                 argindex++;
             }
@@ -394,7 +271,6 @@ public class Micro {
                 }
 
                 int ttarget=Integer.parseInt(args[argindex]);
-                props.setProperty(NUM_OPERATIONS, ttarget+"");
                 global_num_operations = ttarget;
                 argindex++;
             }
@@ -407,7 +283,6 @@ public class Micro {
                 }
 
                 int ttarget=Integer.parseInt(args[argindex]);
-                props.setProperty(TX_SIZE, ttarget+"");
                 global_txn_size = ttarget;
                 argindex++;
             }
@@ -420,7 +295,6 @@ public class Micro {
                 }
 
                 int ttarget=Integer.parseInt(args[argindex]);
-                props.setProperty(CONFLICT_PROB, ttarget+"");
                 global_conflict_prob = ttarget;
                 argindex++;
             }
@@ -432,41 +306,7 @@ public class Micro {
                 }
 
                 int ttarget=Integer.parseInt(args[argindex]);
-                props.setProperty(READ_PROB, ttarget+"");
                 global_read_perc = ttarget;
-                argindex++;
-            }
-            else if (args[argindex].compareTo("-os")==0) {
-                argindex++;
-                if (argindex >= args.length) {
-                    displayUsage();
-                    System.exit(0);
-                }
-
-                int ttarget=Integer.parseInt(args[argindex]);
-                props.setProperty(OBJECTS_SIZE, ttarget+"");
-                global_objects_size = ttarget;
-                argindex++;
-            }
-            else if (args[argindex].compareTo("-p")==0)
-            {
-                argindex++;
-                if (argindex>=args.length)
-                {
-                    displayUsage();
-                    System.exit(0);
-                }
-                int eq=args[argindex].indexOf('=');
-                if (eq<0)
-                {
-                    displayUsage();
-                    System.exit(0);
-                }
-
-                String name=args[argindex].substring(0,eq);
-                String value=args[argindex].substring(eq+1);
-                props.put(name,value);
-                //System.out.println("["+name+"]=["+value+"]");
                 argindex++;
             }
             else
