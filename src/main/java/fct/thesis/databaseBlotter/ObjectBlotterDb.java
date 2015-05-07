@@ -1,34 +1,141 @@
 package fct.thesis.databaseBlotter;
 
 import fct.thesis.database.ObjectDb;
+import fct.thesis.structures.RwLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pt.dct.util.P;
 
+import java.util.LinkedList;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Created by gomes on 29/03/15.
+ * Created by gomes on 23/03/15.
  */
-public interface ObjectBlotterDb<K,V> extends ObjectDb<K,V> {
+public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
 
-    public Long getVersionForTransaction(Long id);
+    private static final Logger logger = LoggerFactory.getLogger(ObjectBlotterDb.class);
+    boolean isDebug = logger.isDebugEnabled();
 
-    public V getValueVersion(long version, Set<Long> aggrDataTx);
+    AtomicLong version;
 
-    public void setValue(V value);
+    LinkedList<P<Long, V>> objects; //Devia remover objectos antigos
 
-    public Long getLastVersion();
+    ConcurrentHashMap<Long, Long> snapshots; //Devia ter ttl
+//    public Cache<Long, Long> snapshots;
 
-    public Long incrementAndGetVersion();
+    RwLock rwlock;
 
-    public void unlock_read();
-    public void unlock_write();
+    public ObjectBlotterDb(){
+        version = new AtomicLong(-1L);
 
-    void putSnapshot(Long id, Long v);
-    void removeSnapshot(Long id);
+        objects = new LinkedList<P<Long, V>>();
+        snapshots = new ConcurrentHashMap<Long, Long>();
 
-    public void lock_read();
-    public void lock_write();
+        rwlock = new RwLock();
+        rwlock.lock_write();
+    }
 
-    public boolean try_lock_write_for(long time, TimeUnit unit);
-    public boolean try_lock_read_for(long time, TimeUnit unit);
+    public Long getLastVersion() {
+        return version.get();
+    }
+
+    public Long incrementAndGetVersion() {
+        return version.incrementAndGet();
+    }
+
+    public void putSnapshot(Long tid, Long v) {
+        snapshots.put(tid, v);
+    }
+
+    public void removeSnapshot(Long tid) {
+        snapshots.remove(tid);
+    }
+
+    public Long getVersionForTransaction(Long tid){
+        return snapshots.get(tid);
+    }
+
+    public V getValueVersion(long version, Set<Long> aggrDataTx) {
+        if (version > getLastVersion())
+            return null;
+
+        V value = null;
+
+        for(P<Long, V> pair : objects){
+            if(pair.f <= version){
+                value = pair.s;
+                break;
+            }
+        }
+
+        // Add tids to transaction metadata
+        for (Long tid : snapshots.keySet()) {
+            Long v = snapshots.get(tid);
+            if (v != null && v < version)
+                aggrDataTx.add(tid);
+        }
+
+        return value;
+    }
+
+    /**
+     * Add object with value and increment the version
+     * @param value
+     */
+    @Override
+    public void setValue(V value) {
+//        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
+//        obj.unlock_write();
+        objects.addFirst(new P(version.incrementAndGet(), value));
+    }
+
+    @Override
+    public ObjectDb getObjectDb() {
+        return this;
+    }
+
+    @Override
+    public V getValue() {
+        return null;
+    }
+
+    public void lock_read() {
+        rwlock.lock_read();
+    }
+
+    public void lock_write() {
+        rwlock.lock_write();
+    }
+
+    public boolean try_lock_write_for(long time, TimeUnit unit){
+        if(rwlock.lock.isWriteLockedByCurrentThread()){
+            return true;
+        }
+        return rwlock.try_lock_write_for(time, unit);
+    }
+
+    public boolean try_lock_read_for(long time, TimeUnit unit){
+        return rwlock.try_lock_read_for(time, unit);
+    }
+
+    public void unlock_read() throws IllegalMonitorStateException {
+        rwlock.unlock_read();
+    }
+
+    public void unlock_write() throws IllegalMonitorStateException {
+        rwlock.unlock_write();
+    }
+
+    @Override
+    public String toString() {
+        return "ObjectBlotterDbImpl@" + hashCode()+" {" +
+                "objects=" + objects +
+                ", snapshots=" + snapshots +
+                '}';
+    }
 }

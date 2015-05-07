@@ -33,7 +33,7 @@ public class Measurements
 {
 	private static final String MEASUREMENT_TYPE = "measurementtype";
 
-	private static final String MEASUREMENT_TYPE_DEFAULT = "histogram";
+	private static final String MEASUREMENT_TYPE_DEFAULT = "timeseries";
 
 	static Measurements singleton=null;
 	

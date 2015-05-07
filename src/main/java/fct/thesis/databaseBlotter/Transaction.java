@@ -4,13 +4,10 @@ import fct.thesis.database.BufferObjectDb;
 import fct.thesis.database.TransactionAbortException;
 import fct.thesis.database.TransactionTimeoutException;
 import fct.thesis.database2PL.Config;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -97,16 +94,16 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return true;
         }
 
-        Set<ObjectBlotterDbImpl<K,V>> lockObjects = new HashSet<ObjectBlotterDbImpl<K,V>>();
+        Set<ObjectBlotterDb<K,V>> lockObjects = new HashSet<ObjectBlotterDb<K,V>>();
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
 //            ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
 
-            ObjectBlotterDbImpl<K,V> objectDb = (ObjectBlotterDbImpl) getKeyDatabase(buffer.getKey());
+            ObjectBlotterDb<K,V> objectDb = (ObjectBlotterDb) getKeyDatabase(buffer.getKey());
             //Nao existe nenhuma
             if (objectDb == null) {
-                ObjectBlotterDbImpl<K,V> obj = new ObjectBlotterDbImpl<K,V>(); // Thread tem o lock do objecto
-                ObjectBlotterDbImpl<K,V> objdb = (ObjectBlotterDbImpl) putIfAbsent(buffer.getKey(), obj);
+                ObjectBlotterDb<K,V> obj = new ObjectBlotterDb<K,V>(); // Thread tem o lock do objecto
+                ObjectBlotterDb<K,V> objdb = (ObjectBlotterDb) putIfAbsent(buffer.getKey(), obj);
                 if (objdb != null) {
                     obj = null;
                     objectDb = objdb;
@@ -141,7 +138,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 //        logger.debug("Tx "+id+" - Aggregated Tx Ids Set size = "+aggStarted.size());
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
-            ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
+            ObjectBlotterDb<K, V> objectDb = (ObjectBlotterDb) buffer.getObjectDb();
 
             for (Long tid : aggStarted){
 //                logger.debug("Tx "+id+" - Try adding last version to Tx: "+tid+" key "+buffer.getKey()+" "+objectDb);
@@ -162,16 +159,16 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         return true;
     }
 
-    private void abortVersions(Set<ObjectBlotterDbImpl<K,V>> lockObjects) throws TransactionTimeoutException{
+    private void abortVersions(Set<ObjectBlotterDb<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
         throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
     }
 
-    private void unlockWrite_objects(Set<ObjectBlotterDbImpl<K,V>> set){
-        Iterator<ObjectBlotterDbImpl<K,V>> it_locks = set.iterator();
+    private void unlockWrite_objects(Set<ObjectBlotterDb<K,V>> set){
+        Iterator<ObjectBlotterDb<K,V>> it_locks = set.iterator();
         while (it_locks.hasNext()) {
-            ObjectBlotterDbImpl<K,V> objectDb = it_locks.next();
+            ObjectBlotterDb<K,V> objectDb = it_locks.next();
             objectDb.unlock_write();
         }
     }

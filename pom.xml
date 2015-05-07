@@ -38,6 +38,11 @@
             <artifactId>libthrift</artifactId>
             <version>0.9.2</version>
         </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.4</version>
+        </dependency>
     </dependencies>
 
     <pluginRepositories>
@@ -101,7 +106,7 @@
                     </excludes>
                     <archive>
                         <manifest>
-                            <mainClass>bench.MainBench</mainClass>
+                            <mainClass>bench.Micro</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

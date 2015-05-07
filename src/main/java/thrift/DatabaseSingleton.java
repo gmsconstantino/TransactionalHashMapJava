@@ -28,6 +28,10 @@ public class DatabaseSingleton {
         return getInstance().getDb();
     }
 
+    public static TransactionFactory.type getTransactionType(){
+        return getInstance().getType();
+    }
+
     public static void setTransactionype(TransactionFactory.type type){
         getInstance().setType(type);
     }
