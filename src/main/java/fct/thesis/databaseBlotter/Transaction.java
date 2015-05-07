@@ -6,8 +6,6 @@ import fct.thesis.database.TransactionTimeoutException;
 import fct.thesis.database2PL.Config;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -16,12 +14,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
 
-    public final static ExecutorService service = Executors.newFixedThreadPool(10);
-
-//    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
     static AtomicLong identifier = new AtomicLong(-1L);
 
-    Set<Long> aggStarted;
+    Set<Transaction> aggStarted;
     protected Map<K, BufferObjectDb<K,V>> writeSet;
 
     public Transaction(fct.thesis.database.Database db) {
@@ -30,7 +25,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
     protected void init(){
         super.init();
-        aggStarted = new HashSet<Long>();
+        aggStarted = new HashSet<Transaction>();
         writeSet = new HashMap<K, BufferObjectDb<K,V>>();
         id = Transaction.identifier.incrementAndGet();
     }
@@ -55,8 +50,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             obj.lock_read();
             lock = true;
             v = obj.getLastVersion();
-            obj.putSnapshot(id, v);
-//            logger.debug("Tx "+id+" - Put on ["+obj+"] version "+v);
+            obj.putSnapshot(this, v);
         }
 
         V r = obj.getValueVersion(v, aggStarted);
@@ -109,14 +103,12 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                     objectDb = objdb;
                 }else {
                     objectDb = obj;
-//                    logger.debug("Tx "+id+" - Create key="+buffer.getKey()+" object="+objectDb);
                 }
             }
 
 
             if (objectDb.try_lock_write_for(Config.TIMEOUT,Config.TIMEOUT_UNIT)) {
                 lockObjects.add(objectDb);
-//                logger.debug("Tx "+id+" - Lock object with key " + buffer.getKey() + " object:"+objectDb);
                 buffer.setObjectDb(objectDb); // Set reference to Object, para que no ciclo seguindo
                                               // nao seja necessario mais uma pesquisa no hashmap
 
@@ -127,24 +119,18 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 } else {
                     // Line 22
                     aggStarted.addAll(objectDb.snapshots.keySet());
-//                    logger.debug("Tx "+id+" - Add to Set: "+objectDb.snapshots.keySet());
                 }
             } else {
-//                logger.debug("Transaction abort because cant get Write Lock. - commit");
                 abortVersions(lockObjects);
             }
         }
 
-//        logger.debug("Tx "+id+" - Aggregated Tx Ids Set size = "+aggStarted.size());
-
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
             ObjectBlotterDb<K, V> objectDb = (ObjectBlotterDb) buffer.getObjectDb();
 
-            for (Long tid : aggStarted){
-//                logger.debug("Tx "+id+" - Try adding last version to Tx: "+tid+" key "+buffer.getKey()+" "+objectDb);
+            for (Transaction tid : aggStarted){
                 if (objectDb.snapshots.get(tid) == null){
-                    objectDb.putSnapshot(tid, objectDb.getLastVersion());
-//                    logger.debug("Tx "+id+" - Added last version to Tx: "+ tid+" key "+buffer.getKey()+" "+objectDb);
+                    objectDb.putSnapshot(this, objectDb.getLastVersion());
                 }
             }
 
@@ -186,12 +172,13 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
     public static void addToCleaner(final fct.thesis.database.Database db, final Long tid) {
-        service.execute(() -> {
-                try{
-                    Database dbblotter = (Database) db;
-                    dbblotter.addTransactiontoClean(tid);
-                } catch (Exception e){}
-        });
+//        fct.thesis.databaseBlotter.Database.service.execute(() -> {
+//            try {
+//                Database dbblotter = (Database) db;
+//                dbblotter.addTransactiontoClean(tid);
+//            } catch (Exception e) {
+//            }
+//        });
     }
 
     @Override

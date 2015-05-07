@@ -23,10 +23,9 @@ public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
 
     AtomicLong version;
 
-    LinkedList<P<Long, V>> objects; //Devia remover objectos antigos
+    LinkedList<P<Long, V>> objects;
 
-    ConcurrentHashMap<Long, Long> snapshots; //Devia ter ttl
-//    public Cache<Long, Long> snapshots;
+    ConcurrentHashMap<Transaction, Long> snapshots;
 
     RwLock rwlock;
 
@@ -34,10 +33,9 @@ public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
         version = new AtomicLong(-1L);
 
         objects = new LinkedList<P<Long, V>>();
-        snapshots = new ConcurrentHashMap<Long, Long>();
+        snapshots = new ConcurrentHashMap<Transaction, Long>();
 
         rwlock = new RwLock();
-        rwlock.lock_write();
     }
 
     public Long getLastVersion() {
@@ -48,8 +46,8 @@ public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
         return version.incrementAndGet();
     }
 
-    public void putSnapshot(Long tid, Long v) {
-        snapshots.put(tid, v);
+    public void putSnapshot(Transaction t, Long v) {
+        snapshots.put(t, v);
     }
 
     public void removeSnapshot(Long tid) {
@@ -60,7 +58,7 @@ public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
         return snapshots.get(tid);
     }
 
-    public V getValueVersion(long version, Set<Long> aggrDataTx) {
+    public V getValueVersion(long version, Set<Transaction> aggrDataTx) {
         if (version > getLastVersion())
             return null;
 
@@ -74,10 +72,14 @@ public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
         }
 
         // Add tids to transaction metadata
-        for (Long tid : snapshots.keySet()) {
-            Long v = snapshots.get(tid);
-            if (v != null && v < version)
-                aggrDataTx.add(tid);
+        for (Transaction transaction : snapshots.keySet()) {
+            if(transaction.isActive()) {
+                Long v = snapshots.get(transaction);
+                if (v != null && v < version)
+                    aggrDataTx.add(transaction);
+            } else {
+                snapshots.remove(transaction);
+            }
         }
 
         return value;
