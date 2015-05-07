@@ -97,6 +97,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             //Nao existe nenhuma
             if (objectDb == null) {
                 ObjectBlotterDb<K,V> obj = new ObjectBlotterDb<K,V>(); // Thread tem o lock do objecto
+                obj.lock_write();
+
                 ObjectBlotterDb<K,V> objdb = (ObjectBlotterDb) putIfAbsent(buffer.getKey(), obj);
                 if (objdb != null) {
                     obj = null;
