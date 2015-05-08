@@ -25,8 +25,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
     protected void init(){
         super.init();
-        aggStarted = new HashSet<Transaction>();
-        writeSet = new HashMap<K, BufferObjectDb<K,V>>();
+        aggStarted = new HashSet<>();
+        writeSet = new HashMap<>();
         id = Transaction.identifier.incrementAndGet();
     }
 
@@ -73,7 +73,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
 
         BufferObjectDb<K,V> buffer = new BufferObjectDb(key, value);
-        buffer.setValue(value);
         addObjectDbToWriteBuffer(key, buffer);
     }
 
@@ -91,7 +90,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         Set<ObjectBlotterDb<K,V>> lockObjects = new HashSet<ObjectBlotterDb<K,V>>();
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
-//            ObjectBlotterDbImpl<K, V> objectDb = (ObjectBlotterDbImpl) buffer.getObjectDb();
 
             ObjectBlotterDb<K,V> objectDb = (ObjectBlotterDb) getKeyDatabase(buffer.getKey());
             //Nao existe nenhuma
@@ -131,7 +129,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             ObjectBlotterDb<K, V> objectDb = (ObjectBlotterDb) buffer.getObjectDb();
 
             for (Transaction tid : aggStarted){
-                if (objectDb.snapshots.get(tid) == null){
+                if (tid.isActive() && objectDb.snapshots.get(tid) == null){
                     objectDb.putSnapshot(this, objectDb.getLastVersion());
                 }
             }
@@ -143,7 +141,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         isActive = false;
         success = true;
-        addToCleaner(db, id);
         return true;
     }
 
@@ -165,22 +162,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     public void abort() throws TransactionAbortException{
         isActive = false;
         success = false;
-        addToCleaner(db, id);
         commitId = -1;
     }
 
     private void addObjectDbToWriteBuffer(K key, BufferObjectDb objectDb){
         writeSet.put(key, objectDb);
-    }
-
-    public static void addToCleaner(final fct.thesis.database.Database db, final Long tid) {
-//        fct.thesis.databaseBlotter.Database.service.execute(() -> {
-//            try {
-//                Database dbblotter = (Database) db;
-//                dbblotter.addTransactiontoClean(tid);
-//            } catch (Exception e) {
-//            }
-//        });
     }
 
     @Override
