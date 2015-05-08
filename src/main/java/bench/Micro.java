@@ -182,6 +182,8 @@ public class Micro {
 
         long en=System.currentTimeMillis();
 
+        db.cleanup();
+
         long runtime = en-st;
         System.out.println("RunTime(ms) = "+ runtime);
         double throughput = 1000.0 * ((double) opsCommit) / ((double) runtime);
