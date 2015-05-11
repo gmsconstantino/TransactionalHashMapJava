@@ -107,6 +107,14 @@ public class MicroSI {
         max_num_accesses = Integer.parseInt(args[4]);
         perc_writes = Integer.parseInt(args[5]);
 
+        System.out.print("Arguments: ");
+        int n = args.length-1;
+        for(String arg : args){
+            arg += (n==0)?"\n":", ";
+            System.out.print(arg);
+            n--;
+        }
+
 
         TYPE = TransactionTypeFactory.getType(global_algorithm);
         db = DatabaseFactory.createDatabase(TYPE);
@@ -157,6 +165,6 @@ public class MicroSI {
         System.out.println("Number Commits = "+commits);
         System.out.println("Number Aborts = "+aborts);
         System.out.println("Abort rate = "+Math.round((aborts/(double)(commits+aborts))*100)+"%");
-
+        System.out.println("");
     }
 }
