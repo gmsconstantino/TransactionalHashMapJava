@@ -18,9 +18,6 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
 
-    private static final Logger logger = LoggerFactory.getLogger(ObjectBlotterDb.class);
-    boolean isDebug = logger.isDebugEnabled();
-
     AtomicLong version;
 
     LinkedList<P<Long, V>> objects;
