@@ -13,7 +13,7 @@ import static bench.tpcc.Util.randomNumber;
 /**
  * Created by Constantino Gomes on 11/05/15.
  */
-public class tpccLoad {
+public class TpccLoad {
 
     static int count_ware = 0;
     static boolean option_debug = false;
