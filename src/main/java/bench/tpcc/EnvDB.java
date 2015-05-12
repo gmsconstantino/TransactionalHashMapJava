@@ -1,11 +1,9 @@
 package bench.tpcc;
 
-import bench.tpcc.schema.*;
 import fct.thesis.database.Database;
 import fct.thesis.database.DatabaseFactory;
 import fct.thesis.database.TransactionFactory;
-
-import java.util.HashMap;
+import thrift.tpcc.schema.*;
 
 /**
  * Created by gomes on 11/05/15.

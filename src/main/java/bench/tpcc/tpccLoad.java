@@ -1,16 +1,17 @@
 package bench.tpcc;
 
-import bench.tpcc.schema.*;
 import fct.thesis.database.Transaction;
 import org.apache.commons.cli.*;
+import thrift.tpcc.schema.*;
 
 import java.util.*;
 
+import static bench.tpcc.KeysUtils.*;
 import static bench.tpcc.Util.makeAlphaString;
 import static bench.tpcc.Util.randomNumber;
 
 /**
- * Created by gomes on 11/05/15.
+ * Created by Constantino Gomes on 11/05/15.
  */
 public class tpccLoad {
 
@@ -30,6 +31,7 @@ public class tpccLoad {
                 .required()
                 .build());
         options.addOption("d", false, "debug - produces more output");
+        options.addOption("r", false, "remote DB - connect with Thrift API");
         options.addOption("t", true, "databases transactional algorithm");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -93,28 +95,28 @@ public class tpccLoad {
                         o.o_carrier_id = 0;
 
                         Transaction t = EnvDB.getInstance().db_order.newTransaction(EnvDB.getTransactionType());
-                        t.put(Order.getPrimaryKey(o_w_id, o_d_id, o_id), o);
+                        t.put(OrderPrimaryKey(o_w_id, o_d_id, o_id), o);
                         t.commit();
 
                         /* Put order on Secondary index */
                         t = EnvDB.getInstance().db_order_sec.newTransaction(EnvDB.getTransactionType());
-                        t.put(Order.getSecundaryKey(o_w_id, o_d_id, o.o_c_id), o);
+                        t.put(OrderSecundaryKey(o_w_id, o_d_id, o.o_c_id), o);
                         t.commit();
 
                         /* Put new Order */
                         t = EnvDB.getInstance().db_neworder.newTransaction(EnvDB.getTransactionType());
-                        t.put(Order.newOrderKey(o_id, o_d_id, o_w_id), EMPTY);
+                        t.put(NewOrderPrimaryKey(o_id, o_d_id, o_w_id), EMPTY);
                         t.commit();
 
                     } else {
 
                         Transaction t = EnvDB.getInstance().db_order.newTransaction(EnvDB.getTransactionType());
-                        t.put(Order.getPrimaryKey(o_w_id, o_d_id, o_id), o);
+                        t.put(OrderPrimaryKey(o_w_id, o_d_id, o_id), o);
                         t.commit();
 
                         /* Put order on Secondary index */
                         t = EnvDB.getInstance().db_order_sec.newTransaction(EnvDB.getTransactionType());
-                        t.put(Order.getSecundaryKey(o_w_id, o_d_id, o.o_c_id), o);
+                        t.put(OrderSecundaryKey(o_w_id, o_d_id, o.o_c_id), o);
                         t.commit();
 
                     }
@@ -135,7 +137,7 @@ public class tpccLoad {
 
                         if (o_id > 2100) {
                             Transaction t = EnvDB.getInstance().db_orderline.newTransaction(EnvDB.getTransactionType());
-                            t.put(OrderLine.getPrimaryKey(o_w_id,o_d_id,o_id,ol_i), ol);
+                            t.put(OrderLinePrimaryKey(o_w_id,o_d_id,o_id,ol_i), ol);
                             t.commit();
                         } else {
 
@@ -143,7 +145,7 @@ public class tpccLoad {
                             ol.ol_delivery_d = date.toString();
 
                             Transaction t = EnvDB.getInstance().db_orderline.newTransaction(EnvDB.getTransactionType());
-                            t.put(OrderLine.getPrimaryKey(o_w_id,o_d_id,o_id,ol_i), ol);
+                            t.put(OrderLinePrimaryKey(o_w_id,o_d_id,o_id,ol_i), ol);
                             t.commit();
                         }
 
@@ -178,7 +180,7 @@ public class tpccLoad {
                 HashMap<String, Integer> countLastname = new HashMap<>();
                 for (int c_id = 1; c_id <= TpccConstants.CUST_PER_DIST; c_id++) {
                     Customer c = new Customer();
-                    String c_key = Customer.getPrimaryKey(w_id, d_id, c_id);
+                    String c_key = CustomerPrimaryKey(w_id, d_id, c_id);
 
                     c.c_first = Util.makeAlphaString(8, 16);
                     c.c_middle = "OE";
@@ -232,7 +234,7 @@ public class tpccLoad {
                     Date date = new java.sql.Date(calendar.getTimeInMillis());
                     h.h_date = date.toString();
 
-                    String h_key = History.getPrimaryKey(h);
+                    String h_key = HistoryPrimaryKey(h);
                     Transaction th = EnvDB.getInstance().db_history.newTransaction(EnvDB.getTransactionType());
                     th.put(h_key, h);
                     th.commit();
@@ -251,7 +253,7 @@ public class tpccLoad {
                 // Set the primary key to use when search by lastname
                 for (Map.Entry<String,Integer> e : countLastname.entrySet()){
                     Transaction th = EnvDB.getInstance().db_customer.newTransaction(EnvDB.getTransactionType());
-                    th.put(Customer.getSecundaryKey(w_id,d_id,e.getKey()), (e.getValue()/2+1));
+                    th.put(CustomerSecundaryKey(w_id,d_id,e.getKey()), (e.getValue()/2+1));
                     th.commit();
                 }
             }
@@ -281,7 +283,7 @@ public class tpccLoad {
 
             /* Generate Item Data */
             Item it = new Item();
-            String it_key = Item.getPrimaryKey(i_id);
+            String it_key = ItemPrimaryKey(i_id);
             it.i_im_id = Util.randomNumber(1, 10000);
 
             it.i_name = Util.makeAlphaString(14, 24);
@@ -331,7 +333,7 @@ public class tpccLoad {
             ware.w_tax = ((double)randomNumber(10, 20))/100;
             ware.w_ytd = 3000000.00;
 
-            String wareKey = Warehouse.getPrimaryKey(w_id);
+            String wareKey = WarehousePrimaryKey(w_id);
 
             if (option_debug){
                 System.out.println("WID="+wareKey+", Name="+ware.w_name+", Tax="+ware.w_tax);
@@ -361,7 +363,7 @@ public class tpccLoad {
         for (int s_i_id = 1; s_i_id <= TpccConstants.MAXITEMS; s_i_id++) {
 
             Stock s = new Stock();
-            String s_key = Stock.getPrimaryKey(w_id, s_i_id);
+            String s_key = StockPrimaryKey(w_id, s_i_id);
 
             /* Generate Stock Data */
             s.s_quantity = Util.randomNumber(10, 100);
@@ -407,7 +409,7 @@ public class tpccLoad {
 
         for (int d_id = 0; d_id < TpccConstants.DIST_PER_WARE; d_id++) {
             District d = new District();
-            String d_key = District.getPrimaryKey(w_id, d_id);
+            String d_key = DistrictPrimaryKey(w_id, d_id);
 
             d.d_name = makeAlphaString(6, 10);
             d.d_street_1 = makeAlphaString(10, 20);
