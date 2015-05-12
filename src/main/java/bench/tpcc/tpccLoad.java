@@ -15,12 +15,8 @@ import static bench.tpcc.Util.randomNumber;
  */
 public class tpccLoad {
 
-    static int do_autocommit = 0;
     static int count_ware = 0;
     static boolean option_debug = false;
-
-    private static final Object EMPTY = new Object();
-
     static Random random;
 
     public static void main(String[] args) {
@@ -32,7 +28,7 @@ public class tpccLoad {
                 .build());
         options.addOption("d", false, "debug - produces more output");
         options.addOption("r", false, "remote DB - connect with Thrift API");
-        options.addOption("t", true, "databases transactional algorithm");
+        options.addOption("tp", true, "databases transactional algorithm");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
         try {
@@ -56,11 +52,13 @@ public class tpccLoad {
             option_debug = true;
         }
 
-        random = new Random(0); //TODO: Remover a seed estatica
-
         System.out.println("TPCC Data Load Started...");
-        EnvDB.getInstance();
+        Environment.getInstance();
+    }
 
+    public static void tpccLoadData(int cnt_warehouses){
+        random = new Random(0); //TODO: Remover a seed estatica
+        count_ware = cnt_warehouses;
         LoadItems();
         LoadWare();
         LoadCust();
@@ -94,29 +92,29 @@ public class tpccLoad {
                     if (o_id > 2100) {    /* the last 900 orders have not been */
                         o.o_carrier_id = 0;
 
-                        Transaction t = EnvDB.getInstance().db_order.newTransaction(EnvDB.getTransactionType());
-                        t.put(OrderPrimaryKey(o_w_id, o_d_id, o_id), o);
+                        Transaction t = Environment.newTransaction();
+                        t.put(OrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.order(o));
                         t.commit();
 
                         /* Put order on Secondary index */
-                        t = EnvDB.getInstance().db_order_sec.newTransaction(EnvDB.getTransactionType());
-                        t.put(OrderSecundaryKey(o_w_id, o_d_id, o.o_c_id), o);
+                        t = Environment.newTransaction();
+                        t.put(OrderSecundaryKey(o_w_id, o_d_id, o.o_c_id), MyObject.NULL(true));
                         t.commit();
 
                         /* Put new Order */
-                        t = EnvDB.getInstance().db_neworder.newTransaction(EnvDB.getTransactionType());
-                        t.put(NewOrderPrimaryKey(o_id, o_d_id, o_w_id), EMPTY);
+                        t = Environment.newTransaction();
+                        t.put(NewOrderPrimaryKey(o_id, o_d_id, o_w_id), MyObject.NULL(true));
                         t.commit();
 
                     } else {
 
-                        Transaction t = EnvDB.getInstance().db_order.newTransaction(EnvDB.getTransactionType());
-                        t.put(OrderPrimaryKey(o_w_id, o_d_id, o_id), o);
+                        Transaction t = Environment.newTransaction();
+                        t.put(OrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.order(o));
                         t.commit();
 
                         /* Put order on Secondary index */
-                        t = EnvDB.getInstance().db_order_sec.newTransaction(EnvDB.getTransactionType());
-                        t.put(OrderSecundaryKey(o_w_id, o_d_id, o.o_c_id), o);
+                        t = Environment.newTransaction();
+                        t.put(OrderSecundaryKey(o_w_id, o_d_id, o.o_c_id), MyObject.NULL(true));
                         t.commit();
 
                     }
@@ -136,16 +134,16 @@ public class tpccLoad {
                         ol.ol_dist_info = Util.makeAlphaString(24, 24);
 
                         if (o_id > 2100) {
-                            Transaction t = EnvDB.getInstance().db_orderline.newTransaction(EnvDB.getTransactionType());
-                            t.put(OrderLinePrimaryKey(o_w_id,o_d_id,o_id,ol_i), ol);
+                            Transaction t = Environment.newTransaction();
+                            t.put(OrderLinePrimaryKey(o_w_id, o_d_id, o_id, ol_i), MyObject.orderline(ol));
                             t.commit();
                         } else {
 
                             ol.ol_amount = ((float) (Util.randomNumber(10, 10000)) / 100.0);
                             ol.ol_delivery_d = date.toString();
 
-                            Transaction t = EnvDB.getInstance().db_orderline.newTransaction(EnvDB.getTransactionType());
-                            t.put(OrderLinePrimaryKey(o_w_id,o_d_id,o_id,ol_i), ol);
+                            Transaction t = Environment.newTransaction();
+                            t.put(OrderLinePrimaryKey(o_w_id, o_d_id, o_id, ol_i), MyObject.orderline(ol));
                             t.commit();
                         }
 
@@ -217,8 +215,8 @@ public class tpccLoad {
 
                     c.c_data = Util.makeAlphaString(300, 500);
 
-                    Transaction t = EnvDB.getInstance().db_customer.newTransaction(EnvDB.getTransactionType());
-                    t.put(c_key, c);
+                    Transaction t = Environment.newTransaction();
+                    t.put(c_key, MyObject.customer(c));
                     t.commit();
 
                     History h = new History();
@@ -235,8 +233,8 @@ public class tpccLoad {
                     h.h_date = date.toString();
 
                     String h_key = HistoryPrimaryKey(h);
-                    Transaction th = EnvDB.getInstance().db_history.newTransaction(EnvDB.getTransactionType());
-                    th.put(h_key, h);
+                    Transaction th = Environment.newTransaction();
+                    th.put(h_key, MyObject.history(h));
                     th.commit();
 
                     if (option_debug) {
@@ -252,9 +250,9 @@ public class tpccLoad {
 
                 // Set the primary key to use when search by lastname
                 for (Map.Entry<String,Integer> e : countLastname.entrySet()){
-                    Transaction th = EnvDB.getInstance().db_customer.newTransaction(EnvDB.getTransactionType());
-                    th.put(CustomerSecundaryKey(w_id,d_id,e.getKey()), (e.getValue()/2+1));
-                    th.commit();
+                    Transaction t = Environment.newTransaction();
+                    t.put(CustomerSecundaryKey(w_id, d_id, e.getKey()), MyObject.Integer(e.getValue() / 2 + 1));
+                    t.commit();
                 }
             }
         }
@@ -299,8 +297,8 @@ public class tpccLoad {
                 System.out.printf("IID = %d, Name= %s, Price = %.2f\n",
                           i_id, it.i_name, it.i_price);
 
-            Transaction t = EnvDB.getInstance().db_item.newTransaction(EnvDB.getTransactionType());
-            t.put(it_key, it);
+            Transaction t = Environment.newTransaction();
+            t.put(it_key, MyObject.item(it));
             t.commit();
 
             if ((i_id % 100) == 0) {
@@ -338,9 +336,9 @@ public class tpccLoad {
             if (option_debug){
                 System.out.println("WID="+wareKey+", Name="+ware.w_name+", Tax="+ware.w_tax);
             }
-            
-            Transaction t = EnvDB.getInstance().db_warehouse.newTransaction(EnvDB.getTransactionType());
-            t.put(wareKey, ware);
+
+            Transaction t = Environment.newTransaction();
+            t.put(wareKey, MyObject.warehouse(ware));
             t.commit();
             
             LoadStock(w_id);
@@ -388,8 +386,8 @@ public class tpccLoad {
                 s.s_data = s.s_data.substring(0, pos)+"original"+s.s_data.substring(pos+8);
             }
 
-            Transaction t = EnvDB.getInstance().db_stock.newTransaction(EnvDB.getTransactionType());
-            t.put(s_key, s);
+            Transaction t = Environment.newTransaction();
+            t.put(s_key, MyObject.stock(s));
             t.commit();
 
             if (option_debug){
@@ -419,8 +417,8 @@ public class tpccLoad {
             d.d_zip = makeAlphaString(9, 9);
             d.d_tax = ((double)randomNumber(10,20))/100;
 
-            Transaction t = EnvDB.getInstance().db_district.newTransaction(EnvDB.getTransactionType());
-            t.put(d_key, d);
+            Transaction t = Environment.newTransaction();
+            t.put(d_key, MyObject.district(d));
             t.commit();
 
             if (option_debug){

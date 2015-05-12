@@ -8,47 +8,47 @@ import thrift.tpcc.schema.History;
 public class KeysUtils {
 
     public static String WarehousePrimaryKey(int w_id) {
-        return "" + w_id;
+        return "warehousePK_" + w_id;
     }
 
     public static String StockPrimaryKey(int s_w_id, int s_i_id) {
-        return s_w_id + "_" + s_i_id;
+        return "stockPK_"+s_w_id + "_" + s_i_id;
     }
 
     public static String DistrictPrimaryKey(int d_w_id, int d_id) {
-        return d_id + "_" + d_w_id;
+        return "districtPK_"+d_id + "_" + d_w_id;
     }
 
     public static String CustomerPrimaryKey(int c_w_id, int c_d_id, int c_id) {
-        return c_w_id + "_" + c_d_id + "_" + c_id;
+        return "customerPK_"+c_w_id + "_" + c_d_id + "_" + c_id;
     }
 
     public static String CustomerSecundaryKey(int c_w_id, int c_d_id, String c_last) {
-        return c_w_id + "_" + c_d_id + "_" + c_last;
+        return "customerSK_"+c_w_id + "_" + c_d_id + "_" + c_last;
     }
 
     public static String HistoryPrimaryKey(History h) {
-        return h.h_c_id + "_" + h.h_c_d_id + "_" + h.h_c_w_id + "_" + h.h_d_id + "_" + h.h_w_id + "_" + h.h_date + "_" + h.h_amount + "_" + h.h_data;
+        return "historyPK_"+h.h_c_id + "_" + h.h_c_d_id + "_" + h.h_c_w_id + "_" + h.h_d_id + "_" + h.h_w_id + "_" + h.h_date + "_" + h.h_amount + "_" + h.h_data;
     }
 
     public static String ItemPrimaryKey(int i_id) {
-        return "" + i_id;
+        return "itemPK_" + i_id;
     }
 
     public static String NewOrderPrimaryKey(int no_o_id, int no_d_id, int no_w_id){
-        return no_w_id+"_"+no_d_id+"_"+no_o_id;
+        return "neworderPK_"+no_w_id+"_"+no_d_id+"_"+no_o_id;
     }
 
     public static String OrderPrimaryKey(int o_w_id, int o_d_id, int o_id){
-        return o_w_id+"_"+o_d_id+"_"+o_id;
+        return "orderPK_"+o_w_id+"_"+o_d_id+"_"+o_id;
     }
 
     public static String OrderSecundaryKey(int o_w_id, int o_d_id, int o_c_id){
-        return ""+o_w_id+"_"+o_d_id+"_"+o_c_id;
+        return "orderSK_"+o_w_id+"_"+o_d_id+"_"+o_c_id;
     }
 
     public static String OrderLinePrimaryKey(int ol_w_id, int ol_d_id, int ol_o_id, int ol_number){
-        return ""+ol_w_id+"_"+ol_d_id+"_"+ol_o_id+"_"+ol_number;
+        return "orderlinePK_"+ol_w_id+"_"+ol_d_id+"_"+ol_o_id+"_"+ol_number;
     }
 
 

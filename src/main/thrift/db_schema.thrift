@@ -109,4 +109,6 @@ union MyObject {
     6:History history
     7:District district
     8:Customer customer
+    9:bool NULL
+    10:int Integer
 }
