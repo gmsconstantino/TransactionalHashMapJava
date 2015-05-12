@@ -1,12 +1,13 @@
 package bench.tpcc;
 
-import bench.tpcc.schema.District;
-import bench.tpcc.schema.Stock;
-import bench.tpcc.schema.Warehouse;
+import bench.tpcc.schema.*;
 import fct.thesis.database.Transaction;
 import org.apache.commons.cli.*;
 
-import java.util.Random;
+import java.util.*;
+
+import static bench.tpcc.Util.makeAlphaString;
+import static bench.tpcc.Util.randomNumber;
 
 /**
  * Created by gomes on 11/05/15.
@@ -16,6 +17,8 @@ public class tpccLoad {
     static int do_autocommit = 0;
     static int count_ware = 0;
     static boolean option_debug = false;
+
+    private static final Object EMPTY = new Object();
 
     static Random random;
 
@@ -53,14 +56,259 @@ public class tpccLoad {
 
         random = new Random(0); //TODO: Remover a seed estatica
 
-        long t_clock = System.currentTimeMillis();
-
         System.out.println("TPCC Data Load Started...");
         EnvDB.getInstance();
-//        LoadItems();
+
+        LoadItems();
         LoadWare();
-//        LoadCust();
-//        LoadOrd();
+        LoadCust();
+        LoadOrd();
+    }
+
+    /*
+     * Loads the Orders and Order_Line Tables
+     */
+    private static void LoadOrd() {
+
+        for (int w_id = 1; w_id <= count_ware; w_id++) {
+            for (int d_id = 1; d_id <= TpccConstants.DIST_PER_WARE; d_id++) {
+
+                System.out.printf("Loading Orders for D=%d, W= %d\n", d_id, w_id);
+
+                int o_d_id = d_id;
+                int o_w_id = w_id;
+                Util.initPermutation();    /* initialize permutation of customer numbers */
+                for (int o_id = 1; o_id <= TpccConstants.ORD_PER_DIST; o_id++) {
+
+                    /* Generate Order Data */
+                    Order o = new Order();
+                    o.o_c_id = Util.getPermutation();
+                    o.o_carrier_id = Util.randomNumber(1, 10);
+                    o.o_ol_cnt = Util.randomNumber(5, 15);
+
+                    Date date = new java.sql.Date(System.currentTimeMillis());
+                    o.o_entry_d = date.toString();
+
+                    if (o_id > 2100) {    /* the last 900 orders have not been */
+                        o.o_carrier_id = 0;
+
+                        Transaction t = EnvDB.getInstance().db_order.newTransaction(EnvDB.getTransactionType());
+                        t.put(Order.getPrimaryKey(o_w_id, o_d_id, o_id), o);
+                        t.commit();
+
+                        /* Put order on Secondary index */
+                        t = EnvDB.getInstance().db_order_sec.newTransaction(EnvDB.getTransactionType());
+                        t.put(Order.getSecundaryKey(o_w_id, o_d_id, o.o_c_id), o);
+                        t.commit();
+
+                        /* Put new Order */
+                        t = EnvDB.getInstance().db_neworder.newTransaction(EnvDB.getTransactionType());
+                        t.put(Order.newOrderKey(o_id, o_d_id, o_w_id), EMPTY);
+                        t.commit();
+
+                    } else {
+
+                        Transaction t = EnvDB.getInstance().db_order.newTransaction(EnvDB.getTransactionType());
+                        t.put(Order.getPrimaryKey(o_w_id, o_d_id, o_id), o);
+                        t.commit();
+
+                        /* Put order on Secondary index */
+                        t = EnvDB.getInstance().db_order_sec.newTransaction(EnvDB.getTransactionType());
+                        t.put(Order.getSecundaryKey(o_w_id, o_d_id, o.o_c_id), o);
+                        t.commit();
+
+                    }
+
+                    if (option_debug)
+                        System.out.printf("OID = %d, CID = %d, DID = %d, WID = %d\n",
+                                o_id, o.o_c_id, o_d_id, o_w_id);
+
+                    for (int ol_i = 1; ol_i <= o.o_ol_cnt; ol_i++) {
+                        /* Generate Order Line Data */
+                        OrderLine ol = new OrderLine();
+                        ol.ol_i_id = Util.randomNumber(1, TpccConstants.MAXITEMS);
+                        ol.ol_supply_w_id = o_w_id;
+                        ol.ol_quantity = 5;
+                        ol.ol_amount = 0.0;
+
+                        ol.ol_dist_info = Util.makeAlphaString(24, 24);
+
+                        if (o_id > 2100) {
+                            Transaction t = EnvDB.getInstance().db_orderline.newTransaction(EnvDB.getTransactionType());
+                            t.put(OrderLine.getPrimaryKey(o_w_id,o_d_id,o_id,ol_i), ol);
+                            t.commit();
+                        } else {
+
+                            ol.ol_amount = ((float) (Util.randomNumber(10, 10000)) / 100.0);
+                            ol.ol_delivery_d = date.toString();
+
+                            Transaction t = EnvDB.getInstance().db_orderline.newTransaction(EnvDB.getTransactionType());
+                            t.put(OrderLine.getPrimaryKey(o_w_id,o_d_id,o_id,ol_i), ol);
+                            t.commit();
+                        }
+
+                        if (option_debug)
+                            System.out.printf("OL = %d, IID = %d, QUAN = %d, AMT = %8.2f\n",
+                                    ol_i, ol.ol_i_id, ol.ol_quantity, ol.ol_amount);
+                    }
+
+                    if ((o_id % 100) == 0) {
+                        System.out.print(".");
+
+                        if ((o_id % 1000) == 0) {
+                            System.out.printf(" %d\n", o_id);
+                        }
+                    }
+                }
+            }
+
+            System.out.println("Orders Done.");
+        }
+    }
+
+    /*
+     * Loads the Customer Table
+     */
+    private static void LoadCust() {
+
+        for (int w_id = 1; w_id <= count_ware; w_id++) {
+            for (int d_id = 1; d_id <= TpccConstants.DIST_PER_WARE; d_id++) {
+                System.out.printf("Loading Customer for DID=%d, WID=%d\n", d_id, w_id);
+
+                HashMap<String, Integer> countLastname = new HashMap<>();
+                for (int c_id = 1; c_id <= TpccConstants.CUST_PER_DIST; c_id++) {
+                    Customer c = new Customer();
+                    String c_key = Customer.getPrimaryKey(w_id, d_id, c_id);
+
+                    c.c_first = Util.makeAlphaString(8, 16);
+                    c.c_middle = "OE";
+
+                    if (c_id <= 1000) {
+                        c.c_last = Util.lastName(c_id - 1);
+                    } else {
+                        c.c_last = Util.lastName(Util.nuRand(255, 0, 999));
+                    }
+
+                    if (countLastname.containsKey(c.c_last)) {
+                        int n = countLastname.get(c.c_last) + 1;
+                        countLastname.put(c.c_last, n);
+                    } else
+                        countLastname.put(c.c_last, 1);
+
+                    c.c_street_1 = Util.makeAlphaString(10, 20);
+                    c.c_street_2 = Util.makeAlphaString(10, 20);
+                    c.c_city = Util.makeAlphaString(10, 20);
+                    c.c_state = Util.makeAlphaString(2, 2);
+                    c.c_zip = Util.makeAlphaString(9, 9);
+
+                    c.c_phone = Util.makeNumberString(16, 16);
+
+                    if (Util.randomNumber(0, 1) == 1)
+                        c.c_credit = "G";
+                    else
+                        c.c_credit = "B";
+                    c.c_credit += "C";
+
+                    c.c_credit_lim = 50000;
+                    c.c_discount = (float) (((float) Util.randomNumber(0, 50)) / 100.0);
+                    c.c_balance = (float) -10.0;
+
+                    c.c_data = Util.makeAlphaString(300, 500);
+
+                    Transaction t = EnvDB.getInstance().db_customer.newTransaction(EnvDB.getTransactionType());
+                    t.put(c_key, c);
+                    t.commit();
+
+                    History h = new History();
+                    h.h_c_id = c_id;
+                    h.h_c_d_id = d_id;
+                    h.h_c_w_id = w_id;
+                    h.h_d_id = d_id;
+                    h.h_w_id = w_id;
+                    h.h_amount = 10.0;
+                    h.h_data = Util.makeAlphaString(12, 24);
+
+                    Calendar calendar = Calendar.getInstance();
+                    Date date = new java.sql.Date(calendar.getTimeInMillis());
+                    h.h_date = date.toString();
+
+                    String h_key = History.getPrimaryKey(h);
+                    Transaction th = EnvDB.getInstance().db_history.newTransaction(EnvDB.getTransactionType());
+                    th.put(h_key, h);
+                    th.commit();
+
+                    if (option_debug) {
+                        System.out.printf("CID = %d, LST = %s, P# = %s\n",
+                                c_id, c.c_last, c.c_phone);
+                    }
+                    if ((c_id % 100) == 0) {
+                        System.out.print(".");
+                        if ((c_id % 1000) == 0)
+                            System.out.printf(" %d\n", c_id);
+                    }
+                }
+
+                // Set the primary key to use when search by lastname
+                for (Map.Entry<String,Integer> e : countLastname.entrySet()){
+                    Transaction th = EnvDB.getInstance().db_customer.newTransaction(EnvDB.getTransactionType());
+                    th.put(Customer.getSecundaryKey(w_id,d_id,e.getKey()), (e.getValue()/2+1));
+                    th.commit();
+                }
+            }
+        }
+        System.out.println("Customer Done.");
+    }
+
+    /*
+     * Loads the Item table
+     */
+    private static void LoadItems() {
+
+        int[] orig = new int[TpccConstants.MAXITEMS + 1];
+        int pos = 0;
+        int i = 0;
+
+        System.out.printf("Loading Item \n");
+
+        for (i = 0; i < TpccConstants.MAXITEMS / 10; i++) {
+            do {
+                pos = Util.randomNumber(0, TpccConstants.MAXITEMS-1);
+            } while (orig[pos] != 0);
+            orig[pos] = 1;
+        }
+
+        for (int i_id = 1; i_id <= TpccConstants.MAXITEMS; i_id++) {
+
+            /* Generate Item Data */
+            Item it = new Item();
+            String it_key = Item.getPrimaryKey(i_id);
+            it.i_im_id = Util.randomNumber(1, 10000);
+
+            it.i_name = Util.makeAlphaString(14, 24);
+            it.i_price = ((double) (Util.randomNumber(100, 10000)) / 100.0);
+
+            it.i_data = Util.makeAlphaString(26, 50);
+            if (orig[i_id] != 0) {
+                pos = Util.randomNumber(0, it.i_data.length() - 8);
+                it.i_data = it.i_data.substring(0, pos) + "original" + it.i_data.substring(pos + 8);
+            }
+
+            if(option_debug)
+                System.out.printf("IID = %d, Name= %s, Price = %.2f\n",
+                          i_id, it.i_name, it.i_price);
+
+            Transaction t = EnvDB.getInstance().db_item.newTransaction(EnvDB.getTransactionType());
+            t.put(it_key, it);
+            t.commit();
+
+            if ((i_id % 100) == 0) {
+                System.out.printf(".");
+                if ((i_id % 5000) == 0)
+                    System.out.printf(" %d\n", i_id);
+            }
+        };
+
+        System.out.printf("Item Done. \n");
     }
 
     /*
@@ -74,13 +322,13 @@ public class tpccLoad {
 
             Warehouse ware = new Warehouse();
             /* Generate Warehouse Data */
-            ware.w_name = MakeAlphaString(6, 10);
-            ware.w_street_1 = MakeAlphaString(10,20);
-            ware.w_street_2 = MakeAlphaString(10,20);
-            ware.w_city = MakeAlphaString(10,20);
-            ware.w_state = MakeAlphaString(2,2);
-            ware.w_zip = MakeAlphaString(9,9);
-            ware.w_tax = ((double)random1(10,20))/100;
+            ware.w_name = makeAlphaString(6, 10);
+            ware.w_street_1 = makeAlphaString(10, 20);
+            ware.w_street_2 = makeAlphaString(10, 20);
+            ware.w_city = makeAlphaString(10, 20);
+            ware.w_state = makeAlphaString(2, 2);
+            ware.w_zip = makeAlphaString(9, 9);
+            ware.w_tax = ((double)randomNumber(10, 20))/100;
             ware.w_ytd = 3000000.00;
 
             String wareKey = Warehouse.getPrimaryKey(w_id);
@@ -105,7 +353,7 @@ public class tpccLoad {
         int pos;
         for (int i = 0; i < TpccConstants.MAXITEMS/10; i++) {
             do{
-                pos = random1(0,TpccConstants.MAXITEMS);
+                pos = randomNumber(0, TpccConstants.MAXITEMS-1);
             } while (orig[pos]==1);
             orig[pos] = 1;
         }
@@ -113,6 +361,44 @@ public class tpccLoad {
         for (int s_i_id = 1; s_i_id <= TpccConstants.MAXITEMS; s_i_id++) {
 
             Stock s = new Stock();
+            String s_key = Stock.getPrimaryKey(w_id, s_i_id);
+
+            /* Generate Stock Data */
+            s.s_quantity = Util.randomNumber(10, 100);
+            s.s_dist_01 = Util.makeAlphaString(24, 24);
+            s.s_dist_02 = Util.makeAlphaString(24, 24);
+            s.s_dist_03 = Util.makeAlphaString(24, 24);
+            s.s_dist_04 = Util.makeAlphaString(24, 24);
+            s.s_dist_05 = Util.makeAlphaString(24, 24);
+            s.s_dist_06 = Util.makeAlphaString(24, 24);
+            s.s_dist_07 = Util.makeAlphaString(24, 24);
+            s.s_dist_08 = Util.makeAlphaString(24, 24);
+            s.s_dist_09 = Util.makeAlphaString(24, 24);
+            s.s_dist_10 = Util.makeAlphaString(24, 24);
+            s.s_ytd = 0;
+            s.s_order_cnt = 0;
+            s.s_remote_cnt = 0;
+
+            s.s_data = Util.makeAlphaString(26, 50);
+            int sdatasize = s.s_data.length();
+            if (orig[s_i_id-1] != 0) {
+                pos = Util.randomNumber(0, sdatasize - 8);
+                s.s_data = s.s_data.substring(0, pos)+"original"+s.s_data.substring(pos+8);
+            }
+
+            Transaction t = EnvDB.getInstance().db_stock.newTransaction(EnvDB.getTransactionType());
+            t.put(s_key, s);
+            t.commit();
+
+            if (option_debug){
+                System.out.println("SID="+s_i_id+", WID="+w_id+", Quan="+s.s_quantity);
+            }
+            if (s_i_id % 100 == 0) {
+                System.out.print(".");
+                if (s_i_id % 5000 ==0)
+                    System.out.println(s_i_id);
+            }
+
         }
     }
 
@@ -123,13 +409,13 @@ public class tpccLoad {
             District d = new District();
             String d_key = District.getPrimaryKey(w_id, d_id);
 
-            d.d_name = MakeAlphaString(6, 10);
-            d.d_street_1 = MakeAlphaString(10,20);
-            d.d_street_2 = MakeAlphaString(10,20);
-            d.d_city = MakeAlphaString(10,20);
-            d.d_state = MakeAlphaString(2,2);
-            d.d_zip = MakeAlphaString(9,9);
-            d.d_tax = ((double)random1(10,20))/100;
+            d.d_name = makeAlphaString(6, 10);
+            d.d_street_1 = makeAlphaString(10, 20);
+            d.d_street_2 = makeAlphaString(10, 20);
+            d.d_city = makeAlphaString(10, 20);
+            d.d_state = makeAlphaString(2, 2);
+            d.d_zip = makeAlphaString(9, 9);
+            d.d_tax = ((double)randomNumber(10,20))/100;
 
             Transaction t = EnvDB.getInstance().db_district.newTransaction(EnvDB.getTransactionType());
             t.put(d_key, d);
@@ -140,25 +426,6 @@ public class tpccLoad {
             }
         }
 
-    }
-
-    private static String MakeAlphaString(int min, int max) {
-        String str = new String();
-        final String character = "abcedfghijklmnopqrstuvwxyz";
-        int length;
-        int i;
-
-        length = random1(min, max);
-
-        for (i = 0; i < length; i++) {
-            str += character.charAt(random1(0, character.length() - 2));
-        }
-
-        return str;
-    }
-
-    private static int random1(int min, int max){
-        return (min==max)?min:random.nextInt(max-min)+min;
     }
 
 }
