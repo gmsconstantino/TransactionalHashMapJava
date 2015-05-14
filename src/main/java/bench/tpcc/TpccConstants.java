@@ -9,9 +9,7 @@ public interface TpccConstants {
 
     public static int[] nums = new int[CUST_PER_DIST];
 
-    /* definitions for new order transaction */
-    public static int MAX_NUM_ITEMS = 15;
-    public static int MAX_ITEM_LEN = 24;
+
 
 
 }

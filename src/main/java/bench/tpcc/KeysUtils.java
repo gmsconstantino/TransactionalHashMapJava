@@ -27,6 +27,11 @@ public class KeysUtils {
         return "customerSK_"+c_w_id + "_" + c_d_id + "_" + c_last;
     }
 
+    public static String HistoryPrimaryKey(int h_c_id, int h_c_d_id, int h_c_w_id, int h_d_id, int h_w_id,
+                                           String h_date, double h_amount, String h_data){
+        return "historyPK_"+h_c_id + "_" + h_c_d_id + "_" + h_c_w_id + "_" + h_d_id + "_" + h_w_id + "_" + h_date + "_" + h_amount + "_" + h_data;
+    }
+
     public static String HistoryPrimaryKey(History h) {
         return "historyPK_"+h.h_c_id + "_" + h.h_c_d_id + "_" + h.h_c_w_id + "_" + h.h_d_id + "_" + h.h_w_id + "_" + h.h_date + "_" + h.h_amount + "_" + h.h_data;
     }
@@ -35,7 +40,7 @@ public class KeysUtils {
         return "itemPK_" + i_id;
     }
 
-    public static String NewOrderPrimaryKey(int no_o_id, int no_d_id, int no_w_id){
+    public static String NewOrderPrimaryKey(int no_w_id, int no_d_id, int no_o_id){
         return "neworderPK_"+no_w_id+"_"+no_d_id+"_"+no_o_id;
     }
 

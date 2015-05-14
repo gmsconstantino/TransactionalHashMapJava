@@ -1,5 +1,6 @@
 package bench.tpcc;
 
+import java.util.Collections;
 import java.util.Random;
 
 public class Util implements TpccConstants {
@@ -207,10 +208,11 @@ public class Util implements TpccConstants {
 //	 		j = (int)RandomNumber(i+1, ORD_PER_DIST-1);
 //	 		swap_int(nums[i], nums[j]);
 //	 	}
-        // TODO: Why is it ORD_PER_DIST-1. Not shuffling the last one?
-        for (i = 0; i < ORD_PER_DIST - 1; i++) {
-            j = (int) randomNumber(i + 1, ORD_PER_DIST - 1);
-            nums[j] = tempNums[i];
+        for (i = 0; i < ORD_PER_DIST; i++) {
+            j = randomNumber(i, ORD_PER_DIST-1);
+            int temp = nums[i];
+            nums[i] = nums[j];
+            nums[j] = temp;
         }
     }
 

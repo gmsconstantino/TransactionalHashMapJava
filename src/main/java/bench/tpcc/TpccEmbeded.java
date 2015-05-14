@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 public class TpccEmbeded {
 
     public static volatile int activate_transaction = 0;
+    public static boolean DEBUG = false;
 
     public static void main(String[] args) {
         Options options = new Options();
@@ -51,6 +52,11 @@ public class TpccEmbeded {
         int numWare = Integer.parseInt(cmd.getOptionValue("w"));
         int measureTime = Integer.parseInt(cmd.getOptionValue("t"));
 
+        if (cmd.hasOption("d")) {
+            DEBUG = true;
+            TpccLoad.option_debug = true;
+        }
+
         if (cmd.hasOption("tp")){
             Environment.setTransactionype(TransactionTypeFactory.getType(cmd.getOptionValue("tp")));
         }
@@ -78,12 +84,14 @@ public class TpccEmbeded {
         while ((System.currentTimeMillis() - startTime) < measureTime * 1000) {
             try {
                 Thread.sleep(1000);
+                System.out.print(".");
             } catch (InterruptedException e) {
             }
         }
         activate_transaction = 0;
         final long actualTestTime = System.currentTimeMillis() - startTime;
-        System.out.println("Execution time lapse: " + df.format(runTime / 1000.0f) + " seconds");
+        System.out.println();
+        System.out.println("Execution time lapse: " + df.format(actualTestTime / 1000.0f) + " seconds");
 
         System.out.printf("\nSTOPPING THREADS\n");
         executor.shutdown();

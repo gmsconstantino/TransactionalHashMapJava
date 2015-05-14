@@ -59,14 +59,14 @@ struct Order {
     2:string o_entry_d;
     3:int o_carrier_id;
     4:long o_ol_cnt;
-    5:string o_all_local;
+    5:int o_all_local;
 }
 
 struct OrderLine {
     1:int ol_i_id;
     2:int ol_supply_w_id;
     3:string ol_delivery_d;
-    4:long ol_quantity;
+    4:int ol_quantity;
     5:double ol_amount;
     6:string ol_dist_info;
 }
