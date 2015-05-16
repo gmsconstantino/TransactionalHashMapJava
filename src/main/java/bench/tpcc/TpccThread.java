@@ -1,11 +1,13 @@
 package bench.tpcc;
 
 import fct.thesis.database.Transaction;
+import fct.thesis.database.TransactionException;
 import thrift.tpcc.schema.*;
 
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static bench.tpcc.KeysUtils.*;
 import static bench.tpcc.TpccConstants.*;
@@ -22,11 +24,14 @@ public class TpccThread extends Thread {
     public static final int MAX_NUM_ITEMS = 15;
     public static final int MAX_ITEM_LEN = 24;
 
+    public static int NOTFOUND = TpccConstants.MAXITEMS + 1;
+
     int number;
     int num_ware;
     int num_conn;
 
-
+    int commits;
+    int aborts;
 
     public TpccThread(int number, int num_ware, int num_conn) {
 
@@ -34,6 +39,8 @@ public class TpccThread extends Thread {
         this.num_conn = num_conn;
         this.num_ware = num_ware;
 
+        this.commits = 0;
+        this.aborts = 0;
     }
 
     public void run() {
@@ -46,21 +53,164 @@ public class TpccThread extends Thread {
 
     private void doNextTransaction() {
         int r = ThreadLocalRandom.current().nextInt(100);
-        if (r <= P_MIX) {
-//            doPayment();
-//        } else if (r <= P_MIX + NO_MIX) {
-//            doNewOrder();
-//        } else if (r <= P_MIX + NO_MIX + OS_MIX) {
-//            doOrdstat();
-//        } else if (r <= P_MIX + NO_MIX + OS_MIX + D_MIX) {
-            doDelivery();
-        } else {
-//            doSlev();
+        try {
+            if (r <= P_MIX) {
+                doPayment();
+            } else if (r <= P_MIX + NO_MIX) {
+                doNewOrder();
+            } else if (r <= P_MIX + NO_MIX + OS_MIX) {
+                doOrdstat();
+            } else if (r <= P_MIX + NO_MIX + OS_MIX + D_MIX) {
+                doDelivery();
+            } else {
+            }
+                doSlev();
+            commits++;
+        } catch (TransactionException e){
+            aborts++;
         }
     }
 
-    private void doDelivery() {
+    private void doSlev() {
+        int i;
+        int o_id = 0;
+        int ret = 0;
+        long beginTime = 0;
+        long endTime = 0;
+        int w_id = 0;
+        int d_id = 0;
+        int threshold = 0;
 
+        w_id = Util.randomNumber(1, num_ware);
+        d_id = Util.randomNumber(1, DIST_PER_WARE);
+        threshold = Util.randomNumber(10, 20);
+
+        Set<Integer> set = new HashSet<>();
+
+        long begintime = System.currentTimeMillis();
+
+        Transaction<String, MyObject> t = Environment.newTransaction();
+
+        /* The row in the DISTRICT table with matching D_W_ID and D_ID
+         * is selected and D_NEXT_O_OID is retrieved.
+         */
+        String d_key = DistrictPrimaryKey(w_id, d_id);
+        District d_data = t.get(d_key).deepCopy().getDistrict();
+
+        /* All rows in the ORDER_LINE table with matching OL_W_ID (equals W_ID),
+         * OL_D_ID (equals D_ID), and OL_O_ID (lower than D_NEXT_O_ID and greater
+         * than or equal to D_NEXT_O_ID minus 20) are selected. They are the items
+         * for 20 recent orders of the district.
+         */
+        int init = (d_data.d_next_o_id-20) < 0 ? 0 : d_data.d_next_o_id-20;
+        for (o_id = init; o_id < d_data.d_next_o_id; o_id++) {
+            String o_key = OrderPrimaryKey(w_id,d_id,o_id);
+            Order o_data = t.get(o_key).deepCopy().getOrder();
+
+            for (i=1; i <= o_data.o_ol_cnt; i++){
+                String ol_key = OrderLinePrimaryKey(w_id,d_id,o_id, i);
+                MyObject object = t.get(ol_key);
+                if(object == null){
+                    t.abort();
+                    throw new TransactionException("Order Line not found.");
+                }
+                OrderLine ol_data = object.deepCopy().getOrderline();
+                set.add(ol_data.ol_i_id);
+            }
+        }
+
+        /* All rows in the STOCK table with matching S_I_ID (equals OL_I_ID) and S_W_ID
+         * (equals W_ID) from the list of distinct item numbers and with S_QUANTITY lower than
+         * threshold are counted (giving low_stock).
+         */
+        int count = 0;
+        for (Integer i_id : set){
+            String s_key = StockPrimaryKey(w_id, i_id);
+            Stock s_data = t.get(s_key).deepCopy().getStock();
+
+            if(s_data.s_quantity < threshold)
+                count++;
+        }
+
+        t.commit();
+
+        long endtime = System.currentTimeMillis();
+    }
+
+    /*
+      * execute delivery transaction
+      */
+    private void doDelivery() {
+        int ol_id = 0;
+        int d_id = 0;
+        int o_c_id = 0;
+        int w_id;
+        int o_carrier_id;
+
+        w_id = Util.randomNumber(1, num_ware);
+        o_carrier_id = Util.randomNumber(1, 10);
+
+        //Timestamp
+        java.sql.Timestamp time = new Timestamp(System.currentTimeMillis());
+        String timeStamp = time.toString();
+
+        long beginTime = System.currentTimeMillis();
+
+        Transaction<String, MyObject> t = Environment.newTransaction();
+
+        for (d_id=1; d_id <= DIST_PER_WARE; d_id++){
+            String no_key_sec = NewOrderSecundaryKey(w_id, d_id);
+            Integer min_o_id = t.get(no_key_sec).deepCopy().getInteger();
+
+            // Should
+            String no_key = NewOrderPrimaryKey(w_id,d_id,min_o_id);
+
+            /* The row in the ORDER table with matching O_W_ID (equals W_ID), O_D_ID (equals D_ID),
+             * and O_ID (equals NO_O_ID) is selected. O_C_ID, the customer number, is retrieved, and
+             * O_CARRIER_ID is updated.
+             */
+            String o_key = OrderPrimaryKey(w_id,d_id, min_o_id);
+            Order o_data = t.get(o_key).deepCopy().getOrder();
+
+            o_c_id = o_data.o_c_id;
+            o_data.o_carrier_id = o_carrier_id;
+
+            t.put(o_key, MyObject.order(o_data));
+
+            /* All rows in ORDER-LINE table with matching OL_W_ID (equals
+             * O_W_ID), OL_D_ID, * equals (O_D_ID), and OL_O_ID (equals O_ID)
+             * are selected. All OL_DELIVERY_D, * the delivery dates, are
+             * updated to the current system time as returned by the *
+             * operating system and the sum OL_AMOUNT is retrieved.  */
+            int sum_ol_amount = 0;
+            for (ol_id = 1; ol_id <= o_data.o_ol_cnt; ol_id++){
+                String ol_key = OrderLinePrimaryKey(w_id,d_id,min_o_id, ol_id);
+                OrderLine ol_data = t.get(ol_key).deepCopy().getOrderline();
+
+                sum_ol_amount += ol_data.ol_amount;
+
+                ol_data.ol_delivery_d = timeStamp;
+                t.put(ol_key, MyObject.orderline(ol_data));
+            }
+
+            /* The row in the customer table with matching C_W_ID (equals W_ID), C_D_ID
+             * (equals (D_ID), and C_ID (equals O_C_ID) is selected and C_BALANCE is increased
+             * by the sum of all order-line amounts (OL_AMOUNT) previously retrieved.
+             * C_DELIVERY_CNT is incremented by 1.
+             */
+            String c_key = CustomerPrimaryKey(w_id,d_id,o_c_id);
+            Customer c_data = t.get(c_key).deepCopy().getCustomer();
+
+            c_data.c_balance += sum_ol_amount;
+            c_data.c_delivery_cnt++;
+            t.put(c_key, MyObject.customer(c_data));
+
+            t.put(no_key_sec, MyObject.Integer(min_o_id++));
+        }
+
+        t.commit();
+
+        long endTime = System.currentTimeMillis();
     }
 
     /*
@@ -131,6 +281,8 @@ public class TpccThread extends Thread {
         String o_key = OrderPrimaryKey(w_id,d_id,o_id);
         Order o_data = t.get(o_key).deepCopy().getOrder();
 
+        String o_entry_d = o_data.o_entry_d;
+        int o_carrier_id = o_data.o_carrier_id;
         long o_ol_cnt = o_data.o_ol_cnt;
 
         /* All rows in the ORDER-LINE table with matching OL_W_ID (equals O_W_ID),
@@ -141,8 +293,11 @@ public class TpccThread extends Thread {
         for (i=0; i < o_ol_cnt; i++) {
             order_data[i] = new OrderStatusInfo();
 
-            String ol_key = OrderLinePrimaryKey(w_id, d_id, o_id, i);
-            OrderLine ol_data = t.get(ol_key).deepCopy().getOrderline();
+            String ol_key = OrderLinePrimaryKey(w_id, d_id, o_id, i+1);
+            MyObject obj = t.get(ol_key);
+            if (obj == null)
+                System.out.println(ol_key);
+            OrderLine ol_data = obj.deepCopy().getOrderline();
 
             order_data[i].ol_supply_w_id = ol_data.ol_supply_w_id;
             order_data[i].ol_i_id = ol_data.ol_i_id;
@@ -177,7 +332,7 @@ public class TpccThread extends Thread {
             byname = 0; /* select by customer id */
         }
 
-        if (Util.randomNumber(1, 100) <= 85) {
+        if (Util.randomNumber(1, 100) <= 85 || num_ware==1) {
             c_w_id = w_id;
             c_d_id = d_id;
         } else {
@@ -332,8 +487,6 @@ public class TpccThread extends Thread {
         double total = 0.0;
         int all_local = 1;
 
-        int notfound = TpccConstants.MAXITEMS + 1;
-
         //Timestamp
         java.sql.Timestamp time = new Timestamp(System.currentTimeMillis());
         String timeStamp = time.toString();
@@ -350,10 +503,10 @@ public class TpccThread extends Thread {
 
             /* Generate unused item */
             if ((i == o_ol_cnt - 1) && (rbk == 1)) {
-                order_data[i].ol_i_id = notfound;
+                order_data[i].ol_i_id = NOTFOUND;
             }
 
-            if (Util.randomNumber(1, 100) != 1) {
+            if (Util.randomNumber(1, 100) != 1 || num_ware==1) {
                 order_data[i].ol_supply_w_id = w_id;
             } else {
                 /* Select warehouse other than home */
@@ -401,8 +554,9 @@ public class TpccThread extends Thread {
         District district = t.get(d_key).deepCopy().getDistrict();
         d_tax = district.d_tax;
         d_next_o_oid = district.d_next_o_id;
-        district.d_next_o_id++;
 
+        district.d_next_o_id++;
+        t.put(d_key, MyObject.district(district));
 
         /* The row in the customer table with matching C_W_ID, C_D_ID and C_ID
              * is selected
@@ -437,8 +591,16 @@ public class TpccThread extends Thread {
              * Clause 2.4.1.5), a "not-found" condition is signaled,
              * resulting in a rollback of the database transaction.
              */
+            if(order_data[i].ol_i_id == NOTFOUND){
+                t.abort();
+                throw new TransactionException("Item key not found.");
+            }
+
             String i_key = KeysUtils.ItemPrimaryKey(order_data[i].ol_i_id);
-            Item item = t.get(i_key).deepCopy().getItem();
+            MyObject obj = t.get(i_key);
+            if (obj == null)
+                System.out.println(i_key);
+            Item item = obj.deepCopy().getItem();
 
             /* The row in the STOCK table with matching S_I_ID (equals OL_I_ID) and
              * S_W_ID (equals OL_SUPPLY_W_ID) is selected. S_QUANTITY, the quantity in stock,
@@ -501,8 +663,6 @@ public class TpccThread extends Thread {
             order_data[i].ol_amount = orderLine.ol_amount;
         }
 
-        t.put(d_key, MyObject.district(district));
-
         /*************************/
         /* A new row is inserted into the ORDER_LINE table to reflect the
          * item on the order. OL_DELIVERY_D is set to a null value, OL_NUMBER
@@ -519,7 +679,7 @@ public class TpccThread extends Thread {
 
         t.put(KeysUtils.NewOrderPrimaryKey(w_id, d_id, d_next_o_oid), MyObject.NULL(true));
 
-        t.put(KeysUtils.OrderPrimaryKey(w_id, d_id, d_next_o_oid), MyObject.NULL(true));
+        t.put(KeysUtils.OrderPrimaryKey(w_id, d_id, d_next_o_oid), MyObject.order(order));
 
         String o_key_sec = OrderSecundaryKey(w_id, d_id, c_id);
         t.put(o_key_sec, MyObject.Integer(d_next_o_oid));

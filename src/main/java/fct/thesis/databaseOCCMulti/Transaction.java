@@ -2,6 +2,7 @@ package fct.thesis.databaseOCCMulti;
 
 import fct.thesis.database.*;
 import fct.thesis.database2PL.Config;
+import sun.misc.Contended;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -12,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
 
+    @Contended
     static AtomicInteger timestamp = new AtomicInteger(0);
 
     protected Map<K, Long> readSet; //set , conf se add nao altera

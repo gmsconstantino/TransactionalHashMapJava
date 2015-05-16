@@ -82,6 +82,11 @@ public class TpccLoad {
 
                     Transaction<String, MyObject> t = Environment.newTransaction();
 
+                    String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
+                    District district = t.get(d_key).deepCopy().getDistrict();
+                    district.d_next_o_id++;
+                    t.put(d_key, MyObject.district(district));
+
                     /* Generate Order Data */
                     Order o = new Order();
 //                    o.o_c_id = Util.getPermutation();
@@ -102,7 +107,10 @@ public class TpccLoad {
                         t.put(o_key_sec, MyObject.Integer(o_id));
 
                         /* Put new Order */
-                        t.put(NewOrderPrimaryKey(o_id, o_d_id, o_w_id), MyObject.NULL(true));
+                        t.put(NewOrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.NULL(true));
+                        if (o_id==2101){
+                            t.put(NewOrderSecundaryKey(o_w_id, o_d_id), MyObject.Integer(2101));
+                        }
                     } else {
 
                         t.put(OrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.order(o));
@@ -112,7 +120,7 @@ public class TpccLoad {
                         t.put(o_key_sec, MyObject.Integer(o_id));
                     }
 
-                    if (true)
+                    if (option_debug)
                         System.out.printf("OID = %d, CID = %d, DID = %d, WID = %d\n",
                                 o_id, o.o_c_id, o_d_id, o_w_id);
 

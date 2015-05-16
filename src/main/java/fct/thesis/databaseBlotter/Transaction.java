@@ -4,6 +4,7 @@ import fct.thesis.database.BufferObjectDb;
 import fct.thesis.database.TransactionAbortException;
 import fct.thesis.database.TransactionTimeoutException;
 import fct.thesis.database2PL.Config;
+import sun.misc.Contended;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
 
+    @Contended
     static AtomicLong identifier = new AtomicLong(-1L);
 
     Set<Transaction> aggStarted;

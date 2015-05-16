@@ -4,6 +4,7 @@ import org.apache.commons.cli.*;
 import thrift.TransactionTypeFactory;
 
 import java.text.DecimalFormat;
+import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -61,23 +62,38 @@ public class TpccEmbeded {
             Environment.setTransactionype(TransactionTypeFactory.getType(cmd.getOptionValue("tp")));
         }
 
-        TpccLoad.tpccLoadData(numWare);
+        Thread thread = new Thread(){
+            @Override
+            public void run() {
+                super.run();
+                TpccLoad.tpccLoadData(numWare);
+            }
+        };
 
+        thread.start();
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         ExecutorService executor = Executors.newFixedThreadPool(numConn);
 
         activate_transaction = 1;
 
+        Vector<TpccThread> threads = new Vector<>();
+
         // Start each server.
         for (int i = 0; i < numConn; i++) {
-            Runnable worker = new TpccThread(i, numWare, numConn);
+            TpccThread worker = new TpccThread(i, numWare, numConn);
+            threads.add(worker);
             executor.execute(worker);
         }
 
-        // measure time
+//        measure time
         System.out.printf("\nMEASURING START.\n\n");
 
-        // loop for the measure_time
+//        loop for the measure_time
         final long startTime = System.currentTimeMillis();
         DecimalFormat df = new DecimalFormat("#,##0.0");
         long runTime = 0;
@@ -91,16 +107,25 @@ public class TpccEmbeded {
         activate_transaction = 0;
         final long actualTestTime = System.currentTimeMillis() - startTime;
         System.out.println();
-        System.out.println("Execution time lapse: " + df.format(actualTestTime / 1000.0f) + " seconds");
+//        System.out.println("Execution time lapse: " + df.format(actualTestTime / 1000.0f) + " seconds");
 
         System.out.printf("\nSTOPPING THREADS\n");
         executor.shutdown();
-        try {
-            executor.awaitTermination(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            System.out.println("Timed out waiting for executor to terminate");
+
+        int totCommits = 0;
+        int totAborts = 0;
+        for (TpccThread tpccThread : threads){
+            totCommits += tpccThread.commits;
+            totAborts += tpccThread.aborts;
         }
 
+        System.out.println("RunTime(s) = "+ df.format(actualTestTime / 1000.0f));
+        double throughput = 1000.0 * ((double) totCommits) / ((double) actualTestTime);
+        System.out.println("Throughput(ops/sec) = " + throughput);
+        System.out.println("Number Commits = "+totCommits);
+        System.out.println("Number Aborts = "+totAborts);
+        System.out.println("Abort rate = "+Math.round((totAborts/(double)(totCommits+totAborts))*100)+"%");
+        System.out.println("");
     }
 
 }

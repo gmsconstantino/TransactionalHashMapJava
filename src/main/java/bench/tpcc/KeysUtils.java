@@ -44,6 +44,10 @@ public class KeysUtils {
         return "neworderPK_"+no_w_id+"_"+no_d_id+"_"+no_o_id;
     }
 
+    public static String NewOrderSecundaryKey(int no_w_id, int no_d_id){
+        return "neworderSK_"+no_w_id+"_"+no_d_id;
+    }
+
     public static String OrderPrimaryKey(int o_w_id, int o_d_id, int o_id){
         return "orderPK_"+o_w_id+"_"+o_d_id+"_"+o_id;
     }
