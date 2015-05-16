@@ -17,6 +17,7 @@ public class TpccLoad {
 
     static int count_ware = 0;
     static boolean option_debug = false;
+    static boolean verbose = false;
     static Random random;
 
     public static void main(String[] args) {
@@ -70,17 +71,18 @@ public class TpccLoad {
      */
     private static void LoadOrd() {
 
+        Transaction<String, MyObject> t = Environment.newTransaction();
         for (int w_id = 1; w_id <= count_ware; w_id++) {
             for (int d_id = 1; d_id <= TpccConstants.DIST_PER_WARE; d_id++) {
 
-                System.out.printf("Loading Orders for D=%d, W= %d\n", d_id, w_id);
+                if(verbose)
+                    System.out.printf("Loading Orders for D=%d, W= %d\n", d_id, w_id);
 
                 int o_d_id = d_id;
                 int o_w_id = w_id;
                 Util.initPermutation();    /* initialize permutation of customer numbers */
                 for (int o_id = 1; o_id <= TpccConstants.ORD_PER_DIST; o_id++) {
 
-                    Transaction<String, MyObject> t = Environment.newTransaction();
 
                     String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
                     District district = t.get(d_key).deepCopy().getDistrict();
@@ -149,9 +151,9 @@ public class TpccLoad {
                                     ol_i, ol.ol_i_id, ol.ol_quantity, ol.ol_amount);
                     }
 
-                    t.commit();
 
-                    if ((o_id % 100) == 0) {
+                    if ((o_id % 100) == 0 && verbose)
+                    {
                         System.out.print(".");
 
                         if ((o_id % 1000) == 0) {
@@ -160,6 +162,7 @@ public class TpccLoad {
                     }
                 }
             }
+            t.commit();
 
             System.out.println("Orders Done.");
         }
@@ -170,9 +173,11 @@ public class TpccLoad {
      */
     private static void LoadCust() {
 
+        Transaction t = Environment.newTransaction();
         for (int w_id = 1; w_id <= count_ware; w_id++) {
             for (int d_id = 1; d_id <= TpccConstants.DIST_PER_WARE; d_id++) {
-                System.out.printf("Loading Customer for DID=%d, WID=%d\n", d_id, w_id);
+                if(verbose)
+                    System.out.printf("Loading Customer for DID=%d, WID=%d\n", d_id, w_id);
 
                 HashMap<String, Integer> countLastname = new HashMap<>();
                 for (int c_id = 1; c_id <= TpccConstants.CUST_PER_DIST; c_id++) {
@@ -214,9 +219,7 @@ public class TpccLoad {
 
                     c.c_data = Util.makeAlphaString(300, 500);
 
-                    Transaction t = Environment.newTransaction();
                     t.put(c_key, MyObject.customer(c));
-                    t.commit();
 
                     History h = new History();
                     h.h_c_id = c_id;
@@ -232,15 +235,13 @@ public class TpccLoad {
                     h.h_date = date.toString();
 
                     String h_key = HistoryPrimaryKey(h);
-                    Transaction th = Environment.newTransaction();
-                    th.put(h_key, MyObject.history(h));
-                    th.commit();
+                    t.put(h_key, MyObject.history(h));
 
                     if (option_debug) {
                         System.out.printf("CID = %d, LST = %s, P# = %s\n",
                                 c_id, c.c_last, c.c_phone);
                     }
-                    if ((c_id % 100) == 0) {
+                    if ((c_id % 100) == 0 && verbose) {
                         System.out.print(".");
                         if ((c_id % 1000) == 0)
                             System.out.printf(" %d\n", c_id);
@@ -249,12 +250,12 @@ public class TpccLoad {
 
                 // Set the primary key to use when search by lastname
                 for (Map.Entry<String,Integer> e : countLastname.entrySet()){
-                    Transaction t = Environment.newTransaction();
                     t.put(CustomerSecundaryKey(w_id, d_id, e.getKey()), MyObject.Integer(e.getValue()));
-                    t.commit();
                 }
             }
         }
+        t.commit();
+
         System.out.println("Customer Done.");
     }
 
@@ -267,7 +268,8 @@ public class TpccLoad {
         int pos = 0;
         int i = 0;
 
-        System.out.printf("Loading Item \n");
+        if(verbose)
+            System.out.printf("Loading Item \n");
 
         for (i = 0; i < TpccConstants.MAXITEMS / 10; i++) {
             do {
@@ -276,6 +278,7 @@ public class TpccLoad {
             orig[pos] = 1;
         }
 
+        Transaction t = Environment.newTransaction();
         for (int i_id = 1; i_id <= TpccConstants.MAXITEMS; i_id++) {
 
             /* Generate Item Data */
@@ -296,16 +299,15 @@ public class TpccLoad {
                 System.out.printf("IID = %d, Name= %s, Price = %.2f\n",
                           i_id, it.i_name, it.i_price);
 
-            Transaction t = Environment.newTransaction();
             t.put(it_key, MyObject.item(it));
-            t.commit();
 
-            if ((i_id % 100) == 0) {
+            if ((i_id % 100) == 0 && verbose) {
                 System.out.printf(".");
                 if ((i_id % 5000) == 0)
                     System.out.printf(" %d\n", i_id);
             }
-        };
+        }
+        t.commit();
 
         System.out.printf("Item Done. \n");
     }
@@ -315,8 +317,9 @@ public class TpccLoad {
      * Loads Stock, District as Warehouses are created
      */
     private static void LoadWare() {
+        if(verbose)
+            System.out.println("Loading Warehouse");
 
-        System.out.println("Loading Warehouse");
         for (int w_id = 1; w_id <= count_ware; w_id++) {
 
             Warehouse ware = new Warehouse();
@@ -343,10 +346,12 @@ public class TpccLoad {
             LoadStock(w_id);
             LoadDistrict(w_id);
         }
+        System.out.printf("Warehouse Done. \n");
     }
 
     private static void LoadStock(int w_id) {
-        System.out.println("Loading Stock="+w_id);
+        if(verbose)
+            System.out.println("Loading Stock="+w_id);
 
         long orig[] = new long[TpccConstants.MAXITEMS];
         int pos;
@@ -357,6 +362,7 @@ public class TpccLoad {
             orig[pos] = 1;
         }
 
+        Transaction t = Environment.newTransaction();
         for (int s_i_id = 1; s_i_id <= TpccConstants.MAXITEMS; s_i_id++) {
 
             Stock s = new Stock();
@@ -385,25 +391,27 @@ public class TpccLoad {
                 s.s_data = s.s_data.substring(0, pos)+"original"+s.s_data.substring(pos+8);
             }
 
-            Transaction t = Environment.newTransaction();
             t.put(s_key, MyObject.stock(s));
-            t.commit();
 
             if (option_debug){
-                System.out.println("SID="+s_i_id+", WID="+w_id+", Quan="+s.s_quantity);
+                System.out.println("SID=" + s_i_id + ", WID=" + w_id + ", Quan=" + s.s_quantity);
             }
-            if (s_i_id % 100 == 0) {
+            if (s_i_id % 100 == 0 && verbose) {
                 System.out.print(".");
                 if (s_i_id % 5000 ==0)
                     System.out.println(s_i_id);
             }
 
         }
+        t.commit();
+        System.out.printf("Stock Done. \n");
     }
 
     private static void LoadDistrict(int w_id) {
-        System.out.println("Loading District");
+        if(verbose)
+            System.out.println("Loading District");
 
+        Transaction t = Environment.newTransaction();
         for (int d_id = 1; d_id <= TpccConstants.DIST_PER_WARE; d_id++) {
             District d = new District();
             String d_key = DistrictPrimaryKey(w_id, d_id);
@@ -416,15 +424,14 @@ public class TpccLoad {
             d.d_zip = makeAlphaString(9, 9);
             d.d_tax = ((double)randomNumber(10,20))/100;
 
-            Transaction t = Environment.newTransaction();
             t.put(d_key, MyObject.district(d));
-            t.commit();
 
             if (option_debug){
                 System.out.println("DID="+d_key+", WID="+w_id+", Name="+d.d_name+", Tax="+d.d_tax);
             }
         }
-
+        t.commit();
+        System.out.printf("District Done. \n");
     }
 
 }
