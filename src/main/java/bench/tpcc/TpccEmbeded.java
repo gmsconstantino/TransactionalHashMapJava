@@ -58,6 +58,10 @@ public class TpccEmbeded {
             TpccLoad.option_debug = true;
         }
 
+        if (cmd.hasOption("r")){
+            Environment.remote = true;
+        }
+
         if (cmd.hasOption("tp")){
             Environment.setTransactionype(TransactionTypeFactory.getType(cmd.getOptionValue("tp")));
         }

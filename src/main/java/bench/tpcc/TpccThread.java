@@ -72,6 +72,7 @@ public class TpccThread extends Thread {
     }
 
     private void doSlev() {
+        MyObject object = null;
         int i;
         int o_id = 0;
         int ret = 0;
@@ -105,11 +106,17 @@ public class TpccThread extends Thread {
         int init = (d_data.d_next_o_id-20) < 0 ? 0 : d_data.d_next_o_id-20;
         for (o_id = init; o_id < d_data.d_next_o_id; o_id++) {
             String o_key = OrderPrimaryKey(w_id,d_id,o_id);
-            Order o_data = t.get(o_key).deepCopy().getOrder();
+            object = t.get(o_key);
+            if(object == null){
+                t.abort();
+                System.out.println("Slev order key: "+o_key);
+                throw new TransactionException("Order Line not found.");
+            }
+            Order o_data = object.deepCopy().getOrder();
 
             for (i=1; i <= o_data.o_ol_cnt; i++){
                 String ol_key = OrderLinePrimaryKey(w_id,d_id,o_id, i);
-                MyObject object = t.get(ol_key);
+                object = t.get(ol_key);
                 if(object == null){
                     t.abort();
                     throw new TransactionException("Order Line not found.");

@@ -1,0 +1,90 @@
+package bench.tpcc.server;
+
+import bench.tpcc.Environment;
+import fct.thesis.database.Transaction;
+import fct.thesis.database.TransactionAbortException;
+import fct.thesis.database.TransactionFactory;
+import fct.thesis.database.TransactionTimeoutException;
+import org.apache.thrift.TException;
+import thrift.TransactionTypeFactory;
+import thrift.server.AbortException;
+import thrift.server.NoSuchKeyException;
+import thrift.tpcc.TpccService;
+import thrift.tpcc.schema.MyObject;
+
+/**
+ * Created by gomes on 01/05/15.
+ */
+public class TpccServiceHandler implements TpccService.Iface {
+
+    Transaction<String, MyObject> t;
+
+    TpccServiceHandler(){
+    }
+
+    @Override
+    public long txn_begin() throws TException {
+        t = Environment.newTransaction();
+        return t.getId();
+    }
+
+    @Override
+    public boolean txn_commit() throws AbortException,TException {
+        try {
+            return t.commit();
+        } catch(TransactionTimeoutException e){
+            throw new AbortException();
+        } catch (TransactionAbortException e){
+            throw new AbortException();
+        }
+    }
+
+    @Override
+    public boolean txn_abort() throws TException {
+        t.abort();
+        return true;
+    }
+
+    @Override
+    public MyObject get(String key) throws AbortException,NoSuchKeyException,TException {
+        try {
+            MyObject m = t.get(key);
+            if (m==null)
+                throw new NoSuchKeyException();
+            return m;
+        } catch(TransactionTimeoutException e){
+            throw new AbortException();
+        } catch (TransactionAbortException e){
+            throw new AbortException();
+        }
+    }
+
+    @Override
+    public void put(String key, MyObject value) throws AbortException,TException {
+        try {
+            t.put(key,value);
+        } catch(TransactionTimeoutException e){
+            throw new AbortException();
+        } catch (TransactionAbortException e){
+            throw new AbortException();
+        }
+    }
+
+    @Override
+    public boolean reset(String type) throws TException {
+        TransactionFactory.type t = TransactionTypeFactory.getType(type);
+        if (t == null)
+            return false;
+
+        Environment.setTransactionype(t);
+        return true;
+    }
+
+    @Override
+    public boolean shutdown() throws TException {
+        System.out.println("Stopping the Database server...");
+        TpccServer.server.stop();
+        return TpccServer.server.isServing();
+    }
+
+}

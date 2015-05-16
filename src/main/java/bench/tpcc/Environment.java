@@ -1,5 +1,6 @@
 package bench.tpcc;
 
+import bench.tpcc.server.ThriftTransaction;
 import fct.thesis.database.Database;
 import fct.thesis.database.DatabaseFactory;
 import fct.thesis.database.TransactionFactory;
@@ -34,14 +35,14 @@ public class Environment {
 
     public static Transaction<String, MyObject> newTransaction(){
         if (remote){
-            return null;
+            return new ThriftTransaction();
         }else
             return getInstance().db.newTransaction(getTransactionType());
     }
 
     private Environment() {
-        type = TransactionFactory.type.TWOPL;
-        setType(type);
+//        type = TransactionFactory.type.TWOPL;
+//        setType(type);
     }
 
     public TransactionFactory.type getType() {
