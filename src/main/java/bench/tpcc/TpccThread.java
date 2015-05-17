@@ -30,19 +30,20 @@ public class TpccThread extends Thread {
     int num_ware;
     int num_conn;
 
-    int commits;
-    int aborts;
-    double latency;
+    int commits = 0;
+    int aborts = 0;
+    double latency = 0;
 
-    public TpccThread(int number, int num_ware, int num_conn) {
+    int th_w_id = -1;
+
+    public TpccThread(int number, int num_ware, int num_conn, boolean bindWarehouse) {
 
         this.number = number;
         this.num_conn = num_conn;
         this.num_ware = num_ware;
 
-        this.commits = 0;
-        this.aborts = 0;
-        latency = 0;
+        if (bindWarehouse)
+            th_w_id = (number%num_ware) + 1;
     }
 
     public void run() {
@@ -56,17 +57,22 @@ public class TpccThread extends Thread {
     private void doNextTransaction() {
         int r = ThreadLocalRandom.current().nextInt(100);
         try {
+//            if (r <= P_MIX) {
+//                doPayment();
+//            } else if (r <= P_MIX + NO_MIX) {
+//                doNewOrder();
+//            } else if (r <= P_MIX + NO_MIX + OS_MIX) {
+//                doOrdstat();
+//            } else if (r <= P_MIX + NO_MIX + OS_MIX + D_MIX) {
+//                doDelivery();
+//            } else {
+//                doSlev();
+//            }
             if (r <= P_MIX) {
-                doPayment();
-            } else if (r <= P_MIX + NO_MIX) {
                 doNewOrder();
-            } else if (r <= P_MIX + NO_MIX + OS_MIX) {
-                doOrdstat();
-            } else if (r <= P_MIX + NO_MIX + OS_MIX + D_MIX) {
-                doDelivery();
             } else {
+                doOrdstat();
             }
-                doSlev();
             commits++;
         } catch (TransactionException e){
             aborts++;
@@ -84,7 +90,11 @@ public class TpccThread extends Thread {
         int d_id = 0;
         int threshold = 0;
 
-        w_id = Util.randomNumber(1, num_ware);
+        if (th_w_id != -1)
+            w_id = th_w_id;
+        else
+            w_id = Util.randomNumber(1, num_ware);
+
         d_id = Util.randomNumber(1, DIST_PER_WARE);
         threshold = Util.randomNumber(10, 20);
 
@@ -157,7 +167,10 @@ public class TpccThread extends Thread {
         int w_id;
         int o_carrier_id;
 
-        w_id = Util.randomNumber(1, num_ware);
+        if (th_w_id != -1)
+            w_id = th_w_id;
+        else
+            w_id = Util.randomNumber(1, num_ware);
         o_carrier_id = Util.randomNumber(1, 10);
 
         //Timestamp
@@ -236,7 +249,11 @@ public class TpccThread extends Thread {
         int c_id = 0;
         String c_last = null;
 
-        w_id = Util.randomNumber(1, num_ware);
+        if (th_w_id != -1)
+            w_id = th_w_id;
+        else
+            w_id = Util.randomNumber(1, num_ware);
+
         d_id = Util.randomNumber(1, DIST_PER_WARE);
         c_id = Util.nuRand(1023, 1, CUST_PER_DIST);
         c_last = Util.lastName(Util.nuRand(255, 0, 999));
@@ -306,8 +323,11 @@ public class TpccThread extends Thread {
 
             String ol_key = OrderLinePrimaryKey(w_id, d_id, o_id, i+1);
             MyObject obj = t.get(ol_key);
-            if (obj == null)
-                System.out.println(ol_key);
+            if (obj == null){
+                t.abort();
+                System.out.println("OrderStatus order line key: "+ol_key);
+                throw new TransactionException("Order Line not found.");
+            }
             OrderLine ol_data = obj.deepCopy().getOrderline();
 
             order_data[i].ol_supply_w_id = ol_data.ol_supply_w_id;
@@ -332,7 +352,11 @@ public class TpccThread extends Thread {
         int h_amount = 0;
         String c_last = null;
 
-        w_id = Util.randomNumber(1, num_ware);
+        if (th_w_id != -1)
+            w_id = th_w_id;
+        else
+            w_id = Util.randomNumber(1, num_ware);
+
         d_id = Util.randomNumber(1, DIST_PER_WARE);
         c_id = Util.nuRand(1023, 1, CUST_PER_DIST);
         c_last = Util.lastName(Util.nuRand(255, 0, 999));
@@ -487,7 +511,12 @@ public class TpccThread extends Thread {
         int d_next_o_oid;
 
         o_ol_cnt = Util.randomNumber(5, 15);
-        w_id = Util.randomNumber(1, num_ware);
+
+        if (th_w_id != -1)
+            w_id = th_w_id;
+        else
+            w_id = Util.randomNumber(1, num_ware);
+
         d_id = Util.randomNumber(1, TpccConstants.DIST_PER_WARE);
         c_id = Util.nuRand(1023, 1, TpccConstants.CUST_PER_DIST);
 
@@ -608,8 +637,11 @@ public class TpccThread extends Thread {
 
             String i_key = KeysUtils.ItemPrimaryKey(order_data[i].ol_i_id);
             MyObject obj = t.get(i_key);
-            if (obj == null)
-                System.out.println(i_key);
+            if (obj == null){
+                t.abort();
+                System.out.println("NewOrder item key: "+i_key);
+                throw new TransactionException("Order Line not found.");
+            }
             Item item = obj.deepCopy().getItem();
 
             /* The row in the STOCK table with matching S_I_ID (equals OL_I_ID) and

@@ -18,25 +18,7 @@ public class TpccEmbeded {
     public static boolean DEBUG = false;
 
     public static void main(String[] args) {
-        Options options = new Options();
-        options.addOption(Option.builder("w")
-                .hasArg(true)
-                .desc("number of warehouses - usually 10. Change to control the size of the database")
-                .required()
-                .build());
-        options.addOption("d", false, "debug - produces more output");
-        options.addOption("r", false, "remote DB - connect with Thrift API");
-        options.addOption(Option.builder("c")
-                .hasArg(true)
-                .desc("number of worker threads")
-                .required()
-                .build());
-        options.addOption(Option.builder("t")
-                .hasArg(true)
-                .desc("duration of the benchmark (sec)")
-                .required()
-                .build());
-        options.addOption("tp", true, "databases transactional algorithm");
+        Options options = buildOptions();
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
         try {
@@ -52,6 +34,7 @@ public class TpccEmbeded {
         int numConn = Integer.parseInt(cmd.getOptionValue("c"));
         int numWare = Integer.parseInt(cmd.getOptionValue("w"));
         int measureTime = Integer.parseInt(cmd.getOptionValue("t"));
+        boolean bindWarehouse = false;
 
         if (cmd.hasOption("d")) {
             DEBUG = true;
@@ -62,24 +45,16 @@ public class TpccEmbeded {
             Environment.remote = true;
         }
 
+        if (cmd.hasOption("B"))
+            bindWarehouse = true;
+
         if (cmd.hasOption("tp")){
             Environment.setTransactionype(TransactionTypeFactory.getType(cmd.getOptionValue("tp")));
         }
 
-        Thread thread = new Thread(){
-            @Override
-            public void run() {
-                super.run();
-                TpccLoad.tpccLoadData(numWare);
-            }
-        };
+        TpccLoad.tpccLoadData(numWare);
 
-        thread.start();
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        printHeapSize();
 
         ExecutorService executor = Executors.newFixedThreadPool(numConn);
 
@@ -88,8 +63,8 @@ public class TpccEmbeded {
         Vector<TpccThread> threads = new Vector<>();
 
         // Start each server.
-        for (int i = 0; i < numConn; i++) {
-            TpccThread worker = new TpccThread(i, numWare, numConn);
+        for (int i = 1; i <= numConn; i++) {
+            TpccThread worker = new TpccThread(i, numWare, numConn, bindWarehouse);
             threads.add(worker);
             executor.execute(worker);
         }
@@ -133,6 +108,53 @@ public class TpccEmbeded {
         System.out.println("Abort rate = "+Math.round((totAborts/(double)(totCommits+totAborts))*100)+"%");
         System.out.println("Latency (ms)= "+ df.format(latency));
         System.out.println("");
+    }
+
+    private static Options buildOptions() {
+        Options options = new Options();
+        options.addOption(Option.builder("w")
+                .hasArg(true)
+                .desc("number of warehouses - usually 10. Change to control the size of the database")
+                .required()
+                .build());
+        options.addOption("d", false, "debug - produces more output");
+        options.addOption("r", false, "remote DB - connect with Thrift API");
+        options.addOption(Option.builder("c")
+                .hasArg(true)
+                .desc("number of worker threads")
+                .required()
+                .build());
+        options.addOption(Option.builder("t")
+                .hasArg(true)
+                .desc("duration of the benchmark (sec)")
+                .required()
+                .build());
+        options.addOption("tp", true, "databases transactional algorithm");
+        options.addOption("B", false, "bind thread to one warehouse");
+        return options;
+    }
+
+    public static void printHeapSize(){
+        int mb = 1024*1024;
+
+        //Getting the runtime reference from system
+        Runtime runtime = Runtime.getRuntime();
+
+        System.out.println("##### Heap utilization statistics [MB] #####");
+
+        //Print used memory
+        System.out.println("Used Memory:"
+                + (runtime.totalMemory() - runtime.freeMemory()) / mb);
+
+        //Print free memory
+        System.out.println("Free Memory:"
+                + runtime.freeMemory() / mb);
+
+        //Print total available memory
+        System.out.println("Total Memory:" + runtime.totalMemory() / mb);
+
+        //Print Maximum available memory
+        System.out.println("Max Memory:" + runtime.maxMemory() / mb);
     }
 
 }

@@ -71,7 +71,6 @@ public class TpccLoad {
      */
     private static void LoadOrd() {
 
-        Transaction<String, MyObject> t = Environment.newTransaction();
         for (int w_id = 1; w_id <= count_ware; w_id++) {
             for (int d_id = 1; d_id <= TpccConstants.DIST_PER_WARE; d_id++) {
 
@@ -83,6 +82,7 @@ public class TpccLoad {
                 Util.initPermutation();    /* initialize permutation of customer numbers */
                 for (int o_id = 1; o_id <= TpccConstants.ORD_PER_DIST; o_id++) {
 
+                    Transaction<String, MyObject> t = Environment.newTransaction();
 
                     String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
                     District district = t.get(d_key).deepCopy().getDistrict();
@@ -160,9 +160,10 @@ public class TpccLoad {
                             System.out.printf(" %d\n", o_id);
                         }
                     }
+
+                    t.commit();
                 }
             }
-            t.commit();
 
             System.out.println("Orders Done.");
         }
