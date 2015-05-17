@@ -58,7 +58,7 @@ public class TpccLoad {
     }
 
     public static void tpccLoadData(int cnt_warehouses){
-        random = new Random(0); //TODO: Remover a seed estatica
+        random = new Random();
         count_ware = cnt_warehouses;
         LoadItems();
         LoadWare();
@@ -91,8 +91,7 @@ public class TpccLoad {
 
                     /* Generate Order Data */
                     Order o = new Order();
-//                    o.o_c_id = Util.getPermutation();
-                    o.o_c_id = o_id;
+                    o.o_c_id = Util.getPermutation();
                     o.o_carrier_id = Util.randomNumber(1, 10);
                     o.o_ol_cnt = Util.randomNumber(5, 15);
 
