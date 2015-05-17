@@ -99,7 +99,7 @@ public class TpccEmbeded {
 
 //        loop for the measure_time
         final long startTime = System.currentTimeMillis();
-        DecimalFormat df = new DecimalFormat("#,##0.0");
+        DecimalFormat df = new DecimalFormat("#,##0.00");
         long runTime = 0;
         while ((System.currentTimeMillis() - startTime) < measureTime * 1000) {
             try {
@@ -118,9 +118,11 @@ public class TpccEmbeded {
 
         int totCommits = 0;
         int totAborts = 0;
+        double latency = 0;
         for (TpccThread tpccThread : threads){
             totCommits += tpccThread.commits;
             totAborts += tpccThread.aborts;
+            latency = latency==0? tpccThread.latency : (latency+(tpccThread.latency))/2;
         }
 
         System.out.println("RunTime(s) = "+ df.format(actualTestTime / 1000.0f));
@@ -129,6 +131,7 @@ public class TpccEmbeded {
         System.out.println("Number Commits = "+totCommits);
         System.out.println("Number Aborts = "+totAborts);
         System.out.println("Abort rate = "+Math.round((totAborts/(double)(totCommits+totAborts))*100)+"%");
+        System.out.println("Latency (ms)= "+ df.format(latency));
         System.out.println("");
     }
 

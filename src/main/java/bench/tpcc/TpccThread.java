@@ -32,6 +32,7 @@ public class TpccThread extends Thread {
 
     int commits;
     int aborts;
+    double latency;
 
     public TpccThread(int number, int num_ware, int num_conn) {
 
@@ -41,6 +42,7 @@ public class TpccThread extends Thread {
 
         this.commits = 0;
         this.aborts = 0;
+        latency = 0;
     }
 
     public void run() {
@@ -142,6 +144,7 @@ public class TpccThread extends Thread {
         t.commit();
 
         long endtime = System.currentTimeMillis();
+        latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
     }
 
     /*
@@ -161,7 +164,7 @@ public class TpccThread extends Thread {
         java.sql.Timestamp time = new Timestamp(System.currentTimeMillis());
         String timeStamp = time.toString();
 
-        long beginTime = System.currentTimeMillis();
+        long begintime = System.currentTimeMillis();
 
         Transaction<String, MyObject> t = Environment.newTransaction();
 
@@ -217,7 +220,8 @@ public class TpccThread extends Thread {
 
         t.commit();
 
-        long endTime = System.currentTimeMillis();
+        long endtime = System.currentTimeMillis();
+        latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
     }
 
     /*
@@ -247,10 +251,10 @@ public class TpccThread extends Thread {
         /*
          * Begining the Transaction
          */
-        long beginTime = System.currentTimeMillis();
+        long begintime = System.currentTimeMillis();
         int ret = ProcessOrderStatus(byname, w_id, d_id, c_id, c_last, order_data);
-        long endTime = System.currentTimeMillis();
-
+        long endtime = System.currentTimeMillis();
+        latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
     }
 
     private int ProcessOrderStatus(int byname, int w_id, int d_id, int c_id, String c_last, OrderStatusInfo[] order_data) {
@@ -354,11 +358,10 @@ public class TpccThread extends Thread {
         /*
          * Begining the Transaction
          */
-        long beginTime = System.currentTimeMillis();
-
+        long begintime = System.currentTimeMillis();
         int ret = ProcessPayment(byname, w_id, d_id, c_w_id, c_d_id, c_id, h_amount, c_last, timeStamp);
-        long endTime = System.currentTimeMillis();
-
+        long endtime = System.currentTimeMillis();
+        latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
     }
 
     private int ProcessPayment(int byname, int w_id, int d_id, int c_w_id, int c_d_id, int c_id, int h_amount, String c_last, String timeStamp) {
@@ -533,10 +536,10 @@ public class TpccThread extends Thread {
         /*
          * Begining the Transaction
          */
-        long beginTime = System.currentTimeMillis();
+        long begintime = System.currentTimeMillis();
         int ret = ProcessNewOrder(w_id, d_id, c_id, o_ol_cnt, order_data, total, all_local, timeStamp, ol_dist_info);
-        long endTime = System.currentTimeMillis();
-
+        long endtime = System.currentTimeMillis();
+        latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
     }
 
     private int ProcessNewOrder(int w_id, int d_id, int c_id, int o_ol_cnt, NewOrderItemInfo[] order_data, double total, int all_local, String timeStamp, String[] ol_dist_info) {
