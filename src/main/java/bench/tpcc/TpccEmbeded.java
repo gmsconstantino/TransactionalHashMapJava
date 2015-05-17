@@ -97,7 +97,7 @@ public class TpccEmbeded {
         for (TpccThread tpccThread : threads){
             totCommits += tpccThread.commits;
             totAborts += tpccThread.aborts;
-            latency = latency==0? tpccThread.latency : (latency+(tpccThread.latency))/2;
+            latency = latency==0? tpccThread.latency : (latency+tpccThread.latency)/2;
         }
 
         System.out.println("RunTime(s) = "+ df.format(actualTestTime / 1000.0f));

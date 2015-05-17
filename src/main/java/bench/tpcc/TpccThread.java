@@ -57,21 +57,16 @@ public class TpccThread extends Thread {
     private void doNextTransaction() {
         int r = ThreadLocalRandom.current().nextInt(100);
         try {
-//            if (r <= P_MIX) {
-//                doPayment();
-//            } else if (r <= P_MIX + NO_MIX) {
-//                doNewOrder();
-//            } else if (r <= P_MIX + NO_MIX + OS_MIX) {
-//                doOrdstat();
-//            } else if (r <= P_MIX + NO_MIX + OS_MIX + D_MIX) {
-//                doDelivery();
-//            } else {
-//                doSlev();
-//            }
             if (r <= P_MIX) {
+                doPayment();
+            } else if (r <= P_MIX + NO_MIX) {
                 doNewOrder();
-            } else {
+            } else if (r <= P_MIX + NO_MIX + OS_MIX) {
                 doOrdstat();
+            } else if (r <= P_MIX + NO_MIX + OS_MIX + D_MIX) {
+                doDelivery();
+            } else {
+                doSlev();
             }
             commits++;
         } catch (TransactionException e){
