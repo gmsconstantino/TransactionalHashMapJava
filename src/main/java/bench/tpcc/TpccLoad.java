@@ -106,11 +106,11 @@ public class TpccLoad {
     public static void main(String[] args) {
         parseArguments(args);
 
-        System.out.println("TPCC Data Load Started...");
         Environment.getInstance();
     }
 
     public static void tpccLoadData(int cnt_warehouses){
+        System.out.println("TPCC Data Load Started...");
         long start = System.currentTimeMillis();
         random = new Random();
         count_ware = cnt_warehouses;
@@ -120,7 +120,7 @@ public class TpccLoad {
         LoadOrd();
 
         DecimalFormat df = new DecimalFormat("#,##0.00");
-        System.out.println("Execution time (s): "+ df.format((System.currentTimeMillis()-start)/1000));
+        System.out.println("Load time (s): "+ df.format((System.currentTimeMillis()-start)/1000));
     }
 
     /*
