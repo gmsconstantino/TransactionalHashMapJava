@@ -21,6 +21,14 @@ public class TpccEmbeded {
 
         parseArguments(args);
 
+        System.out.print("Arguments: ");
+        int n = args.length-1;
+        for(String arg : args){
+            arg += (n==0)?"\n":", ";
+            System.out.print(arg);
+            n--;
+        }
+
         TpccLoad.tpccLoadData(numWare);
 
         printHeapSize();
