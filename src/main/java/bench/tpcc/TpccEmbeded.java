@@ -77,7 +77,7 @@ public class TpccEmbeded {
         System.out.println("Number Commits = "+totCommits);
         System.out.println("Number Aborts = "+totAborts);
         System.out.println("Abort rate = "+Math.round((totAborts/(double)(totCommits+totAborts))*100)+"%");
-        System.out.println("Latency (ms)= "+ df.format(latency));
+        System.out.println("Latency (ms) = "+ df.format(latency));
         System.out.println("");
     }
 
