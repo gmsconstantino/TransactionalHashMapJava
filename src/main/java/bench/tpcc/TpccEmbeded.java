@@ -19,8 +19,6 @@ public class TpccEmbeded {
 
     public static void main(String[] args) throws InterruptedException {
 
-        parseArguments(args);
-
         System.out.print("Arguments: ");
         int n = args.length-1;
         for(String arg : args){
@@ -28,6 +26,8 @@ public class TpccEmbeded {
             System.out.print(arg);
             n--;
         }
+
+        parseArguments(args);
 
         TpccLoad.tpccLoadData(numWare);
 
