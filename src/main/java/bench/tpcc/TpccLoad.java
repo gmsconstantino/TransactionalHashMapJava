@@ -4,6 +4,7 @@ import fct.thesis.database.Transaction;
 import thrift.TransactionTypeFactory;
 import thrift.tpcc.schema.*;
 
+import java.text.DecimalFormat;
 import java.util.*;
 
 import static bench.tpcc.KeysUtils.*;
@@ -74,6 +75,16 @@ public class TpccLoad {
                 Environment.remote = true;
                 argindex++;
             }
+            else if (args[argindex].compareTo("-v")==0)
+            {
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                verbose = true;
+                argindex++;
+            }
             else
             {
                 System.out.println("Unknown option "+args[argindex]);
@@ -100,12 +111,16 @@ public class TpccLoad {
     }
 
     public static void tpccLoadData(int cnt_warehouses){
+        long start = System.currentTimeMillis();
         random = new Random();
         count_ware = cnt_warehouses;
         LoadItems();
         LoadWare();
         LoadCust();
         LoadOrd();
+
+        DecimalFormat df = new DecimalFormat("#,##0.00");
+        System.out.println("Execution time (s): "+ df.format((System.currentTimeMillis()-start)/1000));
     }
 
     /*
