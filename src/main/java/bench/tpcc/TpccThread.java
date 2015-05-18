@@ -7,7 +7,6 @@ import thrift.tpcc.schema.*;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static bench.tpcc.KeysUtils.*;
 import static bench.tpcc.TpccConstants.*;
@@ -48,7 +47,7 @@ public class TpccThread extends Thread {
 
     public void run() {
         int count = 0;
-        while (TpccEmbeded.activate_transaction == 1) {
+        while (!TpccEmbeded.stop) {
             doNextTransaction();
             count++;
         }
@@ -294,8 +293,11 @@ public class TpccThread extends Thread {
         c_last = c_data.c_last;
         double c_balance = c_data.c_balance;
 
-        /*
-         * Get last order of customer c_id
+
+        /* The row in the ORDER table with matching O_W_ID (equals C_W_ID),
+         * O_D_ID (equals C_D_ID), O_C_ID (equals C_ID), and with the largest
+         * existing O_ID is selected. This is the most recent order placed by
+         * that customer. O_ID, O_ENTRY_D, and O_CARRIER_ID are retrieved.
          */
         String o_key_sec = OrderSecundaryKey(w_id,d_id,c_id);
         Integer o_id = t.get(o_key_sec).deepCopy().getInteger();

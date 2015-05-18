@@ -7,17 +7,16 @@ import java.text.DecimalFormat;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Constantino Gomes on 12/05/15.
  */
 public class TpccEmbeded {
 
-    public static volatile int activate_transaction = 0;
+    public static volatile boolean stop = false;
     public static boolean DEBUG = false;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         Options options = buildOptions();
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -56,45 +55,39 @@ public class TpccEmbeded {
 
         printHeapSize();
 
-        ExecutorService executor = Executors.newFixedThreadPool(numConn);
-
-        activate_transaction = 1;
-
-        Vector<TpccThread> threads = new Vector<>();
+        TpccThread[] workers = new TpccThread[numConn];
 
         // Start each server.
-        for (int i = 1; i <= numConn; i++) {
-            TpccThread worker = new TpccThread(i, numWare, numConn, bindWarehouse);
-            threads.add(worker);
-            executor.execute(worker);
+        for (int i = 0; i < numConn; i++) {
+            TpccThread worker = new TpccThread(i+1, numWare, numConn, bindWarehouse);
+            workers[i] = worker;
         }
 
 //        measure time
-        System.out.printf("\nMEASURING START.\n\n");
+        System.out.printf("\nSTART BENCHMARK.\n\n");
 
 //        loop for the measure_time
-        final long startTime = System.currentTimeMillis();
         DecimalFormat df = new DecimalFormat("#,##0.00");
-        long runTime = 0;
-        while ((System.currentTimeMillis() - startTime) < measureTime * 1000) {
-            try {
-                Thread.sleep(1000);
-                System.out.print(".");
-            } catch (InterruptedException e) {
-            }
+
+        final long startTime = System.currentTimeMillis();
+        for (int i = 0; i < numConn; i++) {
+            workers[i].start();
         }
-        activate_transaction = 0;
+
+        Thread.sleep(measureTime*1000);
+        stop = true;
+
+        for (int i = 0; i < numConn; i++) {
+            workers[i].join();
+        }
+
         final long actualTestTime = System.currentTimeMillis() - startTime;
         System.out.println();
-//        System.out.println("Execution time lapse: " + df.format(actualTestTime / 1000.0f) + " seconds");
-
-        System.out.printf("\nSTOPPING THREADS\n");
-        executor.shutdown();
 
         int totCommits = 0;
         int totAborts = 0;
         double latency = 0;
-        for (TpccThread tpccThread : threads){
+        for (TpccThread tpccThread : workers){
             totCommits += tpccThread.commits;
             totAborts += tpccThread.aborts;
             latency = latency==0? tpccThread.latency : (latency+tpccThread.latency)/2;
