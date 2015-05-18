@@ -1,12 +1,8 @@
 package bench.tpcc;
 
-import org.apache.commons.cli.*;
 import thrift.TransactionTypeFactory;
 
 import java.text.DecimalFormat;
-import java.util.Vector;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by Constantino Gomes on 12/05/15.
@@ -16,40 +12,14 @@ public class TpccEmbeded {
     public static volatile boolean stop = false;
     public static boolean DEBUG = false;
 
+    private static int numConn;
+    private static int numWare;
+    private static int measureTime;
+    private static boolean bindWarehouse = false;
+
     public static void main(String[] args) throws InterruptedException {
-        Options options = buildOptions();
-        CommandLineParser parser = new DefaultParser();
-        CommandLine cmd = null;
-        try {
-            cmd = parser.parse( options, args);
-        } catch (ParseException e) {
-            System.err.println( "Parsing failed.  Reason: " + e.getMessage() );
-            // automatically generate the help statement
-            HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "tpccLoad", options );
-            System.exit(0);
-        }
 
-        int numConn = Integer.parseInt(cmd.getOptionValue("c"));
-        int numWare = Integer.parseInt(cmd.getOptionValue("w"));
-        int measureTime = Integer.parseInt(cmd.getOptionValue("t"));
-        boolean bindWarehouse = false;
-
-        if (cmd.hasOption("d")) {
-            DEBUG = true;
-            TpccLoad.option_debug = true;
-        }
-
-        if (cmd.hasOption("r")){
-            Environment.remote = true;
-        }
-
-        if (cmd.hasOption("B"))
-            bindWarehouse = true;
-
-        if (cmd.hasOption("tp")){
-            Environment.setTransactionype(TransactionTypeFactory.getType(cmd.getOptionValue("tp")));
-        }
+        parseArguments(args);
 
         TpccLoad.tpccLoadData(numWare);
 
@@ -103,28 +73,117 @@ public class TpccEmbeded {
         System.out.println("");
     }
 
-    private static Options buildOptions() {
-        Options options = new Options();
-        options.addOption(Option.builder("w")
-                .hasArg(true)
-                .desc("number of warehouses - usually 10. Change to control the size of the database")
-                .required()
-                .build());
-        options.addOption("d", false, "debug - produces more output");
-        options.addOption("r", false, "remote DB - connect with Thrift API");
-        options.addOption(Option.builder("c")
-                .hasArg(true)
-                .desc("number of worker threads")
-                .required()
-                .build());
-        options.addOption(Option.builder("t")
-                .hasArg(true)
-                .desc("duration of the benchmark (sec)")
-                .required()
-                .build());
-        options.addOption("tp", true, "databases transactional algorithm");
-        options.addOption("B", false, "bind thread to one warehouse");
-        return options;
+    private static void parseArguments(String[] args){
+        //parse arguments
+        int argindex=0;
+
+        if (args.length==0)
+        {
+            usageMessage();
+            System.exit(0);
+        }
+
+        while (args[argindex].startsWith("-"))
+        {
+            if (args[argindex].compareTo("-w")==0)
+            {
+                argindex++;
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                numWare=Integer.parseInt(args[argindex]);
+                argindex++;
+            }
+            else if (args[argindex].compareTo("-c")==0)
+            {
+                argindex++;
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                numConn=Integer.parseInt(args[argindex]);
+                argindex++;
+            }
+            else if (args[argindex].compareTo("-t")==0)
+            {
+                argindex++;
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                measureTime=Integer.parseInt(args[argindex]);
+                argindex++;
+            }
+            else if (args[argindex].compareTo("-tp")==0)
+            {
+                argindex++;
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                Environment.setTransactionype(TransactionTypeFactory.getType(args[argindex]));
+                argindex++;
+            }
+            else if (args[argindex].compareTo("-d")==0)
+            {
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                DEBUG = true;
+                TpccLoad.option_debug = true;
+                argindex++;
+            }
+            else if (args[argindex].compareTo("-r")==0)
+            {
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                Environment.remote = true;
+                argindex++;
+            }
+            else if (args[argindex].compareTo("-B")==0)
+            {
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                bindWarehouse = true;
+                argindex++;
+            }
+            else
+            {
+                System.out.println("Unknown option "+args[argindex]);
+                usageMessage();
+                System.exit(0);
+            }
+
+            if (argindex>=args.length)
+            {
+                break;
+            }
+        }
+    }
+
+    private static void usageMessage() {
+//        usage: tpccEmbeded
+//                -B          bind thread to one warehouse
+//                -c <arg>    number of worker threads
+//                -d          debug - produces more output
+//        -r          remote DB - connect with Thrift API
+//                -t <arg>    duration of the benchmark (sec)
+//                -tp <arg>   databases transactional algorithm
+//        -w <arg>    number of warehouses - usually 10. Change to control the size
+//        of the database
     }
 
     public static void printHeapSize(){
