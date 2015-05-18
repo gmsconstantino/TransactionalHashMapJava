@@ -1,7 +1,7 @@
 package bench.tpcc;
 
 import fct.thesis.database.Transaction;
-import org.apache.commons.cli.*;
+import thrift.TransactionTypeFactory;
 import thrift.tpcc.schema.*;
 
 import java.util.*;
@@ -20,38 +20,80 @@ public class TpccLoad {
     static boolean verbose = false;
     static Random random;
 
-    public static void main(String[] args) {
-        Options options = new Options();
-        options.addOption(Option.builder("w")
-                .hasArg(true)
-                .desc("number of warehouses - usually 10. Change to control the size of the database")
-                .required()
-                .build());
-        options.addOption("d", false, "debug - produces more output");
-        options.addOption("r", false, "remote DB - connect with Thrift API");
-        options.addOption("tp", true, "databases transactional algorithm");
-        CommandLineParser parser = new DefaultParser();
-        CommandLine cmd = null;
-        try {
-            cmd = parser.parse( options, args);
-        } catch (ParseException e) {
-            System.err.println( "Parsing failed.  Reason: " + e.getMessage() );
-            // automatically generate the help statement
-            HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "tpccLoad", options );
+    private static void parseArguments(String[] args){
+        //parse arguments
+        int argindex=0;
+
+        if (args.length==0)
+        {
+            usageMessage();
             System.exit(0);
         }
 
-        if(cmd.hasOption("w")) {
-            count_ware = Integer.valueOf(cmd.getOptionValue("w"));
-            if (count_ware <= 0){
-                System.out.println("Invalid Warehouse Count.");
-                System.exit(-1);
+        while (args[argindex].startsWith("-"))
+        {
+            if (args[argindex].compareTo("-w")==0)
+            {
+                argindex++;
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                count_ware=Integer.parseInt(args[argindex]);
+                argindex++;
+            }
+            else if (args[argindex].compareTo("-tp")==0)
+            {
+                argindex++;
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                Environment.setTransactionype(TransactionTypeFactory.getType(args[argindex]));
+                argindex++;
+            }
+            else if (args[argindex].compareTo("-d")==0)
+            {
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                option_debug = true;
+                argindex++;
+            }
+            else if (args[argindex].compareTo("-r")==0)
+            {
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                Environment.remote = true;
+                argindex++;
+            }
+            else
+            {
+                System.out.println("Unknown option "+args[argindex]);
+                usageMessage();
+                System.exit(0);
+            }
+
+            if (argindex>=args.length)
+            {
+                break;
             }
         }
-        if (cmd.hasOption("d")){
-            option_debug = true;
-        }
+    }
+
+    private static void usageMessage() {
+    }
+
+
+    public static void main(String[] args) {
+        parseArguments(args);
 
         System.out.println("TPCC Data Load Started...");
         Environment.getInstance();
