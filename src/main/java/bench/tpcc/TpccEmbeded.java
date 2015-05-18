@@ -45,7 +45,7 @@ public class TpccEmbeded {
         System.out.printf("\nSTART BENCHMARK.\n\n");
 
 //        loop for the measure_time
-        DecimalFormat df = new DecimalFormat("#,##0.00");
+        DecimalFormat df = new DecimalFormat("0.00");
 
         final long startTime = System.currentTimeMillis();
         for (int i = 0; i < numConn; i++) {
