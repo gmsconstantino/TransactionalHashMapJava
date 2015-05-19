@@ -39,6 +39,10 @@ public class Environment {
         }else
             return getInstance().db.newTransaction(getTransactionType());
     }
+    
+    public static int getSizeDatabase(){
+        return getInstance().db.size();
+    }
 
     private Environment() {
 //        type = TransactionFactory.type.TWOPL;

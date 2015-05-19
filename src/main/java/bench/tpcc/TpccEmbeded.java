@@ -3,6 +3,7 @@ package bench.tpcc;
 import thrift.TransactionTypeFactory;
 
 import java.text.DecimalFormat;
+import java.util.Scanner;
 
 /**
  * Created by Constantino Gomes on 12/05/15.
@@ -31,7 +32,7 @@ public class TpccEmbeded {
 
         TpccLoad.tpccLoadData(numWare);
 
-        printHeapSize();
+//        printHeapSize();
 
         TpccThread[] workers = new TpccThread[numConn];
 
@@ -40,6 +41,12 @@ public class TpccEmbeded {
             TpccThread worker = new TpccThread(i+1, numWare, numConn, bindWarehouse);
             workers[i] = worker;
         }
+
+        System.out.println("Size database: "+Environment.getSizeDatabase());
+
+        // TODO: Remove scanner only debug
+//        Scanner in = new Scanner(System.in);
+//        in.nextLine();
 
 //        measure time
         System.out.printf("\nSTART BENCHMARK.\n\n");
@@ -78,6 +85,7 @@ public class TpccEmbeded {
         System.out.println("Number Aborts = "+totAborts);
         System.out.println("Abort rate = "+Math.round((totAborts/(double)(totCommits+totAborts))*100)+"%");
         System.out.println("Latency (ms) = "+ df.format(latency));
+        System.out.println("Size database = "+Environment.getSizeDatabase());
         System.out.println("");
     }
 
@@ -146,6 +154,16 @@ public class TpccEmbeded {
                 }
                 DEBUG = true;
                 TpccLoad.option_debug = true;
+                argindex++;
+            }
+            else if (args[argindex].compareTo("-v")==0)
+            {
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                TpccLoad.verbose = true;
                 argindex++;
             }
             else if (args[argindex].compareTo("-r")==0)
