@@ -1,13 +1,11 @@
 package fct.thesis.database;
 
-import fct.thesis.databaseOCC.Transaction;
-
 /**
  * Created by gomes on 05/03/15.
  */
 public class TransactionFactory {
 
-    public enum type { TWOPL, OCC, OCCNA, OCCLL, OCCRDIAS, OCC_MULTI, SI, BLOTTER }
+    public enum type { TWOPL, OCC, OCCNA, OCCLL, OCCRDIAS, OCC_MULTI, SI, NMSI}
 
     public static fct.thesis.database.Transaction createTransaction(type t, Database db){
         switch (t){
@@ -25,7 +23,7 @@ public class TransactionFactory {
                 return new fct.thesis.databaseOCCMulti.Transaction(db);
             case SI:
                 return new fct.thesis.databaseSI.Transaction(db);
-            case BLOTTER:
+            case NMSI:
                 return new fct.thesis.databaseBlotter.Transaction(db);
             default:
                 return null;

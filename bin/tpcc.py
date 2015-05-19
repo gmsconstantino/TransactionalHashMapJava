@@ -8,7 +8,7 @@ import subprocess
 
 algorithm = [
     "SI",
-    "BLOTTER"
+    "NMSI"
 ]
 
 time = 60
