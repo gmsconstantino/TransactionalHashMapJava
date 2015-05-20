@@ -20,8 +20,8 @@ time = 30000
 
 threads = [1,2,4,8,16,32,64]
 opsArr = [50]
-perc_read = [20]
-perc_read_only = [2]
+perc_read_only = [20]
+perc_write = [2]
 
 for thread in threads:
     for x in range(0,len(perc_read_only)):
