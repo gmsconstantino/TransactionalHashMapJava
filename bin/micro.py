@@ -15,10 +15,10 @@ time = 30000
 
 threads = [1,2,4,8,16,24,32,48,64]
 
-opsArr = [2,4,8,16,24,32]
+opsArr = [10,50,100,500,1000]
 
-perc_read = [95,80,70,60 ,50, 40,5]
-perc_write = [5,20,30,40 ,50, 60,95]
+perc_read = [50, 45, 40, 30, 20, 10]
+perc_write = [2,5,10,15]
 
 for thread in threads:
     for x in range(0,len(perc_read)):

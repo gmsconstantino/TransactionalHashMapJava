@@ -15,7 +15,7 @@ public class Database<K,V> {
     public ConcurrentHashMap<K, ObjectDb<K,V>> concurrentHashMap;
 
     public Database(){
-        concurrentHashMap = new ConcurrentHashMap<K, ObjectDb<K,V>>(200000000,0.75f,64);
+        concurrentHashMap = new ConcurrentHashMap<K, ObjectDb<K,V>>(1000000,0.75f,64);
     }
 
     protected ObjectDb<K,V> getKey(K key){
