@@ -30,5 +30,5 @@ for thread in threads:
                 for alg in  algorithm:
                     command = ["java", "-Xmx20g", "-Xms8g", "-cp", "target/myhashdb-1.0.3.jar", \
                                     "bench.MicroSI", alg ,str(time), str(thread),str(perc_read_only[x]) ,str(ops), str(perc_write[y]) ]
-                    print " ".join(command)
-                    # subprocess.call(command)
+                    # print " ".join(command)
+                    subprocess.call(command)
