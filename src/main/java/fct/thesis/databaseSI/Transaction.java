@@ -6,6 +6,8 @@ import fct.thesis.databaseOCCMulti.ObjectMultiVersionLockDB;
 import sun.misc.Contended;
 
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -30,6 +32,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         super.init();
         writeSet = new TreeMap<>();
         startTime = Transaction.timestamp.get();
+        id = startTime;
     }
 
     @Override
@@ -115,6 +118,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         isActive = false;
         success = true;
+        addToCleaner(this);
         return true;
     }
 
@@ -149,6 +153,15 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         writeSet.put(key, objectDb);
     }
 
+    public static void addToCleaner(final fct.thesis.database.Transaction t) {
+        Database.asyncPool.execute(() -> {
+            try {
+                Database.queue.add(t);
+            } catch (Exception e) {
+            }
+        });
+    }
+
 
     @Override
     public String toString() {
@@ -158,6 +171,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 ", isActive=" + isActive +
                 ", success=" + success +
                 '}';
+    }
+
+    @Override
+    public Collection getWriteSet() {
+        return writeSet.values();
     }
 
 }

@@ -18,6 +18,11 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
 
     private ObjectDb<K,V> objectDb;
 
+    public BufferObjectDb(V value){
+        this.value = value;
+        this.version = -1L;
+    }
+
     public BufferObjectDb(K key, V value){
         this.key = key;
         this.value = value;
@@ -71,6 +76,10 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
         this.value = value;
     }
 
+    @Override
+    public void clean(long version) {
+
+    }
 
 
     @Override
@@ -82,7 +91,9 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
     @Override
     public String toString() {
         return "BufferObjectDb{" +
-                "value=" + value +
+                "key=" + key +
+                ", value=" + value +
+                ", version=" + version +
                 ", objectDb=" + objectDb +
                 '}';
     }

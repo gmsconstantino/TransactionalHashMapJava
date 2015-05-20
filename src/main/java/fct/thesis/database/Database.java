@@ -1,9 +1,13 @@
 package fct.thesis.database;
 
+import fct.thesis.databaseNMSI.ObjectBlotterDb;
 import fct.thesis.structures.MapEntry;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -11,7 +15,13 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class Database<K,V> {
 
-//    public static AtomicLong timestamp = new AtomicLong(1);
+    private final static long WAITCLEANERTIME = 1000;
+
+    public final static ExecutorService asyncPool = Executors.newFixedThreadPool(5);
+
+    public final static PriorityBlockingQueue<Transaction> queue = new PriorityBlockingQueue(1000000);
+    private final ThreadCleaner cleaner = new ThreadCleaner();
+
     public ConcurrentHashMap<K, ObjectDb<K,V>> concurrentHashMap;
 
     public Database(){
@@ -30,7 +40,14 @@ public class Database<K,V> {
         return concurrentHashMap.remove(key);
     }
 
-    public void cleanup(){}
+    public void cleanup(){
+        asyncPool.shutdown();
+    }
+
+    public void startThreadCleaner(){
+        cleaner.setDaemon(true);
+        cleaner.start();
+    }
 
     /*
      * Public
@@ -79,4 +96,50 @@ public class Database<K,V> {
         }
     }
 
+    private class ThreadCleaner extends Thread {
+
+        private long min = -1;
+        private Set<ObjectDb<K,V>> clean;
+
+        public long getMin() {
+            Transaction t = queue.peek();
+            while (!queue.isEmpty() && t.id==(min+1)){
+                min++;
+                clean.addAll(t.getWriteSet());
+                queue.poll();
+            }
+            return min;
+        }
+
+        public ThreadCleaner() {
+            clean = new HashSet<>();
+        }
+
+        public void run(){
+            for (;;){
+                if (queue.size()==0)
+                    sleep();
+
+                long minId = getMin();
+
+                Iterator<ObjectDb<K,V>> it = clean.iterator();
+                while (it.hasNext()){
+                    ObjectDb<K,V> objectDb = it.next();
+                    objectDb.clean(minId);
+                }
+
+                clean.clear();
+
+                sleep();
+            }
+        }
+
+        private void sleep(){
+            try {
+                Thread.sleep(WAITCLEANERTIME);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }

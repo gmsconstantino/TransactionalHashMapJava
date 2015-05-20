@@ -11,4 +11,6 @@ public interface ObjectDb<K,V> {
 
     public void setValue(V value);
 
+    public void clean(long version);
+
 }

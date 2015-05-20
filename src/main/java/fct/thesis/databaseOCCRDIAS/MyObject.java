@@ -30,6 +30,11 @@ public class MyObject<K,V> implements ObjectDb<K,V> {
         this.value = value;
     }
 
+    @Override
+    public void clean(long version) {
+
+    }
+
     public long getVersion() {
         return version.get() & VERSION_MASK;
     }

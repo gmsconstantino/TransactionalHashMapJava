@@ -24,7 +24,7 @@ public class TransactionFactory {
             case SI:
                 return new fct.thesis.databaseSI.Transaction(db);
             case NMSI:
-                return new fct.thesis.databaseBlotter.Transaction(db);
+                return new fct.thesis.databaseNMSI.Transaction(db);
             default:
                 return null;
         }

@@ -1,11 +1,14 @@
 package fct.thesis.databaseOCCMulti;
 
+import fct.thesis.database.BufferObjectDb;
+import fct.thesis.database.ObjectDb;
 import fct.thesis.database.ObjectLockDb;
 import fct.thesis.database.ObjectLockDbAbstract;
 import fct.thesis.databaseOCC.ObjectLockOCC;
 import fct.thesis.structures.RwLock;
 import pt.dct.util.P;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -14,16 +17,16 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by gomes on 23/03/15.
  */
-public class ObjectMultiVersionLockDB<K,V> extends ObjectLockDbAbstract<K,V> {
+public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectLockDbAbstract<K,V> {
 
     volatile long last_version;
-    ConcurrentLinkedDeque<P<Long, ObjectLockDb<K,V>>> objects;
+    ConcurrentLinkedDeque<P<Long, ObjectDb<K,V>>> objects;
     RwLock lock;
 
 
     public ObjectMultiVersionLockDB(){
         super();
-        objects = new ConcurrentLinkedDeque<P<Long, ObjectLockDb<K,V>>>();
+        objects = new ConcurrentLinkedDeque<>();
         lock = new RwLock();
         last_version = -1;
     }
@@ -33,7 +36,7 @@ public class ObjectMultiVersionLockDB<K,V> extends ObjectLockDbAbstract<K,V> {
     }
 
     public V getValueVersionLess(long startTime) {
-        for(P<Long, ObjectLockDb<K,V>> pair : objects){
+        for(P<Long, ObjectDb<K,V>> pair : objects){
             if(pair.f <= startTime){
                 return pair.s.getValue();
             }
@@ -42,7 +45,7 @@ public class ObjectMultiVersionLockDB<K,V> extends ObjectLockDbAbstract<K,V> {
     }
 
     public void addNewVersionObject(Long version, V value){
-        ObjectLockOCC<K,V> obj = new ObjectLockOCC<K,V>(value);
+        BufferObjectDb<K,V> obj = new BufferObjectDb<K,V>(value);
         objects.addFirst(new P(version, obj));
         last_version = version;
     }
@@ -52,6 +55,24 @@ public class ObjectMultiVersionLockDB<K,V> extends ObjectLockDbAbstract<K,V> {
         if(last_version == -1)
             return null;
         return objects.getFirst().s.getValue();
+    }
+
+    @Override
+    public void clean(long version) {
+        if (objects.size()==1)
+            return;
+
+        Iterator<P<Long, ObjectDb<K,V>>> it = objects.descendingIterator();
+        while (it.hasNext()){
+            P<Long, ObjectDb<K,V>> pair = it.next();
+            if (version > pair.f)
+                objects.removeLastOccurrence(pair);
+            else
+                break;
+
+            if (objects.size()==1)
+                return;
+        }
     }
 
     @Override

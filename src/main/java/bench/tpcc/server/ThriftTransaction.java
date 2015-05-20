@@ -78,6 +78,8 @@ public class ThriftTransaction<K extends String,V extends MyObject> extends fct.
             return client.txn_commit();
         } catch (TException e) {
             e.printStackTrace();
+        } finally {
+            transport.close();
         }
         return false;
     }
@@ -88,12 +90,9 @@ public class ThriftTransaction<K extends String,V extends MyObject> extends fct.
             client.txn_abort();
         } catch (TException e) {
             e.printStackTrace();
+        } finally {
+            transport.close();
         }
-    }
-
-    public void finalize() throws Throwable {
-        transport.close();
-        super.finalize();
     }
 
 }

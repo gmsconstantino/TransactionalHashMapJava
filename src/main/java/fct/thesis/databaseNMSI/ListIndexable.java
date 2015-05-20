@@ -1,4 +1,4 @@
-package fct.thesis.databaseBlotter;
+package fct.thesis.databaseNMSI;
 
 import java.util.*;
 

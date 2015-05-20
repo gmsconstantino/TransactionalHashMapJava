@@ -1,4 +1,4 @@
-package fct.thesis.databaseBlotter;
+package fct.thesis.databaseNMSI;
 
 import fct.thesis.database.BufferObjectDb;
 import fct.thesis.database.TransactionAbortException;

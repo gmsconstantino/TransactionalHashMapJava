@@ -1,5 +1,9 @@
 package fct.thesis.database;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 /**
  * Created by gomes on 26/02/15.
  */
@@ -90,5 +94,9 @@ public abstract class Transaction<K,V> implements Comparable {
                 ", isActive=" + isActive +
                 ", success=" + success +
                 '}';
+    }
+
+    public Collection getWriteSet(){
+        return new ArrayList<>();
     }
 }

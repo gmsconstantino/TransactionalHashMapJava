@@ -1,15 +1,12 @@
-package fct.thesis.databaseBlotter;
+package fct.thesis.databaseNMSI;
 
 import fct.thesis.database.ObjectDb;
 import fct.thesis.structures.RwLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pt.dct.util.P;
 
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -74,7 +71,8 @@ public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
                 Long v = snapshots.get(transaction);
                 if (v != null && v < version)
                     aggrDataTx.add(transaction);
-            } else {
+            }
+            else {
                 snapshots.remove(transaction);
             }
         }
@@ -91,6 +89,11 @@ public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
 //        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
 //        obj.unlock_write();
         objects.addFirst(new P(version.incrementAndGet(), value));
+    }
+
+    @Override
+    public void clean(long version) {
+
     }
 
     @Override

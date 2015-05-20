@@ -35,6 +35,11 @@ public class ObjectLockDbAbstract<K,V> implements ObjectLockDb<K,V> {
     }
 
     @Override
+    public void clean(long version) {
+
+    }
+
+    @Override
     public boolean try_lock_write_for(long time, TimeUnit unit) {
         return false;
     }

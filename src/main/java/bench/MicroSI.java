@@ -151,6 +151,8 @@ public class MicroSI {
 
         long finish = System.currentTimeMillis();
 
+        db.cleanup();
+
         int commits = 0;
         int aborts = 0;
         for (int i=0; i < workers.length; i++) {

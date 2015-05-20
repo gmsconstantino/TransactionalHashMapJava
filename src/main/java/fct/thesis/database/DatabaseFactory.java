@@ -6,12 +6,15 @@ package fct.thesis.database;
 public class DatabaseFactory {
 
     public static <K,V> fct.thesis.database.Database createDatabase(TransactionFactory.type t){
+        Database db = new fct.thesis.database.Database<K,V>();
         switch (t){
+            case OCC_MULTI:
+            case SI:
             case NMSI:
-                return new fct.thesis.databaseBlotter.Database<K,V>();
-            default:
-                return new fct.thesis.database.Database<K,V>();
+                db.startThreadCleaner();
+                break;
         }
+        return db;
     }
 
 }
