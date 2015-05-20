@@ -190,6 +190,7 @@ public class Micro {
         System.out.println("Throughput(ops/sec) = " + throughput);
         System.out.println("Number Commits = "+opsCommit);
         System.out.println("Number Aborts = "+opsAbort);
+        System.out.println("Abort rate = "+Math.round((opsAbort/(double)(opsCommit+opsAbort))*100)+"%");
 
     }
 
