@@ -24,6 +24,6 @@ for thread in threads:
     for x in range(0,len(perc_read)):
         for ops in opsArr:
             for alg in  algorithm:
-                ycsb_command = ["java", "-Xmx20g", "-Xms2g", "-cp", "target/myhashdb-1.0.3.jar", \
+                ycsb_command = ["java", "-Xmx20g", "-Xms8g", "-cp", "target/myhashdb-1.0.3.jar", \
                                 "bench.MicroSI", alg ,str(time), str(thread),str(perc_read[x]) ,str(ops), str(perc_write[x]) ]
                 subprocess.call(ycsb_command)
