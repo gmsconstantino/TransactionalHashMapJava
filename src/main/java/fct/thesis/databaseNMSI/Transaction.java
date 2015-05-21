@@ -15,8 +15,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
 
-    @Contended
-    static AtomicLong identifier = new AtomicLong(-1L);
+//    @Contended
+//    static AtomicLong identifier = new AtomicLong(-1L);
 
     Set<Transaction> aggStarted;
     protected Map<K, BufferObjectDb<K,V>> writeSet;
@@ -29,7 +29,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         super.init();
         aggStarted = new HashSet<>();
         writeSet = new HashMap<>();
-        id = Transaction.identifier.incrementAndGet();
+//        id = Transaction.identifier.incrementAndGet();
     }
 
     @Override
@@ -41,7 +41,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return (V) writeSet.get(key).getValue();
         }
 
-        ObjectBlotterDb<K,V> obj = (ObjectBlotterDb) getKeyDatabase(key);
+        ObjectNMSIDb<K,V> obj = (ObjectNMSIDb) getKeyDatabase(key);
         if (obj == null || obj.getLastVersion() == -1)
             return null;
 
@@ -89,17 +89,17 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return true;
         }
 
-        Set<ObjectBlotterDb<K,V>> lockObjects = new HashSet<ObjectBlotterDb<K,V>>();
+        Set<ObjectNMSIDb<K,V>> lockObjects = new HashSet<ObjectNMSIDb<K,V>>();
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
 
-            ObjectBlotterDb<K,V> objectDb = (ObjectBlotterDb) getKeyDatabase(buffer.getKey());
+            ObjectNMSIDb<K,V> objectDb = (ObjectNMSIDb) getKeyDatabase(buffer.getKey());
             //Nao existe nenhuma
             if (objectDb == null) {
-                ObjectBlotterDb<K,V> obj = new ObjectBlotterDb<K,V>(); // Thread tem o lock do objecto
+                ObjectNMSIDb<K,V> obj = new ObjectNMSIDb<K,V>(); // Thread tem o lock do objecto
                 obj.lock_write();
 
-                ObjectBlotterDb<K,V> objdb = (ObjectBlotterDb) putIfAbsent(buffer.getKey(), obj);
+                ObjectNMSIDb<K,V> objdb = (ObjectNMSIDb) putIfAbsent(buffer.getKey(), obj);
                 if (objdb != null) {
                     obj = null;
                     objectDb = objdb;
@@ -128,7 +128,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
-            ObjectBlotterDb<K, V> objectDb = (ObjectBlotterDb) buffer.getObjectDb();
+            ObjectNMSIDb<K, V> objectDb = (ObjectNMSIDb) buffer.getObjectDb();
 
             for (Transaction tid : aggStarted){
                 if (tid.isActive() && objectDb.snapshots.get(tid) == null){
@@ -143,19 +143,20 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         isActive = false;
         success = true;
+        addToCleaner(this);
         return true;
     }
 
-    private void abortVersions(Set<ObjectBlotterDb<K,V>> lockObjects) throws TransactionTimeoutException{
+    private void abortVersions(Set<ObjectNMSIDb<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
         throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
     }
 
-    private void unlockWrite_objects(Set<ObjectBlotterDb<K,V>> set){
-        Iterator<ObjectBlotterDb<K,V>> it_locks = set.iterator();
+    private void unlockWrite_objects(Set<ObjectNMSIDb<K,V>> set){
+        Iterator<ObjectNMSIDb<K,V>> it_locks = set.iterator();
         while (it_locks.hasNext()) {
-            ObjectBlotterDb<K,V> objectDb = it_locks.next();
+            ObjectNMSIDb<K,V> objectDb = it_locks.next();
             objectDb.unlock_write();
         }
     }
@@ -172,10 +173,14 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
     @Override
+    public Collection getWriteSet() {
+        return writeSet.values();
+    }
+
+    @Override
     public String toString() {
-        return "Transaction{" +
+        return "Transaction@"+System.identityHashCode(this)+"{" +
                 "id=" + id +
-                ", writeSet=" + writeSet +
                 ", isActive=" + isActive +
                 ", success=" + success +
                 '}';

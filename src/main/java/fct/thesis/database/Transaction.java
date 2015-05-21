@@ -83,11 +83,6 @@ public abstract class Transaction<K,V> implements Comparable {
     }
 
     @Override
-    public int hashCode() {
-        return (int) (id ^ (id >>> 32));
-    }
-
-    @Override
     public String toString() {
         return "Transaction{" +
                 "id=" + id +
@@ -98,5 +93,14 @@ public abstract class Transaction<K,V> implements Comparable {
 
     public Collection getWriteSet(){
         return new ArrayList<>();
+    }
+
+    public static void addToCleaner(final fct.thesis.database.Transaction t) {
+        Database.asyncPool.execute(() -> {
+            try {
+                Database.queue.add(t);
+            } catch (Exception e) {
+            }
+        });
     }
 }

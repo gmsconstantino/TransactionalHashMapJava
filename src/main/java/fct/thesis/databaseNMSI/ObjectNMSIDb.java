@@ -4,30 +4,30 @@ import fct.thesis.database.ObjectDb;
 import fct.thesis.structures.RwLock;
 import pt.dct.util.P;
 
-import java.util.LinkedList;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by gomes on 23/03/15.
  */
-public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
+public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     AtomicLong version;
-
-    LinkedList<P<Long, V>> objects;
-
+    ConcurrentLinkedDeque<P<Long, V>> objects;
     ConcurrentHashMap<Transaction, Long> snapshots;
 
     RwLock rwlock;
 
-    public ObjectBlotterDb(){
+    public ObjectNMSIDb(){
         version = new AtomicLong(-1L);
 
-        objects = new LinkedList<P<Long, V>>();
-        snapshots = new ConcurrentHashMap<Transaction, Long>();
+        objects = new ConcurrentLinkedDeque<>();
+        snapshots = new ConcurrentHashMap<>();
 
         rwlock = new RwLock();
     }
@@ -44,9 +44,9 @@ public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
         snapshots.put(t, v);
     }
 
-    public void removeSnapshot(Long tid) {
-        snapshots.remove(tid);
-    }
+//    public void removeSnapshot(Long tid) {
+//        snapshots.remove(tid);
+//    }
 
     public Long getVersionForTransaction(Long tid){
         return snapshots.get(tid);
@@ -72,9 +72,6 @@ public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
                 if (v != null && v < version)
                     aggrDataTx.add(transaction);
             }
-            else {
-                snapshots.remove(transaction);
-            }
         }
 
         return value;
@@ -91,9 +88,40 @@ public class ObjectBlotterDb<K,V> implements ObjectDb<K,V> {
         objects.addFirst(new P(version.incrementAndGet(), value));
     }
 
+    public long getMin() {
+        long min = Long.MAX_VALUE;
+        long i;
+        for (Transaction transaction : snapshots.keySet()) {
+            i = snapshots.get(transaction);
+            if (transaction.isActive()) {
+                if (i < min) {
+                    min = i;
+                }
+            } else
+                snapshots.remove(transaction);
+
+        }
+        return min;
+    }
+
     @Override
     public void clean(long version) {
+        if (objects.size()<2)
+            return;
 
+        version = getMin();
+
+        Iterator<P<Long, V>> it = objects.descendingIterator();
+        while (it.hasNext()){
+            P<Long, V> pair = it.next();
+            if (version > pair.f)
+                objects.removeLastOccurrence(pair);
+            else
+                break;
+
+            if (objects.size()==1)
+                return;
+        }
     }
 
     @Override

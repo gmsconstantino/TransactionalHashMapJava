@@ -153,16 +153,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         writeSet.put(key, objectDb);
     }
 
-    public static void addToCleaner(final fct.thesis.database.Transaction t) {
-        Database.asyncPool.execute(() -> {
-            try {
-                Database.queue.add(t);
-            } catch (Exception e) {
-            }
-        });
-    }
-
-
     @Override
     public String toString() {
         return "Transaction{" +

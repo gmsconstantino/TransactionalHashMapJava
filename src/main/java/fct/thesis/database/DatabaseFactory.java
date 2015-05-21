@@ -8,10 +8,12 @@ public class DatabaseFactory {
     public static <K,V> fct.thesis.database.Database createDatabase(TransactionFactory.type t){
         Database db = new fct.thesis.database.Database<K,V>();
         switch (t){
-            case OCC_MULTI:
             case SI:
+                db.startThreadCleaner(new ThreadCleanerSI());
+                break;
+            case OCC_MULTI:
             case NMSI:
-                db.startThreadCleaner();
+                db.startThreadCleaner(new ThreadCleanerNMSI<>(db));
                 break;
         }
         return db;

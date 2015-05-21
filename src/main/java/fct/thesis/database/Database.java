@@ -1,31 +1,31 @@
 package fct.thesis.database;
 
-import fct.thesis.databaseNMSI.ObjectBlotterDb;
 import fct.thesis.structures.MapEntry;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
 
 /**
  * Created by gomes on 26/02/15.
  */
 public class Database<K,V> {
 
-    private final static long WAITCLEANERTIME = 1000;
-
-    public final static ExecutorService asyncPool = Executors.newFixedThreadPool(5);
+    public final static ExecutorService asyncPool = Executors.newSingleThreadExecutor();
 
     public final static PriorityBlockingQueue<Transaction> queue = new PriorityBlockingQueue(1000000);
-    private final ThreadCleaner cleaner = new ThreadCleaner();
+    private Thread cleaner;
 
     public ConcurrentHashMap<K, ObjectDb<K,V>> concurrentHashMap;
 
     public Database(){
-        concurrentHashMap = new ConcurrentHashMap<K, ObjectDb<K,V>>(1000000,0.75f,64);
+        concurrentHashMap = new ConcurrentHashMap<>(1000000,0.75f,64);
     }
 
     protected ObjectDb<K,V> getKey(K key){
@@ -44,7 +44,8 @@ public class Database<K,V> {
         asyncPool.shutdown();
     }
 
-    public void startThreadCleaner(){
+    public void startThreadCleaner(Thread _cleaner){
+        cleaner = _cleaner;
         cleaner.setDaemon(true);
         cleaner.start();
     }
@@ -59,6 +60,10 @@ public class Database<K,V> {
 
     public int size(){
         return concurrentHashMap.size();
+    }
+
+    protected Iterator<ObjectDb<K,V>> getObjectDbIterator(){
+        return new ObjectDbIterator();
     }
 
     public Iterator getIterator() {
@@ -96,50 +101,34 @@ public class Database<K,V> {
         }
     }
 
-    private class ThreadCleaner extends Thread {
+    private class ObjectDbIterator implements Iterator {
 
-        private long min = -1;
-        private Set<ObjectDb<K,V>> clean;
-
-        public long getMin() {
-            Transaction t = queue.peek();
-            while (!queue.isEmpty() && t.id==(min+1)){
-                min++;
-                clean.addAll(t.getWriteSet());
-                queue.poll();
-            }
-            return min;
+        Set<Map.Entry<K, ObjectDb<K,V>>> set;
+        Iterator<Map.Entry<K, ObjectDb<K,V>>> it;
+        ObjectDbIterator(){
+            set = concurrentHashMap.entrySet();
+            it = set.iterator();
         }
 
-        public ThreadCleaner() {
-            clean = new HashSet<>();
+        @Override
+        public boolean hasNext() {
+            return it.hasNext();
         }
 
-        public void run(){
-            for (;;){
-                if (queue.size()==0)
-                    sleep();
+        @Override
+        public Object next() {
 
-                long minId = getMin();
-
-                Iterator<ObjectDb<K,V>> it = clean.iterator();
-                while (it.hasNext()){
-                    ObjectDb<K,V> objectDb = it.next();
-                    objectDb.clean(minId);
-                }
-
-                clean.clear();
-
-                sleep();
+            if(this.hasNext()){
+                Map.Entry<K, ObjectDb<K,V>> obj = it.next();
+                return obj.getValue();
             }
+            return null;
         }
 
-        private void sleep(){
-            try {
-                Thread.sleep(WAITCLEANERTIME);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        @Override
+        public void remove() {
+
         }
     }
+
 }

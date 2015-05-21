@@ -5,6 +5,7 @@ import thrift.TransactionTypeFactory;
 
 import javax.xml.crypto.Data;
 import java.util.Random;
+import java.util.Scanner;
 
 /**
  * @author Ricardo Dias
@@ -100,6 +101,10 @@ public class MicroSI {
             System.exit(0);
         }
 
+        Scanner in = new Scanner(System.in);
+        System.out.print("Press Enter:");
+        in.nextLine();
+
         String global_algorithm = args[0];
         int duration = Integer.parseInt(args[1]);
         int num_threads = Integer.parseInt(args[2]);
@@ -166,7 +171,7 @@ public class MicroSI {
         System.out.println("Throughput(ops/sec) = " + throughput);
         System.out.println("Number Commits = "+commits);
         System.out.println("Number Aborts = "+aborts);
-        System.out.println("Abort rate = "+Math.round((aborts/(double)(commits+aborts))*100)+"%");
+        System.out.println("Abort rate = "+Math.round((aborts / (double) (commits + aborts)) * 100)+"%");
         System.out.println("");
     }
 }
