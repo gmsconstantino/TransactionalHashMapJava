@@ -1,16 +1,13 @@
 package fct.thesis.databaseNMSI;
 
-import fct.thesis.database.Database;
 import fct.thesis.database.ObjectDb;
-import fct.thesis.structures.MapEntry;
 import fct.thesis.structures.RwLock;
 import pt.dct.util.P;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
