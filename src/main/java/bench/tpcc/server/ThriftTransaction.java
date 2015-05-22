@@ -42,8 +42,6 @@ public class ThriftTransaction<K extends String,V extends MyObject> extends fct.
             client = new TpccService.Client(protocol);
         } catch (TTransportException e) {
             e.printStackTrace();
-        } catch (TException x) {
-            x.printStackTrace();
         }
 
         try {
@@ -54,9 +52,9 @@ public class ThriftTransaction<K extends String,V extends MyObject> extends fct.
     }
 
     @Override
-    public V get(K key) throws TransactionTimeoutException, TransactionAbortException {
+    public V get(int table, K key) throws TransactionTimeoutException, TransactionAbortException {
         try {
-            return (V) client.get(key);
+            return (V) client.get(table,key);
         } catch (TException e) {
             e.printStackTrace();
         }
@@ -64,9 +62,9 @@ public class ThriftTransaction<K extends String,V extends MyObject> extends fct.
     }
 
     @Override
-    public void put(K key, V value) throws TransactionTimeoutException, TransactionAbortException {
+    public void put(int table, K key, V value) throws TransactionTimeoutException, TransactionAbortException {
         try {
-            client.put(key, value);
+            client.put(table, key, value);
         } catch (TException e) {
             e.printStackTrace();
         }

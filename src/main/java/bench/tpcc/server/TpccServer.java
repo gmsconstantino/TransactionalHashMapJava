@@ -6,8 +6,6 @@ import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
-import thrift.DatabaseSingleton;
-import thrift.ProcessorFactory;
 import thrift.TransactionTypeFactory;
 
 import java.io.FileInputStream;
@@ -21,12 +19,14 @@ import java.util.Properties;
 public class TpccServer {
 
     static TServer server;
+    private static int numWare;
 
     public static void usageMessage()
     {
         System.out.println("Usage: java bench.tpcc.server.TpccServer [options]");
         System.out.println("Options:");
         System.out.println("  -p transaction.type=[TYPE]: ");
+        System.out.println("  -w number : Warehouse count");
         System.out.println("Others:");
         System.out.println("  -P propertyfile: load properties from the given file. Multiple files can");
         System.out.println("                   be specified, and will be processed in the order specified");
@@ -66,7 +66,18 @@ public class TpccServer {
 
         while (args[argindex].startsWith("-"))
         {
-            if (args[argindex].compareTo("-P")==0)
+            if (args[argindex].compareTo("-w")==0)
+            {
+                argindex++;
+                if (argindex>=args.length)
+                {
+                    usageMessage();
+                    System.exit(0);
+                }
+                numWare =Integer.parseInt(args[argindex]);
+                argindex++;
+            }
+            else if (args[argindex].compareTo("-P")==0)
             {
                 argindex++;
                 if (argindex>=args.length)
@@ -138,7 +149,7 @@ public class TpccServer {
 
         System.out.println("Database Transactions Type : "+ props.getProperty("transaction.type","TWOPL"));
         TransactionFactory.type type = TransactionTypeFactory.getType(props.getProperty("transaction.type","TWOPL"));
-        Environment.setTransactionype(type);
+        Environment.setTransactiontype(type, numWare+1);
 
         ServerDB();
     }

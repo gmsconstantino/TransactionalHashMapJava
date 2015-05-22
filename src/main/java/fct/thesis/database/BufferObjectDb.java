@@ -12,26 +12,30 @@ import java.util.concurrent.TimeUnit;
  */
 public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>, Comparable {
 
+    private int table;
     private K key;
     private V value;
     private long version;
 
     private ObjectDb<K,V> objectDb;
 
-    public BufferObjectDb(K key, V value){
+    public BufferObjectDb(int table, K key, V value){
+        this.table = table;
         this.key = key;
         this.value = value;
         this.version = -1L;
     }
 
-    public BufferObjectDb(K key, V value, ObjectDb<K, V> obj) {
+    public BufferObjectDb(int table, K key, V value, ObjectDb<K, V> obj) {
+        this.table = table;
         this.key = key;
         this.value = value;
         this.objectDb = obj;
         this.version = -1L;
     }
 
-    public BufferObjectDb(K key, V value, long version, ObjectDb<K, V> obj) {
+    public BufferObjectDb(int table, K key, V value, long version, ObjectDb<K, V> obj) {
+        this.table = table;
         this.key = key;
         this.value = value;
         this.version = version;
@@ -45,6 +49,11 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
 
     public K getKey() {
         return key;
+    }
+
+    @Override
+    public int getTable() {
+        return table;
     }
 
     @Override

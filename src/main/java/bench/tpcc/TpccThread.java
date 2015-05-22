@@ -23,6 +23,7 @@ public class TpccThread extends Thread {
     public static final int MAX_NUM_ITEMS = 15;
     public static final int MAX_ITEM_LEN = 24;
 
+    public static final int ITEM_TABLE = 0;
     public static int NOTFOUND = TpccConstants.MAXITEMS + 1;
 
     int number;
@@ -102,7 +103,7 @@ public class TpccThread extends Thread {
          * is selected and D_NEXT_O_OID is retrieved.
          */
         String d_key = DistrictPrimaryKey(w_id, d_id);
-        District d_data = t.get(d_key).deepCopy().getDistrict();
+        District d_data = t.get(w_id, d_key).deepCopy().getDistrict();
 
         /* All rows in the ORDER_LINE table with matching OL_W_ID (equals W_ID),
          * OL_D_ID (equals D_ID), and OL_O_ID (lower than D_NEXT_O_ID and greater
@@ -112,7 +113,7 @@ public class TpccThread extends Thread {
         int init = (d_data.d_next_o_id-20) < 0 ? 0 : d_data.d_next_o_id-20;
         for (o_id = init; o_id < d_data.d_next_o_id; o_id++) {
             String o_key = OrderPrimaryKey(w_id,d_id,o_id);
-            object = t.get(o_key);
+            object = t.get(w_id, o_key);
             if(object == null){
                 t.abort();
                 System.out.println("Slev order key: "+o_key);
@@ -122,7 +123,7 @@ public class TpccThread extends Thread {
 
             for (i=1; i <= o_data.o_ol_cnt; i++){
                 String ol_key = OrderLinePrimaryKey(w_id,d_id,o_id, i);
-                object = t.get(ol_key);
+                object = t.get(w_id, ol_key);
                 if(object == null){
                     t.abort();
                     throw new TransactionException("Order Line not found.");
@@ -139,7 +140,7 @@ public class TpccThread extends Thread {
         int count = 0;
         for (Integer i_id : set){
             String s_key = StockPrimaryKey(w_id, i_id);
-            Stock s_data = t.get(s_key).deepCopy().getStock();
+            Stock s_data = t.get(w_id, s_key).deepCopy().getStock();
 
             if(s_data.s_quantity < threshold)
                 count++;
@@ -177,7 +178,7 @@ public class TpccThread extends Thread {
 
         for (d_id=1; d_id <= DIST_PER_WARE; d_id++){
             String no_key_sec = NewOrderSecundaryKey(w_id, d_id);
-            Integer min_o_id = t.get(no_key_sec).deepCopy().getInteger();
+            Integer min_o_id = t.get(w_id, no_key_sec).deepCopy().getInteger();
 
             // Should
             String no_key = NewOrderPrimaryKey(w_id,d_id,min_o_id);
@@ -187,12 +188,12 @@ public class TpccThread extends Thread {
              * O_CARRIER_ID is updated.
              */
             String o_key = OrderPrimaryKey(w_id,d_id, min_o_id);
-            Order o_data = t.get(o_key).deepCopy().getOrder();
+            Order o_data = t.get(w_id, o_key).deepCopy().getOrder();
 
             o_c_id = o_data.o_c_id;
             o_data.o_carrier_id = o_carrier_id;
 
-            t.put(o_key, MyObject.order(o_data));
+            t.put(w_id, o_key, MyObject.order(o_data));
 
             /* All rows in ORDER-LINE table with matching OL_W_ID (equals
              * O_W_ID), OL_D_ID, * equals (O_D_ID), and OL_O_ID (equals O_ID)
@@ -202,12 +203,12 @@ public class TpccThread extends Thread {
             int sum_ol_amount = 0;
             for (ol_id = 1; ol_id <= o_data.o_ol_cnt; ol_id++){
                 String ol_key = OrderLinePrimaryKey(w_id,d_id,min_o_id, ol_id);
-                OrderLine ol_data = t.get(ol_key).deepCopy().getOrderline();
+                OrderLine ol_data = t.get(w_id, ol_key).deepCopy().getOrderline();
 
                 sum_ol_amount += ol_data.ol_amount;
 
                 ol_data.ol_delivery_d = timeStamp;
-                t.put(ol_key, MyObject.orderline(ol_data));
+                t.put(w_id, ol_key, MyObject.orderline(ol_data));
             }
 
             /* The row in the customer table with matching C_W_ID (equals W_ID), C_D_ID
@@ -216,13 +217,13 @@ public class TpccThread extends Thread {
              * C_DELIVERY_CNT is incremented by 1.
              */
             String c_key = CustomerPrimaryKey(w_id,d_id,o_c_id);
-            Customer c_data = t.get(c_key).deepCopy().getCustomer();
+            Customer c_data = t.get(w_id, c_key).deepCopy().getCustomer();
 
             c_data.c_balance += sum_ol_amount;
             c_data.c_delivery_cnt++;
-            t.put(c_key, MyObject.customer(c_data));
+            t.put(w_id, c_key, MyObject.customer(c_data));
 
-            t.put(no_key_sec, MyObject.Integer(min_o_id++));
+            t.put(w_id, no_key_sec, MyObject.Integer(min_o_id++));
         }
 
         t.commit();
@@ -276,7 +277,7 @@ public class TpccThread extends Thread {
         if (byname >= 0) {
             // Case 2: the customer is selected based on customer last name
             String c_key_sec = CustomerSecundaryKey(w_id, d_id, c_last);
-            Integer count = t.get(c_key_sec).deepCopy().getInteger();
+            Integer count = t.get(w_id, c_key_sec).deepCopy().getInteger();
             c_id = count / 2 + 1;
         }
 
@@ -286,7 +287,7 @@ public class TpccThread extends Thread {
          * are retrieved.
          */
         String c_key = CustomerPrimaryKey(w_id,d_id,c_id);
-        Customer c_data = t.get(c_key).deepCopy().getCustomer();
+        Customer c_data = t.get(w_id, c_key).deepCopy().getCustomer();
 
         String c_first = c_data.c_first;
         String c_middle = c_data.c_middle;
@@ -300,11 +301,11 @@ public class TpccThread extends Thread {
          * that customer. O_ID, O_ENTRY_D, and O_CARRIER_ID are retrieved.
          */
         String o_key_sec = OrderSecundaryKey(w_id,d_id,c_id);
-        Integer o_id = t.get(o_key_sec).deepCopy().getInteger();
+        Integer o_id = t.get(w_id, o_key_sec).deepCopy().getInteger();
 
         // How many orderlines exists?
         String o_key = OrderPrimaryKey(w_id,d_id,o_id);
-        Order o_data = t.get(o_key).deepCopy().getOrder();
+        Order o_data = t.get(w_id, o_key).deepCopy().getOrder();
 
         String o_entry_d = o_data.o_entry_d;
         int o_carrier_id = o_data.o_carrier_id;
@@ -319,7 +320,7 @@ public class TpccThread extends Thread {
             order_data[i] = new OrderStatusInfo();
 
             String ol_key = OrderLinePrimaryKey(w_id, d_id, o_id, i+1);
-            MyObject obj = t.get(ol_key);
+            MyObject obj = t.get(w_id, ol_key);
             if (obj == null){
                 t.abort();
                 System.out.println("OrderStatus order line key: "+ol_key);
@@ -394,7 +395,7 @@ public class TpccThread extends Thread {
          * increased by H_AMOUNT.
          */
         String w_key = WarehousePrimaryKey(w_id);
-        Warehouse w_data = t.get(w_key).deepCopy().getWarehouse();
+        Warehouse w_data = t.get(w_id, w_key).deepCopy().getWarehouse();
 
         String w_name = w_data.w_name;
         String w_street_1 = w_data.w_street_1;
@@ -405,14 +406,14 @@ public class TpccThread extends Thread {
 
         w_data.w_ytd += h_amount;
 
-        t.put(w_key, MyObject.warehouse(w_data));
+        t.put(w_id, w_key, MyObject.warehouse(w_data));
 
         /* The row in the DISTRICT table with matching D_W_ID and D_ID is selected.
          * D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, and D_ZIP are retrieved
          * and D_YTD, the district's year-to-date balance, is increased by H_AMOUNT
          */
         String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
-        District d_data = t.get(d_key).deepCopy().getDistrict();
+        District d_data = t.get(w_id, d_key).deepCopy().getDistrict();
 
         String d_name = d_data.d_name;
         String d_street_1 = d_data.d_street_1;
@@ -423,7 +424,7 @@ public class TpccThread extends Thread {
 
         d_data.d_ytd += h_amount;
 
-        t.put(d_key, MyObject.district(d_data));
+        t.put(w_id, d_key, MyObject.district(d_data));
 
         if (byname >= 1) {
             /* Case 2: the customer is selected based on customer last name
@@ -432,7 +433,7 @@ public class TpccThread extends Thread {
              */
 
             String c_key_sec = CustomerSecundaryKey(c_w_id, c_d_id, c_last);
-            Integer count = t.get(c_key_sec).deepCopy().getInteger();
+            Integer count = t.get(w_id, c_key_sec).deepCopy().getInteger();
             c_id = count / 2 + 1;
         }
 
@@ -445,7 +446,7 @@ public class TpccThread extends Thread {
          * by H_AMOUNT. C_PAYMENT_CNT is incremented by 1.
          */
         String c_key = CustomerPrimaryKey(c_w_id,c_d_id,c_id);
-        Customer c_data = t.get(c_key).deepCopy().getCustomer();
+        Customer c_data = t.get(w_id, c_key).deepCopy().getCustomer();
 
         String c_first = c_data.c_first;
         String c_middle = c_data.c_middle;
@@ -481,11 +482,11 @@ public class TpccThread extends Thread {
             c_data.c_data = c_new_data;
         }
 
-        t.put(c_key, MyObject.customer(c_data));
+        t.put(w_id, c_key, MyObject.customer(c_data));
 
         String h_data = w_name+"    "+d_name;
         String h_key = HistoryPrimaryKey(c_id, c_d_id, c_w_id, d_id, w_id, timeStamp, h_amount, h_data);
-        t.put(h_key, MyObject.NULL(true));
+        t.put(w_id, h_key, MyObject.NULL(true));
 
         t.commit();
         return 1;
@@ -579,7 +580,7 @@ public class TpccThread extends Thread {
         /* The row in the WAREHOUSE table with matching W_ID is selected and W_TAX
          * rate is retrieved. */
         String w_key = KeysUtils.WarehousePrimaryKey(w_id);
-        Warehouse ware = t.get(w_key).deepCopy().getWarehouse();
+        Warehouse ware = t.get(w_id, w_key).deepCopy().getWarehouse();
         w_tax = ware.w_tax;
 
         /* The row in the DISTRICT table with matching D_W_ID and D_ID is selected,
@@ -587,12 +588,12 @@ public class TpccThread extends Thread {
          * order number for the district, is retireved and incremented by one.
          */
         String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
-        District district = t.get(d_key).deepCopy().getDistrict();
+        District district = t.get(w_id, d_key).deepCopy().getDistrict();
         d_tax = district.d_tax;
         d_next_o_oid = district.d_next_o_id;
 
         district.d_next_o_id++;
-        t.put(d_key, MyObject.district(district));
+        t.put(w_id, d_key, MyObject.district(district));
 
         /* The row in the customer table with matching C_W_ID, C_D_ID and C_ID
              * is selected
@@ -601,7 +602,7 @@ public class TpccThread extends Thread {
              * and C_CREDIT, the customer's credit status are retrieved.
              */
         String c_key = KeysUtils.CustomerPrimaryKey(w_id,d_id,c_id);
-        Customer customer = t.get(c_key).deepCopy().getCustomer();
+        Customer customer = t.get(w_id, c_key).deepCopy().getCustomer();
 
 
         /* A new row is inserted into both the NEW_ORDER table and the ORDER
@@ -633,7 +634,7 @@ public class TpccThread extends Thread {
             }
 
             String i_key = KeysUtils.ItemPrimaryKey(order_data[i].ol_i_id);
-            MyObject obj = t.get(i_key);
+            MyObject obj = t.get(ITEM_TABLE, i_key);
             if (obj == null){
                 t.abort();
                 System.out.println("NewOrder item key: "+i_key);
@@ -646,7 +647,7 @@ public class TpccThread extends Thread {
              * S_DIST_xx, where xx represents the district number, and S_DATA are retrieved.
              */
             String s_key = KeysUtils.StockPrimaryKey(order_data[i].ol_supply_w_id, order_data[i].ol_i_id);
-            Stock stock = t.get(s_key).deepCopy().getStock();
+            Stock stock = t.get(w_id, s_key).deepCopy().getStock();
 
             /* If the retrieved value for S_QUANTITY exceeds OL_QUANTITY by 10 or more, then
              * S_QUANTITY is decreased by OL_QUANTITY; otherwise S_QUANTITY is updated to
@@ -670,7 +671,7 @@ public class TpccThread extends Thread {
                 stock.s_remote_cnt++;
             }
 
-            t.put(s_key, MyObject.stock(stock));
+            t.put(w_id, s_key, MyObject.stock(stock));
 
             /* The amount for the item in the order (OL_AMOUNT) is computed as:
 	         * OL_QUANTITY * I_PRICE */
@@ -713,15 +714,15 @@ public class TpccThread extends Thread {
             String ol_key = KeysUtils.OrderLinePrimaryKey(w_id,d_id, d_next_o_oid, i+1);
             OrderLine orderLine = new OrderLine(order_data[i].ol_i_id, order_data[i].ol_supply_w_id,
                     "", order_data[i].ol_quantity, 0, ol_dist_info[i]);
-            t.put(ol_key, MyObject.orderline(orderLine));
+            t.put(w_id, ol_key, MyObject.orderline(orderLine));
         }
 
-        t.put(KeysUtils.NewOrderPrimaryKey(w_id, d_id, d_next_o_oid), MyObject.NULL(true));
+        t.put(w_id, KeysUtils.NewOrderPrimaryKey(w_id, d_id, d_next_o_oid), MyObject.NULL(true));
 
-        t.put(KeysUtils.OrderPrimaryKey(w_id, d_id, d_next_o_oid), MyObject.order(order));
+        t.put(w_id, KeysUtils.OrderPrimaryKey(w_id, d_id, d_next_o_oid), MyObject.order(order));
 
         String o_key_sec = OrderSecundaryKey(w_id, d_id, c_id);
-        t.put(o_key_sec, MyObject.Integer(d_next_o_oid));
+        t.put(w_id, o_key_sec, MyObject.Integer(d_next_o_oid));
 
         t.commit();
         return 1;

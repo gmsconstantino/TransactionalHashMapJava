@@ -6,6 +6,7 @@ package fct.thesis.database;
 public interface BufferDb<K,V> extends ObjectDb<K,V> {
 
     public K getKey();
+    public int getTable();
     public long getVersion();
     public void setVersion(long version);
 }

@@ -2,6 +2,7 @@ package fct.thesis.databaseOCCMulti;
 
 import fct.thesis.database.*;
 import fct.thesis.database2PL.Config;
+import fct.thesis.structures.P;
 import sun.misc.Contended;
 
 import java.util.*;
@@ -16,8 +17,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     @Contended
     static AtomicInteger timestamp = new AtomicInteger(0);
 
-    protected Map<K, Long> readSet; //set , conf se add nao altera
-    protected Map<K, BufferDb<K,V>> writeSet;
+    protected Map<P<Integer,K>, Long> readSet; //set , conf se add nao altera
+    protected Map<P<Integer,K>, BufferDb<K,V>> writeSet;
 
     private long startTime;
     private long commitTime;
@@ -28,57 +29,59 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
     protected synchronized void init(){
         super.init();
-        readSet = new HashMap<K, Long>();
+        readSet = new HashMap<>();
         writeSet = new TreeMap<>();
 
         startTime = timestamp.get();
     }
 
     @Override
-    public V get(K key) throws TransactionTimeoutException, TransactionAbortException {
+    public V get(int table, K k) throws TransactionTimeoutException, TransactionAbortException {
         if (!isActive)
             return null;
 
+        P key = new P<>(table,k);
         if(writeSet.containsKey(key)){
             return (V) writeSet.get(key).getValue();
         }
 
         V returnValue = null;
 
-        ObjectMultiVersionLockDB<K,V> obj = (ObjectMultiVersionLockDB) getKeyDatabase(key);
+        ObjectMultiVersionLockDB<K,V> obj = (ObjectMultiVersionLockDB) getKeyDatabase(table, k);
         if (obj == null || obj.getVersion() == -1)
             return null;
 
         if (readSet.containsKey(key)){
                 returnValue = obj.getValueVersionLess(readSet.get(key));
         } else {
-            addObjectDbToReadBuffer((K) key, obj.getVersion());
+            addObjectDbToReadBuffer(key, obj.getVersion());
             returnValue = (V) obj.getValueVersionLess(startTime);
         }
         return returnValue;
     }
 
     @Override
-    public void put(K key, V value) throws TransactionTimeoutException{
+    public void put(int table, K k, V value) throws TransactionTimeoutException{
         if(!isActive)
             return;
 
+        P key = new P<>(table,k);
         if(writeSet.containsKey(key)){
             writeSet.get(key).setValue(value);
             return;
         }
 
-        ObjectMultiVersionLockDB<K,V> obj = (ObjectMultiVersionLockDB) getKeyDatabase(key);
+        ObjectMultiVersionLockDB<K,V> obj = (ObjectMultiVersionLockDB) getKeyDatabase(table, k);
         //Nao existe nenhuma
         if (obj == null) {
             obj = new ObjectMultiVersionLockDB<K,V>(); // A thread fica com o write lock
-            ObjectMultiVersionLockDB<K,V> objdb = (ObjectMultiVersionLockDB) putIfAbsent(key, obj);
+            ObjectMultiVersionLockDB<K,V> objdb = (ObjectMultiVersionLockDB) putIfAbsent(table, k, obj);
 
             if (objdb != null)
                 obj = objdb;
         }
 
-        BufferDb<K,V> buffer = new BufferObjectDb(key, value, obj.getVersion(), obj);
+        BufferDb<K,V> buffer = new BufferObjectDb(table, k, value, obj.getVersion(), obj);
         addObjectDbToWriteBuffer(key, buffer);
     }
 
@@ -110,8 +113,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
 
         // Validate Read Set
-        for (Map.Entry<K, Long> obj_readSet : readSet.entrySet()){
-            ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) getKeyDatabase(obj_readSet.getKey());
+        for (Map.Entry<P<Integer,K>, Long> obj_readSet : readSet.entrySet()){
+            ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) getKeyDatabase(obj_readSet.getKey().f, obj_readSet.getKey().s);
 
             // readSet.version != objectDb.last_version
             if (obj_readSet.getValue() != objectDb.getVersion()) {
@@ -161,11 +164,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
 
-    void addObjectDbToReadBuffer(K key, Long version){
+    void addObjectDbToReadBuffer(P key, Long version){
         readSet.put(key, version);
     }
 
-    void addObjectDbToWriteBuffer(K key, BufferDb objectDb){
+    void addObjectDbToWriteBuffer(P key, BufferDb objectDb){
         writeSet.put(key, objectDb);
     }
 

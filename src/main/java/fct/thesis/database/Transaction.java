@@ -24,24 +24,24 @@ public abstract class Transaction<K,V> implements Comparable {
         success = false;
     }
 
-    public abstract V get(K key) throws TransactionTimeoutException, TransactionAbortException;
+    public abstract V get(int table, K key) throws TransactionTimeoutException, TransactionAbortException;
 
-    public abstract void put(K key, V value) throws TransactionTimeoutException, TransactionAbortException;
+    public abstract void put(int table, K key, V value) throws TransactionTimeoutException, TransactionAbortException;
 
     public abstract boolean commit() throws TransactionTimeoutException, TransactionAbortException;
 
     public abstract void abort() throws TransactionTimeoutException;
 
-    protected ObjectDb<K,V> getKeyDatabase(K key){
-        return db.getKey(key);
+    protected ObjectDb<K,V> getKeyDatabase(int table, K key){
+        return db.getKey(table, key);
     }
 
-    protected ObjectDb<K,V> putIfAbsent(K key, ObjectDb<K,V> obj){
-        return db.putIfAbsent(key, obj);
+    protected ObjectDb<K,V> putIfAbsent(int table, K key, ObjectDb<K,V> obj){
+        return db.putIfAbsent(table, key, obj);
     }
 
-    protected ObjectDb<K,V> removeKey(K key){
-        return db.removeKey(key);
+    protected ObjectDb<K,V> removeKey(int table, K key){
+        return db.removeKey(table, key);
     }
 
     @Override

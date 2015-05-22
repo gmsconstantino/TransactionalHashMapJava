@@ -5,12 +5,10 @@ package fct.thesis.database;
  */
 public class DatabaseFactory {
 
-    public static <K,V> fct.thesis.database.Database createDatabase(TransactionFactory.type t){
+    public static <K,V> fct.thesis.database.Database createDatabase(TransactionFactory.type t, int ntable){
         switch (t){
-            case NMSI:
-                return new fct.thesis.databaseBlotter.Database<K,V>();
             default:
-                return new fct.thesis.database.Database<K,V>();
+                return new fct.thesis.database.Database<K,V>(ntable);
         }
     }
 

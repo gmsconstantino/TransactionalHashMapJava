@@ -13,7 +13,7 @@ public class TestCLI {
 
     @org.junit.Before
     public void setUp() throws Exception {
-        db = new Database<Integer, Integer>();
+        db = new Database<Integer, Integer>(1);
     }
 
     @org.junit.After

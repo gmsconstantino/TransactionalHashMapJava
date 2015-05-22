@@ -9,9 +9,11 @@ public class RWEntry<K, V> {
     public long version;
     public K key;
     public V newValue;
+    public int table;
     public boolean isNew;
 
-    public RWEntry(MyObject<?, V> obj, long version, K key, V newValue, boolean isNew) {
+    public RWEntry(int table, MyObject<?, V> obj, long version, K key, V newValue, boolean isNew) {
+        this.table = table;
         this.obj = obj;
         this.version = version;
         this.key = key;

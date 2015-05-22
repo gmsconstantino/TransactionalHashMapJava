@@ -1,5 +1,6 @@
 package bench.tpcc;
 
+import fct.thesis.database.TransactionFactory;
 import thrift.TransactionTypeFactory;
 
 import java.text.DecimalFormat;
@@ -13,9 +14,9 @@ public class TpccEmbeded {
     public static volatile boolean stop = false;
     public static boolean DEBUG = false;
 
-    private static int numConn;
-    private static int numWare;
-    private static int measureTime;
+    private static int numConn = -1;
+    private static int numWare = -1;
+    private static int measureTime = -1;
     private static boolean bindWarehouse = false;
 
     public static void main(String[] args) throws InterruptedException {
@@ -42,7 +43,11 @@ public class TpccEmbeded {
             workers[i] = worker;
         }
 
-        System.out.println("Size database: "+Environment.getSizeDatabase());
+        int size = 0;
+        for (int i = 0; i < numWare + 1; i++) {
+            size += Environment.getSizeDatabase(i);
+        }
+        System.out.println("Size database = "+size);
 
         // TODO: Remove scanner only debug
         Scanner in = new Scanner(System.in);
@@ -85,7 +90,12 @@ public class TpccEmbeded {
         System.out.println("Number Aborts = "+totAborts);
         System.out.println("Abort rate = "+Math.round((totAborts/(double)(totCommits+totAborts))*100)+"%");
         System.out.println("Latency (ms) = "+ df.format(latency));
-        System.out.println("Size database = "+Environment.getSizeDatabase());
+
+        size = 0;
+        for (int i = 0; i < numWare + 1; i++) {
+            size += Environment.getSizeDatabase(i);
+        }
+        System.out.println("Size database = "+size);
         System.out.println("");
     }
 
@@ -98,6 +108,8 @@ public class TpccEmbeded {
             usageMessage();
             System.exit(0);
         }
+
+        TransactionFactory.type type = null;
 
         while (args[argindex].startsWith("-"))
         {
@@ -142,7 +154,7 @@ public class TpccEmbeded {
                     usageMessage();
                     System.exit(0);
                 }
-                Environment.setTransactionype(TransactionTypeFactory.getType(args[argindex]));
+                type = TransactionTypeFactory.getType(args[argindex]);
                 argindex++;
             }
             else if (args[argindex].compareTo("-d")==0)
@@ -198,6 +210,14 @@ public class TpccEmbeded {
                 break;
             }
         }
+
+        if(type!=null && numWare != -1) {
+            Environment.setTransactiontype(type, numWare+1);
+        } else {
+            usageMessage();
+            System.exit(0);
+        }
+
     }
 
     private static void usageMessage() {

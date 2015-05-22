@@ -29,8 +29,8 @@ public class Environment {
         return getInstance().getType();
     }
 
-    public static void setTransactionype(TransactionFactory.type type){
-        getInstance().setType(type);
+    public static void setTransactiontype(TransactionFactory.type type, int ntables){
+        getInstance().setType(type, ntables);
     }
 
     public static Transaction<String, MyObject> newTransaction(){
@@ -40,8 +40,8 @@ public class Environment {
             return getInstance().db.newTransaction(getTransactionType());
     }
     
-    public static int getSizeDatabase(){
-        return getInstance().db.size();
+    public static int getSizeDatabase(int table){
+        return getInstance().db.size(table);
     }
 
     private Environment() {
@@ -53,9 +53,9 @@ public class Environment {
         return type;
     }
 
-    public void setType(TransactionFactory.type type) {
+    public void setType(TransactionFactory.type type, int ntables) {
         this.type = type;
         System.out.println("Set new Database Transactions Type : "+ type);
-        db = (Database<String , MyObject>) DatabaseFactory.createDatabase(type);
+        db = (Database<String , MyObject>) DatabaseFactory.createDatabase(type, ntables);
     }
 }
