@@ -1,6 +1,7 @@
 package fct.thesis.databaseNMSI;
 
 import fct.thesis.database.BufferObjectDb;
+import fct.thesis.database.Database;
 import fct.thesis.database.TransactionAbortException;
 import fct.thesis.database.TransactionTimeoutException;
 import fct.thesis.database2PL.Config;
@@ -45,20 +46,15 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (obj == null || obj.getLastVersion() == -1)
             return null;
 
-        boolean lock = false;
-
         Long v = obj.getVersionForTransaction(id);
         if (v==null){
             obj.lock_read();
-            lock = true;
             v = obj.getLastVersion();
             obj.putSnapshot(this, v);
+            obj.unlock_read();
         }
 
         V r = obj.getValueVersion(v, aggStarted);
-
-        if (lock)
-            obj.unlock_read();
 
         return r;
     }
@@ -129,10 +125,10 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
             ObjectNMSIDb<K, V> objectDb = (ObjectNMSIDb) buffer.getObjectDb();
-
+            long version = objectDb.getLastVersion();
             for (Transaction tid : aggStarted){
                 if (tid.isActive() && objectDb.snapshots.get(tid) == null){
-                    objectDb.putSnapshot(this, objectDb.getLastVersion());
+                    objectDb.putSnapshot(this, version);
                 }
             }
 
@@ -143,7 +139,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         isActive = false;
         success = true;
-        addToCleaner(this);
+//        addToCleaner(this);
         return true;
     }
 
@@ -175,6 +171,15 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     @Override
     public Collection getWriteSet() {
         return writeSet.values();
+    }
+
+    public static void addToCleaner(final fct.thesis.database.Transaction t) {
+//        Database.asyncPool.execute(() -> {
+//            try {
+//                Database.queue.add(t);
+//            } catch (Exception e) {
+//            }
+//        });
     }
 
     @Override

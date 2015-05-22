@@ -95,12 +95,4 @@ public abstract class Transaction<K,V> implements Comparable {
         return new ArrayList<>();
     }
 
-    public static void addToCleaner(final fct.thesis.database.Transaction t) {
-        Database.asyncPool.execute(() -> {
-            try {
-                Database.queue.add(t);
-            } catch (Exception e) {
-            }
-        });
-    }
 }

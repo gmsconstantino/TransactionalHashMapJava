@@ -15,7 +15,7 @@ import java.util.concurrent.PriorityBlockingQueue;
  */
 public class ThreadCleanerNMSI<K,V> extends Thread{
 
-    private final static long WAITCLEANERTIME = 2000;
+    private final static long WAITCLEANERTIME = 100;
     public final Database db;
 
     public ThreadCleanerNMSI(Database _db) {

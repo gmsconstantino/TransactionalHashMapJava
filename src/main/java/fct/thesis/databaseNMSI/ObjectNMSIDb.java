@@ -1,15 +1,17 @@
 package fct.thesis.databaseNMSI;
 
+import fct.thesis.database.Database;
 import fct.thesis.database.ObjectDb;
+import fct.thesis.structures.MapEntry;
 import fct.thesis.structures.RwLock;
 import pt.dct.util.P;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.Vector;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -18,15 +20,17 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     AtomicLong version;
-    ConcurrentLinkedDeque<P<Long, V>> objects;
+    volatile long minversion;
+    ConcurrentHashMap<Long, P<V, AtomicInteger>> objects;
     ConcurrentHashMap<Transaction, Long> snapshots;
 
     RwLock rwlock;
 
     public ObjectNMSIDb(){
         version = new AtomicLong(-1L);
+        minversion = 0;
 
-        objects = new ConcurrentLinkedDeque<>();
+        objects = new ConcurrentHashMap<>();
         snapshots = new ConcurrentHashMap<>();
 
         rwlock = new RwLock();
@@ -36,41 +40,44 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         return version.get();
     }
 
-    public Long incrementAndGetVersion() {
-        return version.incrementAndGet();
-    }
-
     public void putSnapshot(Transaction t, Long v) {
+        if (v < minversion)
+            return;
+
+        objects.get(v).s.incrementAndGet();
         snapshots.put(t, v);
     }
-
-//    public void removeSnapshot(Long tid) {
-//        snapshots.remove(tid);
-//    }
 
     public Long getVersionForTransaction(Long tid){
         return snapshots.get(tid);
     }
 
     public V getValueVersion(long version, Set<Transaction> aggrDataTx) {
-        if (version > getLastVersion())
+        if (version > getLastVersion() && version < minversion)
             return null;
 
-        V value = null;
+        V value = objects.get(version).f;
 
-        for(P<Long, V> pair : objects){
-            if(pair.f <= version){
-                value = pair.s;
-                break;
-            }
-        }
+//        for(P<Long, V> pair : objects){
+//            if(pair.f <= version){
+//                value = pair.s;
+//                break;
+//            }
+//        }
 
         // Add tids to transaction metadata
-        for (Transaction transaction : snapshots.keySet()) {
-            if(transaction.isActive()) {
-                Long v = snapshots.get(transaction);
+        for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
+            Long v = snapshots.get(entry.getKey());
+            if(entry.getKey().isActive()) {
                 if (v != null && v < version)
-                    aggrDataTx.add(transaction);
+                    aggrDataTx.add(entry.getKey());
+            } else {
+                try {
+                    objects.get(v).s.decrementAndGet();
+                } catch (NullPointerException e){
+//                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
+                }
+                snapshots.remove(entry.getKey());
             }
         }
 
@@ -79,29 +86,14 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     /**
      * Add object with value and increment the version
+     * Ocorre quando a transacao tem o write lock sobre o objecto
      * @param value
      */
     @Override
     public void setValue(V value) {
 //        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
 //        obj.unlock_write();
-        objects.addFirst(new P(version.incrementAndGet(), value));
-    }
-
-    public long getMin() {
-        long min = Long.MAX_VALUE;
-        long i;
-        for (Transaction transaction : snapshots.keySet()) {
-            i = snapshots.get(transaction);
-            if (transaction.isActive()) {
-                if (i < min) {
-                    min = i;
-                }
-            } else
-                snapshots.remove(transaction);
-
-        }
-        return min;
+        objects.putIfAbsent(version.incrementAndGet(), new P(value, new AtomicInteger(0)));
     }
 
     @Override
@@ -109,19 +101,16 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         if (objects.size()<2)
             return;
 
-        version = getMin();
 
-        Iterator<P<Long, V>> it = objects.descendingIterator();
-        while (it.hasNext()){
-            P<Long, V> pair = it.next();
-            if (version > pair.f)
-                objects.removeLastOccurrence(pair);
-            else
-                break;
-
-            if (objects.size()==1)
-                return;
+        for (Map.Entry<Long,P<V, AtomicInteger>> entry : objects.entrySet()) {
+            P<V, AtomicInteger> pair = entry.getValue();
+            int counter = pair.s.get();
+            if (entry.getKey() < getLastVersion()-1 && counter < 1){
+                minversion = entry.getKey()+1;
+                objects.remove(entry.getKey());
+            }
         }
+
     }
 
     @Override
