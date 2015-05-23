@@ -33,7 +33,7 @@ public class TpccEmbeded {
 
         TpccLoad.tpccLoadData(numWare);
 
-//        printHeapSize();
+        printHeapSize();
 
         TpccThread[] workers = new TpccThread[numConn];
 

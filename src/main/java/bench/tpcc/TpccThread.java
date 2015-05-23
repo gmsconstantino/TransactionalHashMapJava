@@ -433,7 +433,7 @@ public class TpccThread extends Thread {
              */
 
             String c_key_sec = CustomerSecundaryKey(c_w_id, c_d_id, c_last);
-            Integer count = t.get(w_id, c_key_sec).deepCopy().getInteger();
+            Integer count = t.get(c_w_id, c_key_sec).deepCopy().getInteger();
             c_id = count / 2 + 1;
         }
 
@@ -446,7 +446,7 @@ public class TpccThread extends Thread {
          * by H_AMOUNT. C_PAYMENT_CNT is incremented by 1.
          */
         String c_key = CustomerPrimaryKey(c_w_id,c_d_id,c_id);
-        Customer c_data = t.get(w_id, c_key).deepCopy().getCustomer();
+        Customer c_data = t.get(c_w_id, c_key).deepCopy().getCustomer();
 
         String c_first = c_data.c_first;
         String c_middle = c_data.c_middle;
@@ -647,7 +647,7 @@ public class TpccThread extends Thread {
              * S_DIST_xx, where xx represents the district number, and S_DATA are retrieved.
              */
             String s_key = KeysUtils.StockPrimaryKey(order_data[i].ol_supply_w_id, order_data[i].ol_i_id);
-            Stock stock = t.get(w_id, s_key).deepCopy().getStock();
+            Stock stock = t.get(order_data[i].ol_supply_w_id, s_key).deepCopy().getStock();
 
             /* If the retrieved value for S_QUANTITY exceeds OL_QUANTITY by 10 or more, then
              * S_QUANTITY is decreased by OL_QUANTITY; otherwise S_QUANTITY is updated to
