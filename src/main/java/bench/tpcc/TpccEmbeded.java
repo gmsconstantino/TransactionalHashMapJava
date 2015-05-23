@@ -50,8 +50,8 @@ public class TpccEmbeded {
         System.out.println("Size database = "+size);
 
         // TODO: Remove scanner only debug
-        Scanner in = new Scanner(System.in);
-        in.nextLine();
+//        Scanner in = new Scanner(System.in);
+//        in.nextLine();
 
 //        measure time
         System.out.printf("\nSTART BENCHMARK.\n\n");
