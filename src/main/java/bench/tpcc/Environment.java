@@ -33,6 +33,10 @@ public class Environment {
         getInstance().setType(type);
     }
 
+    public static void cleanup(){
+        getInstance().db.cleanup();
+    }
+
     public static Transaction<String, MyObject> newTransaction(){
         if (remote){
             return new ThriftTransaction();

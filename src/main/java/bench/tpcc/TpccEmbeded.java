@@ -32,7 +32,7 @@ public class TpccEmbeded {
 
         TpccLoad.tpccLoadData(numWare);
 
-//        printHeapSize();
+        printHeapSize();
 
         TpccThread[] workers = new TpccThread[numConn];
 
@@ -68,6 +68,8 @@ public class TpccEmbeded {
 
         final long actualTestTime = System.currentTimeMillis() - startTime;
         System.out.println();
+
+        Environment.cleanup();
 
         int totCommits = 0;
         int totAborts = 0;
