@@ -45,7 +45,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         snapshots.put(t, v);
     }
 
-    public Long getVersionForTransaction(Long tid){
+    public Long getVersionForTransaction(Transaction tid){
         return snapshots.get(tid);
     }
 

@@ -46,7 +46,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (obj == null || obj.getLastVersion() == -1)
             return null;
 
-        Long v = obj.getVersionForTransaction(id);
+        Long v = obj.getVersionForTransaction(this);
         if (v==null){
             obj.lock_read();
             v = obj.getLastVersion();
@@ -110,7 +110,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 buffer.setObjectDb(objectDb); // Set reference to Object, para que no ciclo seguindo
                                               // nao seja necessario mais uma pesquisa no hashmap
 
-                Long v = objectDb.getVersionForTransaction(id);
+                Long v = objectDb.getVersionForTransaction(this);
                 if(v != null && v < objectDb.getLastVersion()){
                     abortVersions(lockObjects);
                     return false;
