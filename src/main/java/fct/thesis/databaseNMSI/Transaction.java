@@ -19,8 +19,21 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 //    @Contended
 //    static AtomicLong identifier = new AtomicLong(-1L);
 
+    public static long[] shardIds;
+
+    static {
+        shardIds = new long[Database.numberThreads];
+        for (int i = 0; i < Database.numberThreads; i++) {
+            shardIds[i] = i - Database.numberThreads;
+        }
+    }
+
     Set<Transaction> aggStarted;
     protected Map<K, BufferObjectDb<K,V>> writeSet;
+
+    public Transaction() {
+        super();
+    }
 
     public Transaction(fct.thesis.database.Database db) {
         super(db);
@@ -30,7 +43,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         super.init();
         aggStarted = new HashSet<>();
         writeSet = new HashMap<>();
-//        id = Transaction.identifier.incrementAndGet();
+
+        id = shardIds[(int) Thread.currentThread().getId()%Database.numberThreads];
+        shardIds[(int) Thread.currentThread().getId()%Database.numberThreads] = id + Database.numberThreads;
+        id = id + Database.numberThreads;
+
     }
 
     @Override
@@ -46,7 +63,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (obj == null || obj.getLastVersion() == -1)
             return null;
 
-        Long v = obj.getVersionForTransaction(id);
+        Long v = obj.getVersionForTransaction(this);
         if (v==null){
             obj.lock_read();
             v = obj.getLastVersion();
@@ -82,6 +99,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (writeSet.size() == 0){
             isActive = false;
             success = true;
+            addToCleaner(this);
             return true;
         }
 
@@ -110,7 +128,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 buffer.setObjectDb(objectDb); // Set reference to Object, para que no ciclo seguindo
                                               // nao seja necessario mais uma pesquisa no hashmap
 
-                Long v = objectDb.getVersionForTransaction(id);
+                Long v = objectDb.getVersionForTransaction(this);
                 if(v != null && v < objectDb.getLastVersion()){
                     abortVersions(lockObjects);
                     return false;
@@ -139,7 +157,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         isActive = false;
         success = true;
-//        addToCleaner(this);
+        addToCleaner(this);
         return true;
     }
 
@@ -162,6 +180,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         isActive = false;
         success = false;
         commitId = -1;
+        addToCleaner(this);
     }
 
     private void addObjectDbToWriteBuffer(K key, BufferObjectDb objectDb){
@@ -174,12 +193,12 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
     public static void addToCleaner(final fct.thesis.database.Transaction t) {
-//        Database.asyncPool.execute(() -> {
-//            try {
-//                Database.queue.add(t);
-//            } catch (Exception e) {
-//            }
-//        });
+        Database.asyncPool.execute(() -> {
+            try {
+                Database.queue.add(t);
+            } catch (Exception e) {
+            }
+        });
     }
 
     @Override

@@ -101,9 +101,9 @@ public class MicroSI {
             System.exit(0);
         }
 
-//        Scanner in = new Scanner(System.in);
-//        System.out.print("Press Enter:");
-//        in.nextLine();
+        Scanner in = new Scanner(System.in);
+        System.out.print("Press Enter:");
+        in.nextLine();
 
         String global_algorithm = args[0];
         int duration = Integer.parseInt(args[1]);
@@ -122,7 +122,7 @@ public class MicroSI {
 
 
         TYPE = TransactionTypeFactory.getType(global_algorithm);
-        db = DatabaseFactory.createDatabase(TYPE);
+        db = DatabaseFactory.createDatabase(TYPE, num_threads);
 
         for (int i=0; i < max_num_accesses; i++) {
             Transaction<Integer,Integer> t = db.newTransaction(TYPE);

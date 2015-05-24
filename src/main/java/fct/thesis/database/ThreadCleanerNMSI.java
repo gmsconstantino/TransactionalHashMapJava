@@ -16,23 +16,40 @@ import java.util.concurrent.PriorityBlockingQueue;
 public class ThreadCleanerNMSI<K,V> extends Thread{
 
     private final static long WAITCLEANERTIME = 100;
+    public final PriorityBlockingQueue<Transaction> queue = Database.queue;
+
     public final Database db;
+    private long min = -1;
 
     public ThreadCleanerNMSI(Database _db) {
         db = _db;
         setName("Thread-Cleaner");
     }
 
+    public long getMin() {
+        Transaction t = queue.peek();
+        while (!queue.isEmpty() && t.id==(min+1)){
+            min++;
+            queue.poll();
+            t = queue.peek();
+        }
+        return min;
+    }
+
+
     public void run(){
         for (;;){
+            if (queue.size()==0) {
+                sleep();
+                continue;
+            }
 
-            sleep();
+            long minTxId = getMin();
 
             Iterator<ObjectDb> it = db.getObjectDbIterator();
             while (it.hasNext()){
-                it.next().clean(-1);
+                it.next().clean(minTxId);
             }
-
         }
     }
 

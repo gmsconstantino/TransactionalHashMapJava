@@ -17,6 +17,8 @@ import java.util.function.BiFunction;
  */
 public class Database<K,V> {
 
+    public static int numberThreads;
+
     public final static ExecutorService asyncPool = Executors.newSingleThreadExecutor();
 
     public final static PriorityBlockingQueue<Transaction> queue = new PriorityBlockingQueue(1000000);
@@ -26,6 +28,12 @@ public class Database<K,V> {
 
     public Database(){
         concurrentHashMap = new ConcurrentHashMap<>(1000000,0.75f,64);
+        numberThreads = 0;
+    }
+
+    public Database(int threads){
+        concurrentHashMap = new ConcurrentHashMap<>(1000000,0.75f,64);
+        numberThreads = threads;
     }
 
     protected ObjectDb<K,V> getKey(K key){

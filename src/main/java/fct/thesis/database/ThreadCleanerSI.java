@@ -33,6 +33,7 @@ public class ThreadCleanerSI<K,V> extends Thread{
             min++;
             clean.addAll(t.getWriteSet());
             queue.poll();
+            t = queue.peek();
         }
         return min;
     }

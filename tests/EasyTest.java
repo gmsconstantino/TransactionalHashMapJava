@@ -1,16 +1,61 @@
 import fct.thesis.database.*;
+import fct.thesis.database.Transaction;
+import fct.thesis.databaseNMSI.*;
 
-import java.util.InputMismatchException;
-import java.util.IntSummaryStatistics;
-import java.util.Random;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.concurrent.PriorityBlockingQueue;
 
 /**
  * Created by gomes on 10/03/15.
  */
 public class EasyTest {
 
-    public static void main(String[] args) {
+    public static class Tx implements Comparable {
+        long v;
+
+        public Tx(long v) {
+            this.v = v;
+        }
+
+        @Override
+        public int compareTo(Object o) {
+            Tx t = (Tx) o;
+            return Long.compare(v, t.v);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Tx)) return false;
+
+            Tx tx = (Tx) o;
+
+            if (v != tx.v) return false;
+
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return "Tx{" +
+                    "v=" + v +
+                    '}';
+        }
+    }
+
+    public static Database<Integer,Integer> db;
+
+    public static class Worker extends Thread {
+
+        public void run() {
+            for (int i = 0; i < 10; i++){
+                Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.NMSI);
+                t.commit();
+            }
+        }
+    }
+
+    public static void main(String[] args) throws InterruptedException {
 
 //        Database<Integer, Integer> db = new Database<Integer, Integer>();
 //
@@ -26,26 +71,52 @@ public class EasyTest {
 //
 //        t.commit();
 
-        TreeMap<Integer, BufferDb<Integer,Integer>> map = new TreeMap<>();
-        BufferObjectDb<Integer,Integer> buffer = new BufferObjectDb<Integer, Integer>(4,10);
-        BufferObjectDb<Integer,Integer> buffer2 = new BufferObjectDb<Integer, Integer>(4,14);
+        TreeMap<Tx, Integer> map = new TreeMap<>();
+        map.put(new Tx(3),5);
+        Tx t = new Tx(6);
+//        map.put(t,3);
+        map.put(new Tx(9),8);
 
-        int n = buffer.compareTo(buffer2);
-        System.out.println(n);
+        System.out.println(map.get(t));
+        System.out.println(map.ceilingKey(t));
+        System.out.println();
 
-        System.out.println(buffer.equals(buffer2));
+        // -------------------------------------
 
         Random r = new Random();
 
-        for (int i = 0; i < 10; i++) {
-            int k = r.nextInt(100);
-            map.put(k, new BufferObjectDb<Integer,Integer>(k,r.nextInt(1000)));
+        PriorityBlockingQueue<Tx> queueTx = new PriorityBlockingQueue(1000000);
+
+        for (int i = 0; i < 20; i++) {
+            queueTx.add(new Tx(r.nextInt(100)));
         }
 
-        map.put(buffer.getKey(), buffer);
-        map.put(buffer2.getKey(), buffer2);
-        for (BufferDb<Integer,Integer> bufferDb : map.values())
-            System.out.println(bufferDb.getKey()+ " -> " + bufferDb.getValue());
+        for (Tx i = queueTx.poll(); !queueTx.isEmpty(); i = queueTx.poll()){
+            System.out.println(i);
+        }
+        System.out.println();
+
+        // -------------------------------------
+
+        db = new Database<Integer, Integer>(5);
+
+        Worker[] workers = new Worker[5];
+
+        for (int i=0; i < workers.length; i++) {
+            workers[i] = new Worker();
+            workers[i].start();
+        }
+
+        for (int i=0; i < workers.length; i++) {
+            workers[i].join();
+        }
+
+        System.out.println(Arrays.toString(fct.thesis.databaseNMSI.Transaction.shardIds));
+
+        PriorityBlockingQueue<Transaction> queue = Database.queue;
+        while (!queue.isEmpty()){
+            System.out.println(queue.poll());
+        }
 
     }
 

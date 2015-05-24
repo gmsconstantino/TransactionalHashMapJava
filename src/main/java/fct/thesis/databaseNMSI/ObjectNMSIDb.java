@@ -7,6 +7,7 @@ import pt.dct.util.P;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -18,8 +19,10 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     AtomicLong version;
     volatile long minversion;
-    ConcurrentHashMap<Long, P<V, AtomicInteger>> objects;
-    ConcurrentHashMap<Transaction, Long> snapshots;
+    long minTxId;
+//    ConcurrentHashMap<Long, P<V, AtomicInteger>> objects;
+    ConcurrentHashMap<Long, V> objects;
+    ConcurrentSkipListMap<Transaction, Long> snapshots;
 
     RwLock rwlock;
 
@@ -28,7 +31,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         minversion = 0;
 
         objects = new ConcurrentHashMap<>();
-        snapshots = new ConcurrentHashMap<>();
+        snapshots = new ConcurrentSkipListMap<>();
 
         rwlock = new RwLock();
     }
@@ -41,11 +44,10 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         if (v < minversion)
             return;
 
-        objects.get(v).s.incrementAndGet();
         snapshots.put(t, v);
     }
 
-    public Long getVersionForTransaction(Long tid){
+    public Long getVersionForTransaction(Transaction tid){
         return snapshots.get(tid);
     }
 
@@ -53,7 +55,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         if (version > getLastVersion() && version < minversion)
             return null;
 
-        V value = objects.get(version).f;
+        V value = objects.get(version);
 
 //        for(P<Long, V> pair : objects){
 //            if(pair.f <= version){
@@ -68,13 +70,15 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
             if(entry.getKey().isActive()) {
                 if (v != null && v < version)
                     aggrDataTx.add(entry.getKey());
-            } else {
-                try {
-                    objects.get(v).s.decrementAndGet();
-                } catch (NullPointerException e){
-//                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
-                }
-                snapshots.remove(entry.getKey());
+            }
+            else {
+//                try {
+//                    objects.get(v).s.decrementAndGet();
+//                } catch (NullPointerException e){
+////                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
+//                }
+                if (entry.getKey().id < minTxId)
+                    snapshots.remove(entry.getKey());
             }
         }
 
@@ -90,23 +94,52 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
     public void setValue(V value) {
 //        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
 //        obj.unlock_write();
-        objects.putIfAbsent(version.incrementAndGet(), new P(value, new AtomicInteger(0)));
+        objects.putIfAbsent(version.incrementAndGet(), value);
     }
 
     @Override
-    public void clean(long version) {
+    public void clean(long txId) {
         if (objects.size()<2)
             return;
 
+//        long max_version = Integer.MIN_VALUE;
+//        for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
+//            if (entry.getKey().id <= version){
+//                if (entry.getValue() > max_version)
+//                    max_version = entry.getValue();
+////                snapshots.remove(entry.getKey());
+//            }
+//        }
 
-        for (Map.Entry<Long,P<V, AtomicInteger>> entry : objects.entrySet()) {
-            P<V, AtomicInteger> pair = entry.getValue();
-            int counter = pair.s.get();
-            if (entry.getKey() < getLastVersion()-1 && counter < 1){
-                minversion = entry.getKey()+1;
-                objects.remove(entry.getKey());
-            }
+        Transaction t = new Transaction();
+        t.id = txId;
+
+        long max_version = -1;
+        try {
+            max_version = snapshots.floorEntry(t).getValue();
+        } catch (NullPointerException e){
+//            e.printStackTrace();
+            return; // pode nao ter nenhuma transacao com id menor que txId
         }
+
+        if (max_version == getLastVersion())
+            max_version--;
+
+        for (long i = minversion; i <= max_version; i++) {
+            objects.remove(i);
+        }
+
+        minversion = max_version+1;
+        minTxId = txId;
+
+//        for (Map.Entry<Long,P<V, AtomicInteger>> entry : objects.entrySet()) {
+//            P<V, AtomicInteger> pair = entry.getValue();
+//            int counter = pair.s.get();
+//            if (entry.getKey() < getLastVersion()-1 && counter < 1){
+//                minversion = entry.getKey()+1;
+//                objects.remove(entry.getKey());
+//            }
+//        }
 
     }
 
