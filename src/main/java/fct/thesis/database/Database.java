@@ -15,6 +15,7 @@ import java.util.concurrent.PriorityBlockingQueue;
  */
 public class Database<K,V> {
 
+    public static int numberTables;
     public ConcurrentHashMap[] tables;
     public final static ExecutorService asyncPool = Executors.newSingleThreadExecutor();
 
@@ -22,6 +23,7 @@ public class Database<K,V> {
     private Thread cleaner;
 
     public Database(int ntables){
+        numberTables = ntables;
         tables = new ConcurrentHashMap[ntables];
         for (int i = 0; i < ntables; i++) {
             tables[i] = new ConcurrentHashMap<K,ObjectDb<K,V>>(1000000,0.75f,256);
@@ -66,12 +68,8 @@ public class Database<K,V> {
         return new DbIterator(table);
     }
     
-    protected Iterator<ObjectDb<K,V>> getObjectDbIterator(){
-        return new ObjectDbIterator();
-    }
-
-    public Iterator getIterator() {
-        return new DbIterator();
+    protected Iterator<ObjectDb<K,V>> getObjectDbIterator(int table){
+        return new ObjectDbIterator(table);
     }
 
     private class DbIterator implements Iterator {
@@ -109,8 +107,8 @@ public class Database<K,V> {
 
         Set<Map.Entry<K, ObjectDb<K,V>>> set;
         Iterator<Map.Entry<K, ObjectDb<K,V>>> it;
-        ObjectDbIterator(){
-            set = concurrentHashMap.entrySet();
+        ObjectDbIterator(int table){
+            set = tables[table].entrySet();
             it = set.iterator();
         }
 

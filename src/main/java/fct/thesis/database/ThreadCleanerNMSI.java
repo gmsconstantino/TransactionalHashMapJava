@@ -27,12 +27,12 @@ public class ThreadCleanerNMSI<K,V> extends Thread{
         for (;;){
 
             sleep();
-
-            Iterator<ObjectDb> it = db.getObjectDbIterator();
-            while (it.hasNext()){
-                it.next().clean(-1);
+            for (int i = 0; i < Database.numberTables; i++) {
+                Iterator<ObjectDb> it = db.getObjectDbIterator(i);
+                while (it.hasNext()){
+                    it.next().clean(-1);
+                }
             }
-
         }
     }
 

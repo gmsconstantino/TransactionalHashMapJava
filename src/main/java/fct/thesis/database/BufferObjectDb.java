@@ -19,8 +19,7 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
 
     private ObjectDb<K,V> objectDb;
 
-    public BufferObjectDb(int table, V value){
-        this.table = table;
+    public BufferObjectDb(V value){
         this.value = value;
         this.version = -1L;
     }
