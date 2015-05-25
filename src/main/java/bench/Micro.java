@@ -15,6 +15,8 @@ public class Micro {
 
     private static TransactionFactory.type TYPE;
 
+    private static final int TABLE = 1;
+
     static class ClientThread extends Thread
     {
         Database<Integer,Integer> _db;
@@ -87,21 +89,21 @@ public class Micro {
 
 
                 // read-modify-write global store
-                int v = t.get(key_shared);
-                t.put(key_shared, v + 1);
+                int v = t.get(TABLE,key_shared);
+                t.put(TABLE,key_shared, v + 1);
 
                 int i = 0;
                 for (; i < rw; i++) {
-                    v = t.get(keys.get(i));
-                    t.put(keys.get(i), v + 1);
+                    v = t.get(TABLE,keys.get(i));
+                    t.put(TABLE,keys.get(i), v + 1);
                 }
 
                 for (; i < nread; i++) {
-                    t.get(keys.get(i));
+                    t.get(TABLE,keys.get(i));
                 }
 
                 for (; i < nwrite; i++) {
-                    t.put(keys.get(i), i + 1);
+                    t.put(TABLE,keys.get(i), i + 1);
                 }
 
                 if (t.commit()) {
@@ -152,7 +154,7 @@ public class Micro {
 //        System.out.println("Write = "+global_nwrite);
 
         TYPE = TransactionTypeFactory.getType(global_algorithm);
-        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE);
+        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE,TABLE);
         loadDatabase(db);
 
         Vector<Thread> threads = new Vector<Thread>();
@@ -201,7 +203,7 @@ public class Micro {
         Transaction<Integer,Integer> t = db.newTransaction(TYPE);
 
         for (int i = 0; i < total_size; i++){
-            t.put(i, 0);
+            t.put(TABLE,i, 0);
         }
 
         if(!t.commit()){

@@ -5,8 +5,8 @@ package fct.thesis.database;
  */
 public class DatabaseFactory {
 
-    public static <K,V> fct.thesis.database.Database createDatabase(TransactionFactory.type t){
-        Database db = new fct.thesis.database.Database<K,V>();
+    public static <K,V> fct.thesis.database.Database createDatabase(TransactionFactory.type t, int ntables){
+        Database db = new fct.thesis.database.Database<K,V>(ntables);
         switch (t){
             case SI:
                 db.startThreadCleaner(new ThreadCleanerSI());

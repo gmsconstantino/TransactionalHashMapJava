@@ -3,6 +3,7 @@ package fct.thesis.databaseOCCNoAbort;
 import fct.thesis.database.*;
 import fct.thesis.database2PL.Config;
 import fct.thesis.databaseOCC.ObjectLockOCC;
+import fct.thesis.structures.P;
 
 import java.util.*;
 
@@ -12,8 +13,8 @@ import java.util.*;
 
 public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
 
-    protected Map<K, BufferDb<K,V>> readSet;
-    protected Map<K, BufferDb<K,V>> writeSet;
+    protected Map<P<Integer,K>, BufferDb<K,V>> readSet;
+    protected Map<P<Integer,K>, BufferDb<K,V>> writeSet;
 
     public Transaction(Database db) {
         super(db);
@@ -22,15 +23,16 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     protected void init(){
         super.init();
 
-        readSet = new TreeMap<K, BufferDb<K,V>>();
-        writeSet = new TreeMap<K, BufferDb<K,V>>();
+        readSet = new TreeMap<>();
+        writeSet = new TreeMap<>();
     }
 
     @Override
-    public V get(K key) throws TransactionTimeoutException, TransactionAbortException {
+    public V get(int table, K k) throws TransactionTimeoutException, TransactionAbortException {
         if (!isActive)
             return null;
 
+        P key = new P<>(table,k);
         if(writeSet.containsKey(key)){
             return (V) writeSet.get(key).getValue();
         }
@@ -38,7 +40,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         V returnValue;
         long versionObj;
 
-        ObjectLockOCC<K,V> obj = (ObjectLockOCC) getKeyDatabase(key);
+        ObjectLockOCC<K,V> obj = (ObjectLockOCC) getKeyDatabase(table, k);
         if (obj == null || obj.getVersion() == -1)
             return null;
 
@@ -47,33 +49,34 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         } else {
             returnValue = obj.getValue();
             versionObj = obj.getVersion();
-            addObjectDbToReadBuffer(key, new BufferObjectDb(key, returnValue, versionObj, obj));
+            addObjectDbToReadBuffer(key, new BufferObjectDb(table, k, returnValue, versionObj, obj));
         }
 
         return returnValue;
     }
 
     @Override
-    public void put(K key, V value) throws TransactionTimeoutException{
+    public void put(int table, K k, V value) throws TransactionTimeoutException{
         if(!isActive)
             return;
 
+        P key = new P<>(table,k);
         if(writeSet.containsKey(key)){
             writeSet.get(key).setValue(value); // set new value on buffer
             return;
         }
 
-        ObjectLockOCC<K,V> obj = (ObjectLockOCC) getKeyDatabase(key);
+        ObjectLockOCC<K,V> obj = (ObjectLockOCC) getKeyDatabase(table, k);
         if (obj == null) {
             obj = new ObjectLockOCC<K,V>(null); // A thread fica com o write lock
-            ObjectLockOCC<K,V> objdb = (ObjectLockOCC) putIfAbsent(key, obj);
+            ObjectLockOCC<K,V> objdb = (ObjectLockOCC) putIfAbsent(table, k, obj);
 
             if (objdb != null)
                 obj = objdb;
         }
 
         // o objecto esta na base de dados
-        BufferObjectDb<K,V> buffer = new BufferObjectDb(key, value, obj.getVersion(), obj);
+        BufferObjectDb<K,V> buffer = new BufferObjectDb(table, k, value, obj.getVersion(), obj);
         addObjectDbToWriteBuffer(key, buffer);
     }
 
@@ -157,11 +160,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         commitId = -1;
     }
 
-    void addObjectDbToReadBuffer(K key, BufferDb<K,V> objectDb){
+    void addObjectDbToReadBuffer(P key, BufferDb<K,V> objectDb){
         readSet.put(key, objectDb);
     }
 
-    void addObjectDbToWriteBuffer(K key, BufferDb objectDb){
+    void addObjectDbToWriteBuffer(P key, BufferDb objectDb){
         writeSet.put(key, objectDb);
     }
 

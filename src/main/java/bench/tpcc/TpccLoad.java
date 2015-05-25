@@ -1,6 +1,7 @@
 package bench.tpcc;
 
 import fct.thesis.database.Transaction;
+import fct.thesis.database.TransactionFactory;
 import thrift.TransactionTypeFactory;
 import thrift.tpcc.schema.*;
 
@@ -16,10 +17,12 @@ import static bench.tpcc.Util.randomNumber;
  */
 public class TpccLoad {
 
-    static int count_ware = 0;
+    static int numWare = 0;
     static boolean option_debug = false;
     static boolean verbose = false;
     static Random random;
+
+    public static final int ITEM_TABLE = 0;
 
     private static void parseArguments(String[] args){
         //parse arguments
@@ -31,6 +34,8 @@ public class TpccLoad {
             System.exit(0);
         }
 
+        TransactionFactory.type type = null;
+
         while (args[argindex].startsWith("-"))
         {
             if (args[argindex].compareTo("-w")==0)
@@ -41,7 +46,7 @@ public class TpccLoad {
                     usageMessage();
                     System.exit(0);
                 }
-                count_ware=Integer.parseInt(args[argindex]);
+                numWare =Integer.parseInt(args[argindex]);
                 argindex++;
             }
             else if (args[argindex].compareTo("-tp")==0)
@@ -52,7 +57,7 @@ public class TpccLoad {
                     usageMessage();
                     System.exit(0);
                 }
-                Environment.setTransactionype(TransactionTypeFactory.getType(args[argindex]));
+                type = TransactionTypeFactory.getType(args[argindex]);
                 argindex++;
             }
             else if (args[argindex].compareTo("-d")==0)
@@ -97,6 +102,14 @@ public class TpccLoad {
                 break;
             }
         }
+
+        if(type!=null && numWare != -1) {
+            Environment.setTransactiontype(type, numWare+1); //One more because of items table
+        } else {
+            usageMessage();
+            System.exit(0);
+        }
+
     }
 
     private static void usageMessage() {
@@ -107,13 +120,14 @@ public class TpccLoad {
         parseArguments(args);
 
         Environment.getInstance();
+        tpccLoadData(numWare);
     }
 
     public static void tpccLoadData(int cnt_warehouses){
         System.out.println("TPCC Data Load Started...");
         long start = System.currentTimeMillis();
         random = new Random();
-        count_ware = cnt_warehouses;
+        numWare = cnt_warehouses;
         LoadItems();
         LoadWare();
         LoadCust();
@@ -128,7 +142,7 @@ public class TpccLoad {
      */
     private static void LoadOrd() {
 
-        for (int w_id = 1; w_id <= count_ware; w_id++) {
+        for (int w_id = 1; w_id <= numWare; w_id++) {
             for (int d_id = 1; d_id <= TpccConstants.DIST_PER_WARE; d_id++) {
 
                 if(verbose)
@@ -142,9 +156,9 @@ public class TpccLoad {
                     Transaction<String, MyObject> t = Environment.newTransaction();
 
                     String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
-                    District district = t.get(d_key).deepCopy().getDistrict();
+                    District district = t.get(w_id, d_key).deepCopy().getDistrict();
                     district.d_next_o_id++;
-                    t.put(d_key, MyObject.district(district));
+                    t.put(w_id, d_key, MyObject.district(district));
 
                     /* Generate Order Data */
                     Order o = new Order();
@@ -158,24 +172,24 @@ public class TpccLoad {
                     if (o_id > 2100) {    /* the last 900 orders have not been */
                         o.o_carrier_id = 0;
 
-                        t.put(OrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.order(o));
+                        t.put(w_id, OrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.order(o));
 
                         /* Put order on Secondary index */
                         String o_key_sec = OrderSecundaryKey(o_w_id, o_d_id, o.o_c_id);
-                        t.put(o_key_sec, MyObject.Integer(o_id));
+                        t.put(w_id, o_key_sec, MyObject.Integer(o_id));
 
                         /* Put new Order */
-                        t.put(NewOrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.NULL(true));
+                        t.put(w_id, NewOrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.NULL(true));
                         if (o_id==2101){
-                            t.put(NewOrderSecundaryKey(o_w_id, o_d_id), MyObject.Integer(2101));
+                            t.put(w_id, NewOrderSecundaryKey(o_w_id, o_d_id), MyObject.Integer(2101));
                         }
                     } else {
 
-                        t.put(OrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.order(o));
+                        t.put(w_id, OrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.order(o));
 
                         /* Put order on Secondary index */
                         String o_key_sec = OrderSecundaryKey(o_w_id, o_d_id, o.o_c_id);
-                        t.put(o_key_sec, MyObject.Integer(o_id));
+                        t.put(w_id, o_key_sec, MyObject.Integer(o_id));
                     }
 
                     if (option_debug)
@@ -193,13 +207,13 @@ public class TpccLoad {
                         ol.ol_dist_info = Util.makeAlphaString(24, 24);
 
                         if (o_id > 2100) {
-                            t.put(OrderLinePrimaryKey(o_w_id, o_d_id, o_id, ol_i), MyObject.orderline(ol));
+                            t.put(w_id, OrderLinePrimaryKey(o_w_id, o_d_id, o_id, ol_i), MyObject.orderline(ol));
                         } else {
 
                             ol.ol_amount = ((float) (Util.randomNumber(10, 10000)) / 100.0);
                             ol.ol_delivery_d = date.toString();
 
-                            t.put(OrderLinePrimaryKey(o_w_id, o_d_id, o_id, ol_i), MyObject.orderline(ol));
+                            t.put(w_id, OrderLinePrimaryKey(o_w_id, o_d_id, o_id, ol_i), MyObject.orderline(ol));
                         }
 
                         if (option_debug)
@@ -231,7 +245,7 @@ public class TpccLoad {
     private static void LoadCust() {
 
         Transaction t = Environment.newTransaction();
-        for (int w_id = 1; w_id <= count_ware; w_id++) {
+        for (int w_id = 1; w_id <= numWare; w_id++) {
             for (int d_id = 1; d_id <= TpccConstants.DIST_PER_WARE; d_id++) {
                 if(verbose)
                     System.out.printf("Loading Customer for DID=%d, WID=%d\n", d_id, w_id);
@@ -276,7 +290,7 @@ public class TpccLoad {
 
                     c.c_data = Util.makeAlphaString(300, 500);
 
-                    t.put(c_key, MyObject.customer(c));
+                    t.put(w_id, c_key, MyObject.customer(c));
 
                     History h = new History();
                     h.h_c_id = c_id;
@@ -292,7 +306,7 @@ public class TpccLoad {
                     h.h_date = date.toString();
 
                     String h_key = HistoryPrimaryKey(h);
-                    t.put(h_key, MyObject.history(h));
+                    t.put(w_id, h_key, MyObject.history(h));
 
                     if (option_debug) {
                         System.out.printf("CID = %d, LST = %s, P# = %s\n",
@@ -307,7 +321,7 @@ public class TpccLoad {
 
                 // Set the primary key to use when search by lastname
                 for (Map.Entry<String,Integer> e : countLastname.entrySet()){
-                    t.put(CustomerSecundaryKey(w_id, d_id, e.getKey()), MyObject.Integer(e.getValue()));
+                    t.put(w_id, CustomerSecundaryKey(w_id, d_id, e.getKey()), MyObject.Integer(e.getValue()));
                 }
             }
         }
@@ -356,7 +370,7 @@ public class TpccLoad {
                 System.out.printf("IID = %d, Name= %s, Price = %.2f\n",
                           i_id, it.i_name, it.i_price);
 
-            t.put(it_key, MyObject.item(it));
+            t.put(ITEM_TABLE, it_key, MyObject.item(it));
 
             if ((i_id % 100) == 0 && verbose) {
                 System.out.printf(".");
@@ -377,7 +391,7 @@ public class TpccLoad {
         if(verbose)
             System.out.println("Loading Warehouse");
 
-        for (int w_id = 1; w_id <= count_ware; w_id++) {
+        for (int w_id = 1; w_id <= numWare; w_id++) {
 
             Warehouse ware = new Warehouse();
             /* Generate Warehouse Data */
@@ -397,7 +411,7 @@ public class TpccLoad {
             }
 
             Transaction t = Environment.newTransaction();
-            t.put(wareKey, MyObject.warehouse(ware));
+            t.put(w_id, wareKey, MyObject.warehouse(ware));
             t.commit();
             
             LoadStock(w_id);
@@ -448,7 +462,7 @@ public class TpccLoad {
                 s.s_data = s.s_data.substring(0, pos)+"original"+s.s_data.substring(pos+8);
             }
 
-            t.put(s_key, MyObject.stock(s));
+            t.put(w_id, s_key, MyObject.stock(s));
 
             if (option_debug){
                 System.out.println("SID=" + s_i_id + ", WID=" + w_id + ", Quan=" + s.s_quantity);
@@ -481,7 +495,7 @@ public class TpccLoad {
             d.d_zip = makeAlphaString(9, 9);
             d.d_tax = ((double)randomNumber(10,20))/100;
 
-            t.put(d_key, MyObject.district(d));
+            t.put(w_id, d_key, MyObject.district(d));
 
             if (option_debug){
                 System.out.println("DID="+d_key+", WID="+w_id+", Name="+d.d_name+", Tax="+d.d_tax);

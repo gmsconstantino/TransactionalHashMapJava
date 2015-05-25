@@ -1,6 +1,7 @@
 package fct.thesis.databaseOCCRDIAS;
 
 import fct.thesis.database.*;
+import fct.thesis.structures.P;
 
 import java.util.*;
 
@@ -12,7 +13,7 @@ import java.util.*;
 public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
 
     protected List<RWEntry<K, V>> readSet;
-    protected Map<K, RWEntry<K, V>> writeSet;
+    protected Map<P<Integer,K>, RWEntry<K, V>> writeSet;
 
     public Transaction(Database db) {
         super(db);
@@ -27,38 +28,40 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
     @Override
-    public V get(K key) throws TransactionTimeoutException, TransactionAbortException {
+    public V get(int table, K k) throws TransactionTimeoutException, TransactionAbortException {
         if (!isActive)
             return null;
 
+        P key = new P<>(table,k);
         if(writeSet.containsKey(key)){
             return (V) writeSet.get(key).newValue;
         }
 
 
-        MyObject<K,V> obj = (MyObject) getKeyDatabase(key);
+        MyObject<K,V> obj = (MyObject) getKeyDatabase(table, k);
 
         long ver = obj.getVersion();
         V returnValue = obj.getValue();
 
-        readSet.add(new RWEntry<>(obj, ver, null, null, false));
+        readSet.add(new RWEntry<>(table, obj, ver, null, null, false));
 
 
         return returnValue;
     }
 
     @Override
-    public void put(K key, V value) throws TransactionTimeoutException{
+    public void put(int table, K k, V value) throws TransactionTimeoutException{
         if(!isActive)
             return;
 
+        P key = new P<>(table,k);
         if(writeSet.containsKey(key)){
             writeSet.get(key).newValue = value; // set new value on buffer
             return;
         }
 
-        MyObject<K,V> obj = (MyObject) getKeyDatabase(key);
-        writeSet.put(key, new RWEntry<>(obj, -1, key, value, obj == null));
+        MyObject<K,V> obj = (MyObject) getKeyDatabase(table, k);
+        writeSet.put(key, new RWEntry<>(table, obj, -1, k, value, obj == null));
 
 
     }
@@ -82,7 +85,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 MyObject<K, V> newObj = new MyObject<>();
                 write.obj = newObj;
                 newObj.lock(tid);
-                ObjectDb<K, V> oldObj = putIfAbsent(write.key, newObj);
+                ObjectDb<K, V> oldObj = putIfAbsent(write.table, write.key, newObj);
                 if (oldObj != null) {
                     write.obj = (MyObject<?, V>) oldObj;
                     write.obj.lock(tid);

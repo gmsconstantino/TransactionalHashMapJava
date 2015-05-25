@@ -11,12 +11,14 @@ import pt.dct.cli.TxStorage;
  */
 public class DctStorage implements TxStorage {
 
+    private static final int TABLE = 1;
+
     static final TransactionFactory.type TYPE = TransactionFactory.type.NMSI;
     protected Database<String,Integer> db;
 
     @Override
     public void init() {
-        db = (Database<String,Integer>) DatabaseFactory.createDatabase(TYPE);
+        db = (Database<String,Integer>) DatabaseFactory.createDatabase(TYPE, TABLE);
     }
 
     @Override

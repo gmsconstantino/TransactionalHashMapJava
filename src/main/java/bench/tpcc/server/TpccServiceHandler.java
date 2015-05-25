@@ -46,9 +46,9 @@ public class TpccServiceHandler implements TpccService.Iface {
     }
 
     @Override
-    public MyObject get(String key) throws AbortException,NoSuchKeyException,TException {
+    public MyObject get(int table, String key) throws AbortException,NoSuchKeyException,TException {
         try {
-            MyObject m = t.get(key);
+            MyObject m = t.get(table, key);
             if (m==null)
                 throw new NoSuchKeyException();
             return m;
@@ -60,9 +60,9 @@ public class TpccServiceHandler implements TpccService.Iface {
     }
 
     @Override
-    public void put(String key, MyObject value) throws AbortException,TException {
+    public void put(int table, String key, MyObject value) throws AbortException,TException {
         try {
-            t.put(key,value);
+            t.put(table, key,value);
         } catch(TransactionTimeoutException e){
             throw new AbortException();
         } catch (TransactionAbortException e){
@@ -71,12 +71,12 @@ public class TpccServiceHandler implements TpccService.Iface {
     }
 
     @Override
-    public boolean reset(String type) throws TException {
+    public boolean reset(String type, int ntables) throws TException {
         TransactionFactory.type t = TransactionTypeFactory.getType(type);
         if (t == null)
             return false;
 
-        Environment.setTransactionype(t);
+        Environment.setTransactiontype(t, ntables);
         return true;
     }
 

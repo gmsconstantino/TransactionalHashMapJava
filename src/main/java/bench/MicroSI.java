@@ -47,12 +47,12 @@ public class MicroSI {
             try {
 
                 for (int r : reads) {
-                    t.get(r);
+                    t.get(1,r);
                 }
 
                 if (writes != null) {
                     for (int w : writes) {
-                        t.put(w, 3);
+                        t.put(1,w, 3);
                     }
                 }
 
@@ -122,11 +122,11 @@ public class MicroSI {
 
 
         TYPE = TransactionTypeFactory.getType(global_algorithm);
-        db = DatabaseFactory.createDatabase(TYPE);
+        db = DatabaseFactory.createDatabase(TYPE,1);
 
         for (int i=0; i < max_num_accesses; i++) {
             Transaction<Integer,Integer> t = db.newTransaction(TYPE);
-            t.put(i, 4);
+            t.put(1,i, 4);
             if (!t.commit()) {
                 throw new RuntimeException();
             }

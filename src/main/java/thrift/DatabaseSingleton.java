@@ -32,13 +32,12 @@ public class DatabaseSingleton {
         return getInstance().getType();
     }
 
-    public static void setTransactionype(TransactionFactory.type type){
-        getInstance().setType(type);
+    public static void setTransactionype(TransactionFactory.type type, int ntables){
+        getInstance().setType(type, ntables);
     }
 
     private DatabaseSingleton() {
         type = TransactionFactory.type.TWOPL;
-        db = (Database<String, HashMap<String, ByteBuffer>>) DatabaseFactory.createDatabase(type);
     }
 
     private Database<String, HashMap<String, ByteBuffer>> getDb() {
@@ -49,9 +48,9 @@ public class DatabaseSingleton {
         return type;
     }
 
-    public void setType(TransactionFactory.type type) {
+    public void setType(TransactionFactory.type type, int ntables) {
         this.type = type;
-        db = (Database<String, HashMap<String, ByteBuffer>>) DatabaseFactory.createDatabase(type);
+        db = (Database<String, HashMap<String, ByteBuffer>>) DatabaseFactory.createDatabase(type, ntables);
         System.out.println("Set new Database Transactions Type : "+ type);
     }
 }

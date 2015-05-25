@@ -5,6 +5,7 @@ import fct.thesis.database.Database;
 import fct.thesis.database.TransactionAbortException;
 import fct.thesis.database.TransactionTimeoutException;
 import fct.thesis.database2PL.Config;
+import fct.thesis.structures.P;
 import sun.misc.Contended;
 
 import java.util.*;
@@ -20,7 +21,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 //    static AtomicLong identifier = new AtomicLong(-1L);
 
     Set<Transaction> aggStarted;
-    protected Map<K, BufferObjectDb<K,V>> writeSet;
+    protected Map<P<Integer,K>, BufferObjectDb<K,V>> writeSet;
 
     public Transaction(fct.thesis.database.Database db) {
         super(db);
@@ -34,15 +35,16 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
     @Override
-    public V get(K key) throws TransactionTimeoutException, TransactionAbortException {
+    public V get(int table, K k) throws TransactionTimeoutException, TransactionAbortException {
         if (!isActive)
             return null;
 
+        P key = new P<>(table,k);
         if(writeSet.containsKey(key)){
             return (V) writeSet.get(key).getValue();
         }
 
-        ObjectNMSIDb<K,V> obj = (ObjectNMSIDb) getKeyDatabase(key);
+        ObjectNMSIDb<K,V> obj = (ObjectNMSIDb) getKeyDatabase(table, k);
         if (obj == null || obj.getLastVersion() == -1)
             return null;
 
@@ -60,17 +62,18 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
     @Override
-    public void put(K key, V value) throws TransactionTimeoutException{
+    public void put(int table, K k, V value) throws TransactionTimeoutException{
         if(!isActive)
             return;
 
+        P key = new P<>(table,k);
         if(writeSet.containsKey(key)){
             BufferObjectDb<K,V> objectDb = writeSet.get(key);
             objectDb.setValue(value);
             return;
         }
 
-        BufferObjectDb<K,V> buffer = new BufferObjectDb(key, value);
+        BufferObjectDb<K,V> buffer = new BufferObjectDb(table, k, value);
         addObjectDbToWriteBuffer(key, buffer);
     }
 
@@ -89,13 +92,13 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
 
-            ObjectNMSIDb<K,V> objectDb = (ObjectNMSIDb) getKeyDatabase(buffer.getKey());
+            ObjectNMSIDb<K,V> objectDb = (ObjectNMSIDb) getKeyDatabase(buffer.getTable(), buffer.getKey());
             //Nao existe nenhuma
             if (objectDb == null) {
                 ObjectNMSIDb<K,V> obj = new ObjectNMSIDb<K,V>(); // Thread tem o lock do objecto
                 obj.lock_write();
 
-                ObjectNMSIDb<K,V> objdb = (ObjectNMSIDb) putIfAbsent(buffer.getKey(), obj);
+                ObjectNMSIDb<K,V> objdb = (ObjectNMSIDb) putIfAbsent(buffer.getTable(), buffer.getKey(), obj);
                 if (objdb != null) {
                     obj = null;
                     objectDb = objdb;
@@ -164,7 +167,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         commitId = -1;
     }
 
-    private void addObjectDbToWriteBuffer(K key, BufferObjectDb objectDb){
+    private void addObjectDbToWriteBuffer(P key, BufferObjectDb objectDb){
         writeSet.put(key, objectDb);
     }
 

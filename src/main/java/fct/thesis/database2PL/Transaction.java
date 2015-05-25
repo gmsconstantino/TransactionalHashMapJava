@@ -11,7 +11,7 @@ import java.util.*;
 
 public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
 
-    protected Set<K> readSet;
+    protected Set<P<Integer,K>> readSet;
 
     // Write set guarda o valor antigo que estava antes da transacao
     protected Map<K, BufferDb<K,V>> writeSet;
@@ -25,22 +25,22 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     protected void init(){
         super.init();
 
-        readSet = new HashSet<K>();
+        readSet = new HashSet<>();
         writeSet = new HashMap<K, BufferDb<K,V>>();
         myLocks = new HashMap<K, Long>();
     }
 
     @Override
-    public V get(K key) {
+    public V get(int table, K key) {
         if (!isActive)
             return null;
 
         if (readSet.contains(key)){
-            return (V) getKeyDatabase(key).getObjectDb().getValue();
+            return (V) getKeyDatabase(table, key).getObjectDb().getValue();
         }
 
         // Passa a ser um objecto do tipo ObjectLockDbImpl
-        ObjectLock2PL<?,?> obj = (ObjectLock2PL) getKeyDatabase(key);
+        ObjectLock2PL<?,?> obj = (ObjectLock2PL) getKeyDatabase(table, key);
 
         if (obj == null)
             return null;
@@ -53,7 +53,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             stamp = myLocks.get(key); // Ja tenho o writelock, mas nao preciso se saber qual e o valor do stamp
 
         if(stamp!=0){
-            addObjectDbToReadBuffer((K) key);
+            addObjectDbToReadBuffer(table, key);
             myLocks.put(key, stamp);
             return (V) obj.getValue();
         } else {
@@ -63,7 +63,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
     @Override
-    public void put(K key, V value) {
+    public void put(int table, K key, V value) {
         if (!isActive)
             return;
 
@@ -75,14 +75,14 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
 
         // Search
-        ObjectLock2PL<K,V> obj = (ObjectLock2PL<K,V>) getKeyDatabase(key); // Passa a ser um objecto do tipo ObjectDbImpl
+        ObjectLock2PL<K,V> obj = (ObjectLock2PL<K,V>) getKeyDatabase(table, key); // Passa a ser um objecto do tipo ObjectDbImpl
 
         long stamp = 0L;
 
         if(obj == null){
             obj = new ObjectLock2PL<K,V>(value);
 
-            ObjectLock2PL<K,V> map_obj = (ObjectLock2PL<K,V>) putIfAbsent(key, obj);
+            ObjectLock2PL<K,V> map_obj = (ObjectLock2PL<K,V>) putIfAbsent(table, key, obj);
             obj = map_obj!=null? map_obj : obj;
         }
 
@@ -104,7 +104,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         if(stamp != 0){
             myLocks.put(key, stamp);
-            addObjectDbToWriteBuffer(key, new BufferObjectDb<K, V>(key, obj.getValue(), obj)); //No buffer o old value
+            addObjectDbToWriteBuffer(key, new BufferObjectDb<K, V>(table, key, obj.getValue(), obj)); //No buffer o old value
             obj.setValue(value); // Escrita no objecto da bd, nao no buffer
         } else {
             abort();
@@ -135,7 +135,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         for (Map.Entry<K, BufferDb<K,V>> entry : writeSet.entrySet()){
             ObjectLock2PL objectDb = (ObjectLock2PL) entry.getValue().getObjectDb();
             if (objectDb.isNew()){
-                removeKey(entry.getKey());
+                removeKey(entry.getValue().getTable(), entry.getKey());
                 readSet.remove(entry.getKey());
             } else {
                 objectDb.setValue(entry.getValue().getValue()); // Second getValue is from buffer object, para repor o valor antes da transacao
@@ -148,12 +148,12 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
     private void unlock_locks(){
-        Iterator<K> it_keys = readSet.iterator();
+        Iterator<P<Integer,K>> it_keys = readSet.iterator();
         while (it_keys.hasNext()) {
-            K key = it_keys.next();
-            ObjectLock2PL objectDb = (ObjectLock2PL) getKeyDatabase(key);
-            objectDb.unlock(myLocks.get(key));
-            myLocks.remove(key);
+            P<Integer,K> p = it_keys.next();
+            ObjectLock2PL objectDb = (ObjectLock2PL) getKeyDatabase(p.f, p.s);
+            objectDb.unlock(myLocks.get(p.s));
+            myLocks.remove(p.f, p.s);
         }
 
         for (BufferDb<K,V> bufferDb : writeSet.values()) {
@@ -164,8 +164,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
     }
 
-    void addObjectDbToReadBuffer(K key){
-        readSet.add(key);
+    void addObjectDbToReadBuffer(int table, K key){
+        readSet.add(new P<>(table,key));
     }
 
     void addObjectDbToWriteBuffer(K key, BufferDb obj){

@@ -37,7 +37,7 @@ public class MainShop {
         for (int i = 0; i < 1000; i++) {
             int p = r.nextInt(1000);
             int q = r.nextInt(50);
-            t.put(p, q);
+            t.put(0, p, q);
             concurrentHashMap.put(p,q);
         }
 
@@ -48,7 +48,7 @@ public class MainShop {
 
     public static void main(String[] args) {
 
-        db = new Database<Integer, Integer>();
+        db = new Database<Integer, Integer>(0);
         concurrentHashMap = new ConcurrentHashMap<Integer, Integer>();
         synclog = Collections.synchronizedList(new ArrayList<Log>());
         transactions = new ConcurrentSkipListSet<Transaction>();
@@ -77,7 +77,7 @@ public class MainShop {
                             if (op < 25) {
                                 // probability 25% of trying to insert 'prod_id'
                                 int qtd = r.nextInt(25);
-                                t.put(prod_id, qtd);
+                                t.put(0,prod_id, qtd);
                                 synclog.add(new Log(t, prod_id, qtd));
                             } else {
                                 // probability 75% of trying to lookup for 'prod_id'
@@ -89,10 +89,10 @@ public class MainShop {
                                         continue;
 
                                     int qtd = q + (r.nextInt(5) * (r.nextBoolean() ? 1 : -1));
-                                    t.put(prod_id, qtd);
+                                    t.put(0,prod_id, qtd);
                                     synclog.add(new Log(t, prod_id, qtd));
                                 } else {
-                                    Integer q = t.get(prod_id);
+                                    Integer q = t.get(0,prod_id);
 
                                     if (q == null)
                                         continue;
@@ -164,7 +164,7 @@ public class MainShop {
 //            all_ok = false;
 ////            return;
 //        }
-        System.out.println("Sizes -> DB: "+db.size()+" map: "+concurrentHashMap.size());
+        System.out.println("Sizes -> DB: "+db.size(0)+" map: "+concurrentHashMap.size());
 
 //        Iterator t = db.getIterator();
 //        while (t.hasNext()){

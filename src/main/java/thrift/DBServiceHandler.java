@@ -47,7 +47,7 @@ public class DBServiceHandler implements DBService.Iface {
     @Override
     public Map<String,ByteBuffer> get(String key) throws AbortException,NoSuchKeyException,TException {
         try {
-            Map<String,ByteBuffer> m = t.get(key);
+            Map<String,ByteBuffer> m = t.get(0,key);
             if (m==null)
                 throw new NoSuchKeyException();
             return m;
@@ -61,7 +61,7 @@ public class DBServiceHandler implements DBService.Iface {
     @Override
     public void put(String key, Map<String, ByteBuffer> value) throws AbortException,TException {
         try {
-            t.put(key,value);
+            t.put(0,key,value);
         } catch(TransactionTimeoutException e){
             throw new AbortException();
         } catch (TransactionAbortException e){
@@ -75,7 +75,7 @@ public class DBServiceHandler implements DBService.Iface {
         if (t == null)
             return false;
 
-        DatabaseSingleton.setTransactionype(t);
+        DatabaseSingleton.setTransactionype(t,1);
         return true;
     }
 
