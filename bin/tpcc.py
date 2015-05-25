@@ -11,7 +11,7 @@ algorithm = [
     "NMSI"
 ]
 
-time = 60
+time = 30
 
 threads = [1,2,4,8,16,20]
 
