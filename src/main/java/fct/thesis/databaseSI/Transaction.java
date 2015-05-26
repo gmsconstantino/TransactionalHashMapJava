@@ -88,6 +88,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (writeSet.size() == 0){
             isActive = false;
             success = true;
+            addToCleaner(this);
             return true;
         }
 
