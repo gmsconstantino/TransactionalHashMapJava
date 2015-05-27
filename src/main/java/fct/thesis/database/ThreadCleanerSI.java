@@ -20,7 +20,7 @@ public class ThreadCleanerSI<K,V> extends Thread{
     Database db;
 
     /*
-     * Vejo a versao até onde posso apagar pelas versoes que as transacoes activas esta a usar
+     * Vejo a versao ate onde posso apagar pelas versoes que as transacoes activas esta a usar
      * obtenho o minimo dessas versoes e posso apagar as versoes abaixo dessa
      */
     public ThreadCleanerSI(Database db) {
@@ -45,7 +45,7 @@ public class ThreadCleanerSI<K,V> extends Thread{
 
     public void run(){
         for (;;){
-//            sleep();
+            sleep();
 
             long minVersion = getMin();
             if (minVersion == fct.thesis.databaseSI.Transaction.timestamp.get())
