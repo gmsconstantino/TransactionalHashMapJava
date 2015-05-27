@@ -55,13 +55,6 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
         V value = objects.get(version).f;
 
-//        for(P<Long, V> pair : objects){
-//            if(pair.f <= version){
-//                value = pair.s;
-//                break;
-//            }
-//        }
-
         // Add tids to transaction metadata
         for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
             Long v = snapshots.get(entry.getKey());

@@ -1,13 +1,10 @@
 package fct.thesis.databaseSI;
 
 import fct.thesis.database.*;
-import fct.thesis.database2PL.Config;
 import fct.thesis.databaseOCCMulti.ObjectMultiVersionLockDB;
 import sun.misc.Contended;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -17,12 +14,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
 
     @Contended
-    static AtomicInteger timestamp = new AtomicInteger(0);
+    public static AtomicInteger timestamp = new AtomicInteger(0);
 
     protected Map<K, BufferDb<K,V>> writeSet;
 
-    private long startTime;
-    private long commitTime;
 
     public Transaction(Database db) {
         super(db);
@@ -31,8 +26,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     protected void init(){
         super.init();
         writeSet = new TreeMap<>();
-        startTime = Transaction.timestamp.get();
-        id = startTime;
+        ThreadCleanerSI.set.add(this);
+        id = timestamp.get();
     }
 
     @Override
@@ -50,7 +45,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (obj == null || obj.getVersion() == -1)
             return null;
 
-        returnValue = obj.getValueVersionLess(startTime);
+        returnValue = obj.getValueVersionLess(id);
 
         return returnValue;
     }
@@ -100,7 +95,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             lockObjects.add(objectDb);
 
             // buffer.version == objectDb.last_version
-            if (objectDb.getVersion() < startTime) {
+            if (objectDb.getVersion() < id) {
                 continue;
             } else {
                 abortVersions(lockObjects);
@@ -109,7 +104,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
 
 
-        commitId = Transaction.timestamp.getAndIncrement();
+        commitId = timestamp.getAndIncrement();
         // Escrita
         for (BufferDb<K,V> buffer : writeSet.values()){
             ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) buffer.getObjectDb();
@@ -148,6 +143,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         isActive = false;
         success = false;
         commitId = -1;
+        addToCleaner(this);
     }
 
     void addObjectDbToWriteBuffer(K key, BufferDb objectDb){
@@ -172,7 +168,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     public static void addToCleaner(final fct.thesis.database.Transaction t) {
         Database.asyncPool.execute(() -> {
             try {
-                Database.queue.add(t);
+                ThreadCleanerSI.set.remove(t);
             } catch (Exception e) {
             }
         });

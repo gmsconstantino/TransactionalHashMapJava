@@ -101,9 +101,9 @@ public class MicroSI {
             System.exit(0);
         }
 
-//        Scanner in = new Scanner(System.in);
-//        System.out.print("Press Enter:");
-//        in.nextLine();
+        Scanner in = new Scanner(System.in);
+        System.out.print("Press Enter:");
+        in.nextLine();
 
         String global_algorithm = args[0];
         int duration = Integer.parseInt(args[1]);
