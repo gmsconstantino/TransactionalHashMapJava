@@ -77,16 +77,17 @@ public class Micro {
         }
 
         void execute_tx(Vector<Integer> keys) {
-            int key_shared = ThreadLocalRandom.current().nextInt(min_shared_key, max_shared_key);
-
-            Transaction<Integer,Integer> t = _db.newTransaction(TYPE);
-
+            int v;
             try {
 
+                Transaction<Integer,Integer> t = _db.newTransaction(TYPE);
 
-                // read-modify-write global store
-                int v = t.get(key_shared);
-                t.put(key_shared, v + 1);
+                if (conflict_prob == 1) {
+                    int key_shared = ThreadLocalRandom.current().nextInt(min_shared_key, max_shared_key);
+                    // read-modify-write global store
+                    v = t.get(key_shared);
+                    t.put(key_shared, v + 1);
+                }
 
                 int i = 0;
                 for (; i < rw; i++) {
