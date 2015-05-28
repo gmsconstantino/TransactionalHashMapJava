@@ -1,11 +1,9 @@
 package bench;
 
 import fct.thesis.database.*;
-import thrift.TransactionTypeFactory;
+import fct.thesis.database.TransactionTypeFactory;
 
-import javax.xml.crypto.Data;
 import java.util.Random;
-import java.util.Scanner;
 
 /**
  * @author Ricardo Dias

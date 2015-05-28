@@ -1,10 +1,8 @@
 package bench;
 
 import fct.thesis.database.*;
-import thrift.DatabaseSingleton;
-import thrift.TransactionTypeFactory;
+import fct.thesis.database.TransactionTypeFactory;
 
-import java.util.Properties;
 import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 

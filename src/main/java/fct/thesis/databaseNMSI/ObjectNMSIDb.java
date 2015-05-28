@@ -18,8 +18,8 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     AtomicLong version;
     volatile long minversion;
-    ConcurrentHashMap<Long, P<V, AtomicInteger>> objects;
-    ConcurrentHashMap<Transaction, Long> snapshots;
+    public ConcurrentHashMap<Long, P<V, AtomicInteger>> objects;
+    public ConcurrentHashMap<Transaction, Long> snapshots;
 
     RwLock rwlock;
 
@@ -53,7 +53,15 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         if (version > getLastVersion() && version < minversion)
             return null;
 
-        V value = objects.get(version).f;
+        V value = null;
+        try {
+            value = objects.get(version).f;
+        } catch (NullPointerException e){
+            System.out.println("Version "+version+" Null");
+            System.out.println(objects);
+            e.printStackTrace();
+            throw e;
+        }
 
         // Add tids to transaction metadata
         for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
