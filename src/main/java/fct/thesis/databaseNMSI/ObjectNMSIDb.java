@@ -58,7 +58,6 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
             value = objects.get(version).f;
         } catch (NullPointerException e){
             System.out.println("Version "+version+" Null");
-            System.out.println(objects);
             e.printStackTrace();
             throw e;
         }
