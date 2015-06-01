@@ -1,23 +1,16 @@
 package fct.thesis.databaseNMSI;
 
 import fct.thesis.database.BufferObjectDb;
-import fct.thesis.database.Database;
 import fct.thesis.database.TransactionAbortException;
 import fct.thesis.database.TransactionTimeoutException;
-import fct.thesis.database2PL.Config;
-import sun.misc.Contended;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by gomes on 26/02/15.
  */
 
 public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
-
-//    @Contended
-//    static AtomicLong identifier = new AtomicLong(-1L);
 
     public Set<Transaction> aggStarted;
     protected Map<K, BufferObjectDb<K,V>> writeSet;
@@ -30,7 +23,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         super.init();
         aggStarted = new HashSet<>();
         writeSet = new TreeMap<>();
-//        id = Transaction.identifier.incrementAndGet();
     }
 
     @Override
@@ -129,9 +121,10 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             }
 
             objectDb.setValue(buffer.getValue());
+            objectDb.unlock_write();
         }
 
-        unlockWrite_objects(lockObjects);
+//        unlockWrite_objects(lockObjects);
 
         isActive = false;
         success = true;

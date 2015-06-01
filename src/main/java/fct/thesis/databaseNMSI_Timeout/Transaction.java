@@ -78,9 +78,10 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.databaseN
             }
 
             objectDb.setValue(buffer.getValue());
+            objectDb.unlock_write();
         }
 
-        unlockWrite_objects(lockObjects);
+//        unlockWrite_objects(lockObjects);
 
         isActive = false;
         success = true;
