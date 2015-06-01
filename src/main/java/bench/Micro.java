@@ -13,7 +13,7 @@ public class Micro {
 
     private static TransactionFactory.type TYPE;
 
-    private static final int TABLE = 1;
+    private static final int TABLE = 0;
 
     static class ClientThread extends Thread
     {
@@ -152,7 +152,7 @@ public class Micro {
 //        System.out.println("Write = "+global_nwrite);
 
         TYPE = TransactionTypeFactory.getType(global_algorithm);
-        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE);
+        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE, 1);
         loadDatabase(db);
 
         Vector<Thread> threads = new Vector<Thread>();
@@ -201,7 +201,7 @@ public class Micro {
         Transaction<Integer,Integer> t = db.newTransaction(TYPE);
 
         for (int i = 0; i < total_size; i++){
-            t.put(i, 0);
+            t.put(TABLE, i, 0);
         }
 
         if(!t.commit()){

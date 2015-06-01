@@ -34,13 +34,13 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.databaseN
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
 
-            ObjectNMSIDb<K,V> objectDb = (ObjectNMSIDb) getKeyDatabase(buffer.getKey());
+            ObjectNMSIDb<K,V> objectDb = (ObjectNMSIDb) getKeyDatabase(buffer.getTable(), buffer.getKey());
             //Nao existe nenhuma
             if (objectDb == null) {
                 ObjectNMSIDb<K,V> obj = new ObjectNMSIDb<K,V>(); // Thread tem o lock do objecto
                 obj.lock_write();
 
-                ObjectNMSIDb<K,V> objdb = (ObjectNMSIDb) putIfAbsent(buffer.getKey(), obj);
+                ObjectNMSIDb<K,V> objdb = (ObjectNMSIDb) putIfAbsent(buffer.getTable(), buffer.getKey(), obj);
                 if (objdb != null) {
                     obj = null;
                     objectDb = objdb;

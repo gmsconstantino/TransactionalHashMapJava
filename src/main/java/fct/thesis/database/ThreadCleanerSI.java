@@ -56,9 +56,11 @@ public class ThreadCleanerSI<K,V> extends Thread{
             if (minVersion < 0)
                 continue;
 
-            Iterator<ObjectDb> it = db.getObjectDbIterator();
-            while (it.hasNext()){
-                it.next().clean(minVersion);
+            for (int i = 0; i < Database.numberTables; i++) {
+                Iterator<ObjectDb> it = db.getObjectDbIterator(i);
+                while (it.hasNext()){
+                    it.next().clean(minVersion);
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 package fct.thesis.structures;
 
-public class P<F,S> {
+public class P<F extends Comparable<F>,S extends Comparable<S>> implements Comparable {
 	public F f;
 	public S s;
 	
@@ -27,5 +27,12 @@ public class P<F,S> {
         int result = f.hashCode();
         result = 31 * result + s.hashCode();
         return result;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        P pO = (P) o;
+        int n = this.f.compareTo((F) pO.f);
+        return (n!=0)?n:s.compareTo((S) pO.s);
     }
 }
