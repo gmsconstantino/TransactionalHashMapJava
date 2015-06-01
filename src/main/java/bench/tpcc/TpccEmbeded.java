@@ -1,7 +1,7 @@
 package bench.tpcc;
 
 import fct.thesis.database.TransactionFactory;
-import thrift.TransactionTypeFactory;
+import fct.thesis.database.TransactionTypeFactory;
 
 import java.text.DecimalFormat;
 import java.util.Scanner;

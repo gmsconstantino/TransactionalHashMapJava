@@ -9,7 +9,7 @@ public class DatabaseFactory {
         Database db = new fct.thesis.database.Database<K,V>(ntables);
         switch (t){
             case SI:
-                db.startThreadCleaner(new ThreadCleanerSI());
+                db.startThreadCleaner(new ThreadCleanerSI(db));
                 break;
             case OCC_MULTI:
             case NMSI:

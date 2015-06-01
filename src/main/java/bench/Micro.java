@@ -1,10 +1,8 @@
 package bench;
 
 import fct.thesis.database.*;
-import thrift.DatabaseSingleton;
-import thrift.TransactionTypeFactory;
+import fct.thesis.database.TransactionTypeFactory;
 
-import java.util.Properties;
 import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -81,16 +79,16 @@ public class Micro {
         }
 
         void execute_tx(Vector<Integer> keys) {
-            int key_shared = ThreadLocalRandom.current().nextInt(min_shared_key, max_shared_key);
-
-            Transaction<Integer,Integer> t = _db.newTransaction(TYPE);
-
+            int v;
             try {
+                Transaction<Integer,Integer> t = _db.newTransaction(TYPE);
 
-
-                // read-modify-write global store
-                int v = t.get(TABLE,key_shared);
-                t.put(TABLE,key_shared, v + 1);
+                if (conflict_prob == 1) {
+                    int key_shared = ThreadLocalRandom.current().nextInt(min_shared_key, max_shared_key);
+                    // read-modify-write global store
+                    v = t.get(TABLE,key_shared);
+                    t.put(TABLE,key_shared, v + 1);
+                }
 
                 int i = 0;
                 for (; i < rw; i++) {
@@ -154,7 +152,7 @@ public class Micro {
 //        System.out.println("Write = "+global_nwrite);
 
         TYPE = TransactionTypeFactory.getType(global_algorithm);
-        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE,TABLE);
+        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE);
         loadDatabase(db);
 
         Vector<Thread> threads = new Vector<Thread>();
@@ -203,7 +201,7 @@ public class Micro {
         Transaction<Integer,Integer> t = db.newTransaction(TYPE);
 
         for (int i = 0; i < total_size; i++){
-            t.put(TABLE,i, 0);
+            t.put(i, 0);
         }
 
         if(!t.commit()){

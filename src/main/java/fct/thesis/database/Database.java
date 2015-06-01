@@ -67,7 +67,7 @@ public class Database<K,V> {
     public Iterator getIterator(int table) {
         return new DbIterator(table);
     }
-    
+
     protected Iterator<ObjectDb<K,V>> getObjectDbIterator(int table){
         return new ObjectDbIterator(table);
     }

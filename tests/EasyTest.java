@@ -12,19 +12,29 @@ public class EasyTest {
 
     public static void main(String[] args) {
 
-//        Database<Integer, Integer> db = new Database<Integer, Integer>();
-//
-//        Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.OCC);
-//
-//        t.put(10,5);
-//
-//        t.abort();
-//
-//        t = db.newTransaction(TransactionFactory.type.OCC);
-//
-//        Integer n = t.get(10);
-//
-//        t.commit();
+        Database<Integer, Integer> db = DatabaseFactory.createDatabase(TransactionFactory.type.SI, 1);
+
+        Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.SI);
+        t.put(0, 10,1);
+        t.commit();
+
+        t = db.newTransaction(TransactionFactory.type.SI);
+        t.commit();
+
+        t = db.newTransaction(TransactionFactory.type.SI);
+        t.commit();
+
+        t = db.newTransaction(TransactionFactory.type.SI);
+        t.put(0, 10,2);
+        t.commit();
+
+        t = db.newTransaction(TransactionFactory.type.SI);
+        t.put(0, 10,3);
+        t.commit();
+
+        db.cleanup();
+
+
 
 //        TreeMap<Integer, BufferDb<Integer,Integer>> map = new TreeMap<>();
 //        BufferObjectDb<Integer,Integer> buffer = new BufferObjectDb<Integer, Integer>(4,10);
