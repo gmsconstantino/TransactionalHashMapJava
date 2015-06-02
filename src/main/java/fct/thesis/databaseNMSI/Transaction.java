@@ -115,7 +115,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             ObjectNMSIDb<K, V> objectDb = (ObjectNMSIDb) buffer.getObjectDb();
             for (Transaction tid : aggStarted){
                 if (tid.isActive() && objectDb.snapshots.get(tid) == null){
-                    objectDb.putSnapshot(this, objectDb.getLastVersion());
+                    objectDb.putSnapshot(tid, objectDb.getLastVersion());
                 }
             }
 

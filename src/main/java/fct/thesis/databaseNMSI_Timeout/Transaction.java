@@ -70,9 +70,9 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.databaseN
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
             ObjectNMSIDb<K, V> objectDb = (ObjectNMSIDb) buffer.getObjectDb();
-            for (fct.thesis.database.Transaction tid : aggStarted){
+            for (fct.thesis.databaseNMSI.Transaction tid : aggStarted){
                 if (tid.isActive() && objectDb.snapshots.get(tid) == null){
-                    objectDb.putSnapshot(this,objectDb.getLastVersion());
+                    objectDb.putSnapshot(tid,objectDb.getLastVersion());
                 }
             }
 
