@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     AtomicLong version;
-    volatile long minversion;
+    long minversion;
     public ConcurrentHashMap<Long, P<V, AtomicInteger>> objects;
     public ConcurrentHashMap<Transaction, Long> snapshots;
 
@@ -98,15 +98,19 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         if (objects.size()<2)
             return;
 
+        long myminversion = Long.MAX_VALUE;
+        long mylastversion = getLastVersion()-1;
 
         for (Map.Entry<Long,P<V, AtomicInteger>> entry : objects.entrySet()) {
             P<V, AtomicInteger> pair = entry.getValue();
             int counter = pair.s.get();
-            if (entry.getKey() < getLastVersion()-1 && counter < 1){
-                minversion = entry.getKey()+1;
+            if (entry.getKey() < mylastversion && counter == 0){
+                myminversion = Math.min(entry.getKey()+1, myminversion);
                 objects.remove(entry.getKey());
             }
         }
+
+        minversion = myminversion;
 
     }
 
