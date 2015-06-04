@@ -115,7 +115,7 @@ public class MicroTimeout {
     }
 
     static void displayUsage () {
-        System.out.println("Usage: Micro -alg ALGORITHM [-d duration(s)] [-t num_threads] [-s transaction-size] " +
+        System.out.println("Usage: MicroTimeout -alg ALGORITHM [-d duration(s)] [-t num_threads] [-s transaction-size] " +
                 "[-c conflict-probability] [-r read-percentage]");
         System.exit(0);
     }
@@ -259,7 +259,7 @@ public class MicroTimeout {
                 global_algorithm = args[argindex];
                 argindex++;
             }
-            if (args[argindex].compareTo("-d") == 0) {
+            else if (args[argindex].compareTo("-d") == 0) {
                 argindex++;
                 if (argindex >= args.length) {
                     displayUsage();
