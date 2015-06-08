@@ -13,7 +13,7 @@ public class DatabaseFactory {
                 break;
             case OCC_MULTI:
             case NMSI:
-                db.startThreadCleaner(new ThreadCleanerNMSI<>(db));
+//                db.startThreadCleaner(new ThreadCleanerNMSI<>(db));
                 break;
         }
         return db;

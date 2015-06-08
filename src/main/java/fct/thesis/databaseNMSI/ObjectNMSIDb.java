@@ -1,6 +1,6 @@
 package fct.thesis.databaseNMSI;
 
-import fct.thesis.database.ObjectDb;
+import fct.thesis.database.*;
 import fct.thesis.structures.RwLock;
 import pt.dct.util.P;
 
@@ -38,8 +38,8 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
     }
 
     public void putSnapshot(Transaction t, Long v) {
-        if (v < minversion)
-            return;
+//        if (v < minversion)
+//            return;
 
         objects.get(v).s.incrementAndGet();
         snapshots.put(t, v);
@@ -69,16 +69,33 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
                 if (v != null && v < version)
                     aggrDataTx.add(entry.getKey());
             } else {
-                try {
-                    objects.get(v).s.decrementAndGet();
-                } catch (NullPointerException e){
+//                try {
+                    if(snapshots.remove(entry.getKey()) != null)
+                        if(objects.get(v).s.decrementAndGet() == 0)
+                            addToCleaner(this,v);
+//                } catch (NullPointerException e){
 //                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
-                }
-                snapshots.remove(entry.getKey());
+//                }
+
             }
         }
 
         return value;
+    }
+
+    public static void addToCleaner(ObjectNMSIDb o, Long version) {
+        Database.asyncPool.execute(() -> {
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            o.clean(version);
+//            try {
+//                ThreadCleanerNMSI.set.add(new P<>(o,version));
+//            } catch (Exception e) {
+//            }
+        });
     }
 
     /**
@@ -95,22 +112,24 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     @Override
     public void clean(long version) {
-        if (objects.size()<2)
+        if (objects.size()<5)
             return;
 
-        long myminversion = Long.MAX_VALUE;
-        long mylastversion = getLastVersion()-1;
-
-        for (Map.Entry<Long,P<V, AtomicInteger>> entry : objects.entrySet()) {
-            P<V, AtomicInteger> pair = entry.getValue();
-            int counter = pair.s.get();
-            if (entry.getKey() < mylastversion && counter == 0){
-                myminversion = Math.min(entry.getKey()+1, myminversion);
-                objects.remove(entry.getKey());
-            }
-        }
-
-        minversion = myminversion;
+        if (version < this.version.get()-5)
+            objects.remove(version);
+//        long myminversion = Long.MIN_VALUE;
+//        long mylastversion = getLastVersion()-1;
+//
+//        for (Map.Entry<Long,P<V, AtomicInteger>> entry : objects.entrySet()) {
+//            P<V, AtomicInteger> pair = entry.getValue();
+//            int counter = pair.s.get();
+//            if (entry.getKey() < mylastversion && counter == 0){
+//                myminversion = Math.max(entry.getKey() + 1, myminversion);
+//                objects.remove(entry.getKey());
+//            }
+//        }
+//
+//        minversion = myminversion;
 
     }
 
