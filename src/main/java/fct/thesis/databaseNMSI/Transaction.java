@@ -35,7 +35,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     protected void init(){
         super.init();
         aggStarted = new HashSet<>();
-        writeSet = new HashMap<>();
+        writeSet = new TreeMap<>();
 
         id = shardIds[(int) Thread.currentThread().getId()%Database.numberThreads];
         shardIds[(int) Thread.currentThread().getId()%Database.numberThreads] = id + Database.numberThreads;
@@ -59,8 +59,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         Long v = obj.getVersionForTransaction(this);
         if (v==null){
             obj.lock_read();
-            v = obj.getLastVersion();
-            obj.putSnapshot(this, v);
+            v = obj.getVersionForTransaction(this);
+            if (v==null){
+                v = obj.getLastVersion();
+                obj.putSnapshot(this, v);
+            }
             obj.unlock_read();
         }
 
@@ -107,7 +110,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
                 ObjectNMSIDb<K,V> objdb = (ObjectNMSIDb) putIfAbsent(buffer.getKey(), obj);
                 if (objdb != null) {
-                    obj = null;
                     objectDb = objdb;
                 }else {
                     objectDb = obj;

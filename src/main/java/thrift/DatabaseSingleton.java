@@ -36,6 +36,10 @@ public class DatabaseSingleton {
         getInstance().setType(type);
     }
 
+    public static void setTransactionype(TransactionFactory.type type, int threads){
+        getInstance().setType(type, threads);
+    }
+
     private DatabaseSingleton() {
         type = TransactionFactory.type.TWOPL;
         db = (Database<String, HashMap<String, ByteBuffer>>) DatabaseFactory.createDatabase(type);
@@ -52,6 +56,12 @@ public class DatabaseSingleton {
     public void setType(TransactionFactory.type type) {
         this.type = type;
         db = (Database<String, HashMap<String, ByteBuffer>>) DatabaseFactory.createDatabase(type);
+        System.out.println("Set new Database Transactions Type : "+ type);
+    }
+
+    public void setType(TransactionFactory.type type, int threads) {
+        this.type = type;
+        db = (Database<String, HashMap<String, ByteBuffer>>) DatabaseFactory.createDatabase(type, threads);
         System.out.println("Set new Database Transactions Type : "+ type);
     }
 }

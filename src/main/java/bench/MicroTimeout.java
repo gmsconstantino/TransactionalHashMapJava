@@ -151,7 +151,7 @@ public class MicroTimeout {
 //        System.out.println("Write = "+global_nwrite);
 
         TYPE = TransactionTypeFactory.getType(global_algorithm);
-        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE);
+        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE, global_num_threads);
         loadDatabase(db);
 
         Vector<Thread> threads = new Vector<Thread>();

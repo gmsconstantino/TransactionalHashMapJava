@@ -5,6 +5,7 @@ import fct.thesis.structures.RwLock;
 import pt.dct.util.P;
 
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -16,12 +17,17 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
+    static Random r = new Random();
+
     AtomicLong version;
     long minversion;
     public ConcurrentHashMap<Long, P<V, AtomicInteger>> objects;
     public ConcurrentHashMap<Transaction, Long> snapshots;
 
     RwLock rwlock;
+
+    long id;
+    static AtomicLong c = new AtomicLong(0);
 
     public ObjectNMSIDb(){
         version = new AtomicLong(-1L);
@@ -31,6 +37,8 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         snapshots = new ConcurrentHashMap<>();
 
         rwlock = new RwLock();
+
+        id = c.getAndIncrement();
     }
 
     public Long getLastVersion() {
@@ -41,12 +49,16 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 //        if (v < minversion)
 //            return;
 
-        objects.get(v).s.incrementAndGet();
+        long c = objects.get(v).s.incrementAndGet();
         snapshots.put(t, v);
+        System.out.println("Obj: "+id+" ver: "+v+" T " + t.id + " add c: "+c);
     }
 
     public Long getVersionForTransaction(Transaction tid){
-        return snapshots.get(tid);
+        Long v = snapshots.get(tid);
+        if (v!=null)
+            System.out.println("Obj: "+id+" ver: "+v+" T " + tid.id + " GET");
+        return v;
     }
 
     public V getValueVersion(long version, Set<Transaction> aggrDataTx) {
@@ -57,7 +69,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         try {
             value = objects.get(version).f;
         } catch (NullPointerException e){
-            System.out.println("Version "+version+" Null");
+            System.out.println("Obj: "+id+" ver: "+version+" Null");
 //            e.printStackTrace();
             throw e;
         }
@@ -70,9 +82,13 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
                     aggrDataTx.add(entry.getKey());
             } else {
 //                try {
-                    if(snapshots.remove(entry.getKey()) != null)
-                        if(objects.get(v).s.decrementAndGet() == 0)
-                            addToCleaner(this,v);
+                    if(snapshots.remove(entry.getKey()) != null) {
+                        long c = objects.get(v).s.decrementAndGet();
+                        System.out.println("Obj: "+id+" ver: " + v + " T " + entry.getKey().id + " dec c: " + c);
+                        if (c == 0){
+                            addToCleaner(this, v);
+                        }
+                    }
 //                } catch (NullPointerException e){
 //                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
 //                }
@@ -85,11 +101,6 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     public static void addToCleaner(ObjectNMSIDb o, Long version) {
         Database.asyncPool.execute(() -> {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             o.clean(version);
 //            try {
 //                ThreadCleanerNMSI.set.add(new P<>(o,version));
@@ -107,16 +118,24 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
     public void setValue(V value) {
 //        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
 //        obj.unlock_write();
-        objects.putIfAbsent(version.incrementAndGet(), new P(value, new AtomicInteger(0)));
+        long newversion = version.incrementAndGet();
+        objects.putIfAbsent(newversion, new P(value, new AtomicInteger(0)));
+        System.out.println("Obj: "+id+" ver: "+ newversion+" New");
     }
 
     @Override
     public void clean(long version) {
-        if (objects.size()<5)
+        if (objects.size()<2)
             return;
 
-        if (version < this.version.get()-5)
-            objects.remove(version);
+        if (version < this.version.get()-2 && objects.get(version)!=null) {
+            if(objects.get(version).s.get() == 0){
+                objects.remove(version);
+                System.out.println("Obj: " + id + " ver: " + version + " Del");
+            } else {
+                addToCleaner(this, version);
+            }
+        }
 //        long myminversion = Long.MIN_VALUE;
 //        long mylastversion = getLastVersion()-1;
 //
