@@ -1,4 +1,4 @@
-package thrift;
+package fct.thesis.database;
 
 
 import fct.thesis.database.TransactionFactory;
@@ -29,6 +29,8 @@ public class TransactionTypeFactory {
             return TransactionFactory.type.SI;
         } else if(value.toUpperCase().equals("NMSI")) {
             return TransactionFactory.type.NMSI;
+        } else if(value.toUpperCase().equals("NMSI+TO")){
+            return TransactionFactory.type.NMSI_TIMEOUT;
         } else
             return null;
     }

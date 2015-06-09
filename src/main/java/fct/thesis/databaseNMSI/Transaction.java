@@ -4,11 +4,8 @@ import fct.thesis.database.BufferObjectDb;
 import fct.thesis.database.Database;
 import fct.thesis.database.TransactionAbortException;
 import fct.thesis.database.TransactionTimeoutException;
-import fct.thesis.database2PL.Config;
-import sun.misc.Contended;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by gomes on 26/02/15.
@@ -27,13 +24,9 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             shardIds[i] = i - Database.numberThreads;
         }
     }
-
-    Set<Transaction> aggStarted;
+    
+    public Set<Transaction> aggStarted;
     protected Map<K, BufferObjectDb<K,V>> writeSet;
-
-    public Transaction() {
-        super();
-    }
 
     public Transaction(fct.thesis.database.Database db) {
         super(db);
@@ -99,7 +92,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (writeSet.size() == 0){
             isActive = false;
             success = true;
-            addToCleaner(this);
             return true;
         }
 
@@ -123,51 +115,48 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             }
 
 
-            if (objectDb.try_lock_write_for(Config.TIMEOUT,Config.TIMEOUT_UNIT)) {
-                lockObjects.add(objectDb);
-                buffer.setObjectDb(objectDb); // Set reference to Object, para que no ciclo seguindo
-                                              // nao seja necessario mais uma pesquisa no hashmap
+            objectDb.lock_write();
+            lockObjects.add(objectDb);
+            buffer.setObjectDb(objectDb); // Set reference to Object, para que no ciclo seguindo
+                                          // nao seja necessario mais uma pesquisa no hashmap
 
-                Long v = objectDb.getVersionForTransaction(this);
-                if(v != null && v < objectDb.getLastVersion()){
-                    abortVersions(lockObjects);
-                    return false;
-                } else {
-                    // Line 22
-                    aggStarted.addAll(objectDb.snapshots.keySet());
-                }
-            } else {
+            Long v = objectDb.getVersionForTransaction(this);
+            if(v != null && v < objectDb.getLastVersion()){
                 abortVersions(lockObjects);
+                return false;
+            } else {
+                // Line 22
+                aggStarted.addAll(objectDb.snapshots.keySet());
             }
         }
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
             ObjectNMSIDb<K, V> objectDb = (ObjectNMSIDb) buffer.getObjectDb();
-            long version = objectDb.getLastVersion();
             for (Transaction tid : aggStarted){
                 if (tid.isActive() && objectDb.snapshots.get(tid) == null){
-                    objectDb.putSnapshot(this, version);
+                    objectDb.putSnapshot(tid, objectDb.getLastVersion());
                 }
             }
 
             objectDb.setValue(buffer.getValue());
+            objectDb.unlock_write();
         }
 
-        unlockWrite_objects(lockObjects);
+//        unlockWrite_objects(lockObjects);
 
         isActive = false;
         success = true;
-        addToCleaner(this);
+//        addToCleaner(this);
         return true;
     }
 
-    private void abortVersions(Set<ObjectNMSIDb<K,V>> lockObjects) throws TransactionTimeoutException{
+    protected void abortVersions(Set<ObjectNMSIDb<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
         throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
     }
 
-    private void unlockWrite_objects(Set<ObjectNMSIDb<K,V>> set){
+    protected void unlockWrite_objects(Set<ObjectNMSIDb<K,V>> set){
         Iterator<ObjectNMSIDb<K,V>> it_locks = set.iterator();
         while (it_locks.hasNext()) {
             ObjectNMSIDb<K,V> objectDb = it_locks.next();
@@ -180,7 +169,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         isActive = false;
         success = false;
         commitId = -1;
-        addToCleaner(this);
     }
 
     private void addObjectDbToWriteBuffer(K key, BufferObjectDb objectDb){
@@ -193,12 +181,12 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
     public static void addToCleaner(final fct.thesis.database.Transaction t) {
-        Database.asyncPool.execute(() -> {
-            try {
-                Database.queue.add(t);
-            } catch (Exception e) {
-            }
-        });
+//        Database.asyncPool.execute(() -> {
+//            try {
+//                Database.queue.add(t);
+//            } catch (Exception e) {
+//            }
+//        });
     }
 
     @Override

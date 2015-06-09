@@ -1,13 +1,12 @@
 package fct.thesis.databaseNMSI;
 
-import fct.thesis.database.ObjectDb;
+import fct.thesis.database.*;
 import fct.thesis.structures.RwLock;
 import pt.dct.util.P;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -18,11 +17,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     AtomicLong version;
-    volatile long minversion;
-    long minTxId;
-//    ConcurrentHashMap<Long, P<V, AtomicInteger>> objects;
-    ConcurrentHashMap<Long, V> objects;
-    ConcurrentSkipListMap<Transaction, Long> snapshots;
+    long minversion;
+    public ConcurrentHashMap<Long, P<V, AtomicInteger>> objects;
+    public ConcurrentHashMap<Transaction, Long> snapshots;
 
     RwLock rwlock;
 
@@ -31,7 +28,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         minversion = 0;
 
         objects = new ConcurrentHashMap<>();
-        snapshots = new ConcurrentSkipListMap<>();
+        snapshots = new ConcurrentHashMap<>();
 
         rwlock = new RwLock();
     }
@@ -41,9 +38,10 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
     }
 
     public void putSnapshot(Transaction t, Long v) {
-        if (v < minversion)
-            return;
+//        if (v < minversion)
+//            return;
 
+        objects.get(v).s.incrementAndGet();
         snapshots.put(t, v);
     }
 
@@ -55,14 +53,14 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         if (version > getLastVersion() && version < minversion)
             return null;
 
-        V value = objects.get(version);
-
-//        for(P<Long, V> pair : objects){
-//            if(pair.f <= version){
-//                value = pair.s;
-//                break;
-//            }
-//        }
+        V value = null;
+        try {
+            value = objects.get(version).f;
+        } catch (NullPointerException e){
+            System.out.println("Version "+version+" Null");
+//            e.printStackTrace();
+            throw e;
+        }
 
         // Add tids to transaction metadata
         for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
@@ -70,19 +68,34 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
             if(entry.getKey().isActive()) {
                 if (v != null && v < version)
                     aggrDataTx.add(entry.getKey());
-            }
-            else {
+            } else {
 //                try {
-//                    objects.get(v).s.decrementAndGet();
+                    if(snapshots.remove(entry.getKey()) != null)
+                        if(objects.get(v).s.decrementAndGet() == 0)
+                            addToCleaner(this,v);
 //                } catch (NullPointerException e){
-////                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
+//                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
 //                }
-                if (entry.getKey().id < minTxId)
-                    snapshots.remove(entry.getKey());
+
             }
         }
 
         return value;
+    }
+
+    public static void addToCleaner(ObjectNMSIDb o, Long version) {
+        Database.asyncPool.execute(() -> {
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            o.clean(version);
+//            try {
+//                ThreadCleanerNMSI.set.add(new P<>(o,version));
+//            } catch (Exception e) {
+//            }
+        });
     }
 
     /**
@@ -94,52 +107,29 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
     public void setValue(V value) {
 //        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
 //        obj.unlock_write();
-        objects.putIfAbsent(version.incrementAndGet(), value);
+        objects.putIfAbsent(version.incrementAndGet(), new P(value, new AtomicInteger(0)));
     }
 
     @Override
-    public void clean(long txId) {
-        if (objects.size()<2)
+    public void clean(long version) {
+        if (objects.size()<5)
             return;
 
-//        long max_version = Integer.MIN_VALUE;
-//        for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
-//            if (entry.getKey().id <= version){
-//                if (entry.getValue() > max_version)
-//                    max_version = entry.getValue();
-////                snapshots.remove(entry.getKey());
-//            }
-//        }
-
-        Transaction t = new Transaction();
-        t.id = txId;
-
-        long max_version = -1;
-        try {
-            max_version = snapshots.floorEntry(t).getValue();
-        } catch (NullPointerException e){
-//            e.printStackTrace();
-            return; // pode nao ter nenhuma transacao com id menor que txId
-        }
-
-        if (max_version == getLastVersion())
-            max_version--;
-
-        for (long i = minversion; i <= max_version; i++) {
-            objects.remove(i);
-        }
-
-        minversion = max_version+1;
-        minTxId = txId;
-
+        if (version < this.version.get()-5)
+            objects.remove(version);
+//        long myminversion = Long.MIN_VALUE;
+//        long mylastversion = getLastVersion()-1;
+//
 //        for (Map.Entry<Long,P<V, AtomicInteger>> entry : objects.entrySet()) {
 //            P<V, AtomicInteger> pair = entry.getValue();
 //            int counter = pair.s.get();
-//            if (entry.getKey() < getLastVersion()-1 && counter < 1){
-//                minversion = entry.getKey()+1;
+//            if (entry.getKey() < mylastversion && counter == 0){
+//                myminversion = Math.max(entry.getKey() + 1, myminversion);
 //                objects.remove(entry.getKey());
 //            }
 //        }
+//
+//        minversion = myminversion;
 
     }
 

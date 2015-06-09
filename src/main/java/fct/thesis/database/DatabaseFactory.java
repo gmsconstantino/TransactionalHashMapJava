@@ -9,11 +9,11 @@ public class DatabaseFactory {
         Database db = new fct.thesis.database.Database<K,V>();
         switch (t){
             case SI:
-                db.startThreadCleaner(new ThreadCleanerSI());
+                db.startThreadCleaner(new ThreadCleanerSI(db));
                 break;
             case OCC_MULTI:
             case NMSI:
-                db.startThreadCleaner(new ThreadCleanerNMSI<>(db));
+//                db.startThreadCleaner(new ThreadCleanerNMSI<>(db));
                 break;
         }
         return db;

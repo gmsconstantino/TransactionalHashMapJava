@@ -2,15 +2,12 @@ package fct.thesis.database;
 
 import fct.thesis.structures.MapEntry;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.PriorityBlockingQueue;
-import java.util.function.BiFunction;
 
 /**
  * Created by gomes on 26/02/15.
@@ -18,10 +15,9 @@ import java.util.function.BiFunction;
 public class Database<K,V> {
 
     public static int numberThreads;
+    
+    public final static ExecutorService asyncPool = Executors.newFixedThreadPool(2);
 
-    public final static ExecutorService asyncPool = Executors.newSingleThreadExecutor();
-
-    public final static PriorityBlockingQueue<Transaction> queue = new PriorityBlockingQueue(1000000);
     private Thread cleaner;
 
     public ConcurrentHashMap<K, ObjectDb<K,V>> concurrentHashMap;
@@ -49,7 +45,7 @@ public class Database<K,V> {
     }
 
     public void cleanup(){
-        asyncPool.shutdown();
+        asyncPool.shutdownNow();
     }
 
     public void startThreadCleaner(Thread _cleaner){

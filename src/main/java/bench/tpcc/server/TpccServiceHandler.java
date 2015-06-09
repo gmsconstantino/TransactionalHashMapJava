@@ -6,7 +6,7 @@ import fct.thesis.database.TransactionAbortException;
 import fct.thesis.database.TransactionFactory;
 import fct.thesis.database.TransactionTimeoutException;
 import org.apache.thrift.TException;
-import thrift.TransactionTypeFactory;
+import fct.thesis.database.TransactionTypeFactory;
 import thrift.server.AbortException;
 import thrift.server.NoSuchKeyException;
 import thrift.tpcc.TpccService;

@@ -1,6 +1,7 @@
 package thrift;
 
 import fct.thesis.database.TransactionFactory;
+import fct.thesis.database.TransactionTypeFactory;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
@@ -131,7 +132,7 @@ public class ServerDB {
         }
 
         System.out.println("Database Transactions Type : "+ props.getProperty("transaction.type","TWOPL"));
-        TransactionFactory.type type = TransactionTypeFactory.getType(props.getProperty("transaction.type","TWOPL"));
+        TransactionFactory.type type = TransactionTypeFactory.getType(props.getProperty("transaction.type", "TWOPL"));
         DatabaseSingleton.setTransactionype(type);
 
         ServerDB();

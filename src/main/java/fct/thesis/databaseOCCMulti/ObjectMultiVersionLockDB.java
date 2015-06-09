@@ -23,7 +23,6 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
     ConcurrentLinkedDeque<P<Long, ObjectDb<K,V>>> objects;
     RwLock lock;
 
-
     public ObjectMultiVersionLockDB(){
         super();
         objects = new ConcurrentLinkedDeque<>();
@@ -65,7 +64,7 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
         Iterator<P<Long, ObjectDb<K,V>>> it = objects.descendingIterator();
         while (it.hasNext()){
             P<Long, ObjectDb<K,V>> pair = it.next();
-            if (version > pair.f)
+            if (version >= pair.f)
                 objects.removeLastOccurrence(pair);
             else
                 break;
@@ -117,10 +116,9 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
 
     @Override
     public String toString() {
-        return "ObjectMultiVersionDB{" +
+        return "ObjectMultiVersionLockDB{" +
                 "last_version=" + last_version +
-                ", objects=" + objects +
+                ", lock=" + lock +
                 '}';
     }
-
 }

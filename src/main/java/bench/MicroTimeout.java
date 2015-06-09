@@ -1,7 +1,6 @@
 package bench;
 
 import fct.thesis.database.*;
-import fct.thesis.database.TransactionTypeFactory;
 
 import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
@@ -9,8 +8,9 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Created by gomes on 11/04/15.
  */
-public class Micro {
+public class MicroTimeout {
 
+    public static volatile boolean stop = false;
     private static TransactionFactory.type TYPE;
 
     static class ClientThread extends Thread
@@ -25,7 +25,6 @@ public class Micro {
         int nread = global_nread;
         int nwrite = global_nwrite;
         int conflict_prob = global_conflict_prob > 0 ? 1 : 0;
-        int num_operations = global_num_operations;
 
         int min_private_key;
         int max_private_key;
@@ -38,7 +37,7 @@ public class Micro {
             _opsCommit=0;
             _opsAbort=0;
             _threadid = threadid;
-            TYPE = Micro.TYPE;
+            TYPE = MicroTimeout.TYPE;
         }
 
         public int getOpsCommit() {
@@ -58,7 +57,7 @@ public class Micro {
             max_shared_key = min_shared_key + global_store_size;
 
             // test run
-            for (int i=0; i < num_operations; i++) {
+            while(!stop) {
                 Vector<Integer> keys = generate_keys();
                 execute_tx(keys);
             }
@@ -116,12 +115,14 @@ public class Micro {
     }
 
     static void displayUsage () {
-        System.out.println("Usage: Micro -alg ALGORITHM [-t num_threads] [-n num_operations] [-s transaction-size] [-c conflict-probability] [-r read-percentage]");
+        System.out.println("Usage: MicroTimeout -alg ALGORITHM [-d duration(s)] [-t num_threads] [-s transaction-size] " +
+                "[-c conflict-probability] [-r read-percentage]");
         System.exit(0);
     }
 
+    private static int duration;
+
     private static int global_num_threads;
-    private static int global_num_operations;
     private static int global_conflict_prob;
     private static int global_store_size;
     private static int global_txn_size;
@@ -133,13 +134,12 @@ public class Micro {
 
     private static String global_algorithm;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
         parseArguments(args);
         initBench();
 
         System.out.println("Number of threads = "+ global_num_threads);
-        System.out.println("Number of operations per thread = "+ global_num_operations);
         System.out.println("Conflict Probability = "+ global_conflict_prob+"%");
         System.out.println("Number of shared keys  = "+ global_store_size);
         System.out.println("Number of private keys = "+ global_txn_size);
@@ -163,9 +163,18 @@ public class Micro {
         System.out.println();
 
         long st = System.currentTimeMillis();
-        for (Thread t : threads) {
+
+        for (Thread t : threads)
             t.start();
-        }
+
+        Thread.sleep(duration);
+        stop = true;
+
+        for (Thread t : threads)
+            t.join();
+
+        long en=System.currentTimeMillis();
+
 
         int opsCommit = 0;
         int opsAbort = 0;
@@ -178,8 +187,6 @@ public class Micro {
             } catch (InterruptedException e) {
             }
         }
-
-        long en=System.currentTimeMillis();
 
         db.cleanup();
 
@@ -252,6 +259,16 @@ public class Micro {
                 global_algorithm = args[argindex];
                 argindex++;
             }
+            else if (args[argindex].compareTo("-d") == 0) {
+                argindex++;
+                if (argindex >= args.length) {
+                    displayUsage();
+                    System.exit(0);
+                }
+
+                duration = Integer.parseInt(args[argindex])*1000;
+                argindex++;
+            }
             else if (args[argindex].compareTo("-t") == 0) {
                 argindex++;
                 if (argindex >= args.length) {
@@ -261,18 +278,6 @@ public class Micro {
 
                 int ttarget=Integer.parseInt(args[argindex]);
                 global_num_threads = ttarget;
-                argindex++;
-            }
-            else if (args[argindex].compareTo("-n")==0)
-            {
-                argindex++;
-                if (argindex >= args.length) {
-                    displayUsage();
-                    System.exit(0);
-                }
-
-                int ttarget=Integer.parseInt(args[argindex]);
-                global_num_operations = ttarget;
                 argindex++;
             }
             else if (args[argindex].compareTo("-s")==0)

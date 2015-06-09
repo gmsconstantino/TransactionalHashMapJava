@@ -3,11 +3,14 @@ package fct.thesis.database;
 import fct.thesis.database.Database;
 import fct.thesis.database.ObjectDb;
 import fct.thesis.database.Transaction;
+import fct.thesis.databaseNMSI.ObjectNMSIDb;
 import fct.thesis.structures.MapEntry;
+import pt.dct.util.P;
 
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.PriorityBlockingQueue;
 
 /**
@@ -16,40 +19,28 @@ import java.util.concurrent.PriorityBlockingQueue;
 public class ThreadCleanerNMSI<K,V> extends Thread{
 
     private final static long WAITCLEANERTIME = 100;
-    public final PriorityBlockingQueue<Transaction> queue = Database.queue;
-
     public final Database db;
-    private long min = -1;
+
+    public final static ConcurrentLinkedDeque<P<ObjectNMSIDb,Long>> set = new ConcurrentLinkedDeque<>();
+
 
     public ThreadCleanerNMSI(Database _db) {
         db = _db;
         setName("Thread-Cleaner");
     }
 
-    public long getMin() {
-        Transaction t = queue.peek();
-        while (!queue.isEmpty() && t.id==(min+1)){
-            min++;
-            queue.poll();
-            t = queue.peek();
-        }
-        return min;
-    }
-
-
     public void run(){
         for (;;){
-            if (queue.size()==0) {
-                sleep();
-                continue;
-            }
 
-            long minTxId = getMin();
+            sleep();
 
-            Iterator<ObjectDb> it = db.getObjectDbIterator();
+            Iterator<P<ObjectNMSIDb,Long>> it = set.iterator();
             while (it.hasNext()){
-                it.next().clean(minTxId);
+                P<ObjectNMSIDb,Long> pair = it.next();
+
+                pair.f.clean(pair.s);
             }
+
         }
     }
 
