@@ -5,6 +5,7 @@ import fct.thesis.structures.RwLock;
 import pt.dct.util.P;
 
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +24,9 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     RwLock rwlock;
 
+    long id;
+    static AtomicLong c = new AtomicLong(0);
+
     public ObjectNMSIDb(){
         version = new AtomicLong(-1L);
         minversion = 0;
@@ -31,6 +35,8 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         snapshots = new ConcurrentHashMap<>();
 
         rwlock = new RwLock();
+
+        id = c.getAndIncrement();
     }
 
     public Long getLastVersion() {
@@ -85,11 +91,6 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     public static void addToCleaner(ObjectNMSIDb o, Long version) {
         Database.asyncPool.execute(() -> {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             o.clean(version);
 //            try {
 //                ThreadCleanerNMSI.set.add(new P<>(o,version));
@@ -107,16 +108,22 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
     public void setValue(V value) {
 //        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
 //        obj.unlock_write();
-        objects.putIfAbsent(version.incrementAndGet(), new P(value, new AtomicInteger(0)));
+        long newversion = version.incrementAndGet();
+        objects.putIfAbsent(newversion, new P(value, new AtomicInteger(0)));
     }
 
     @Override
     public void clean(long version) {
-        if (objects.size()<5)
+        if (objects.size()<1)
             return;
 
-        if (version < this.version.get()-5)
-            objects.remove(version);
+        if (version < this.version.get()-2 && objects.get(version)!=null) {
+            if(objects.get(version).s.get() == 0){
+                objects.remove(version);
+            } else {
+                addToCleaner(this, version);
+            }
+        }
 //        long myminversion = Long.MIN_VALUE;
 //        long mylastversion = getLastVersion()-1;
 //
@@ -130,7 +137,6 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 //        }
 //
 //        minversion = myminversion;
-
     }
 
     @Override
