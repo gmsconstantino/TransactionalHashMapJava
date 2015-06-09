@@ -19,7 +19,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     AtomicLong version;
     long minversion;
-    public ConcurrentHashMap<Long, P<V, AtomicInteger>> objects;
+    public ConcurrentHashMap<Long, V> objects;
     public ConcurrentHashMap<Transaction, Long> snapshots;
 
     RwLock rwlock;
@@ -47,7 +47,6 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 //        if (v < minversion)
 //            return;
 
-        objects.get(v).s.incrementAndGet();
         snapshots.put(t, v);
     }
 
@@ -60,13 +59,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
             return null;
 
         V value = null;
-        try {
-            value = objects.get(version).f;
-        } catch (NullPointerException e){
-            System.out.println("Version "+version+" Null");
-//            e.printStackTrace();
-            throw e;
-        }
+        value = objects.get(version);
 
         // Add tids to transaction metadata
         for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
@@ -76,9 +69,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
                     aggrDataTx.add(entry.getKey());
             } else {
 //                try {
-                    if(snapshots.remove(entry.getKey()) != null)
-                        if(objects.get(v).s.decrementAndGet() == 0)
-                            addToCleaner(this,v);
+                    snapshots.remove(entry.getKey());
 //                } catch (NullPointerException e){
 //                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
 //                }
@@ -89,15 +80,15 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         return value;
     }
 
-    public static void addToCleaner(ObjectNMSIDb o, Long version) {
-        Database.asyncPool.execute(() -> {
-            o.clean(version);
+//    public static void addToCleaner(ObjectNMSIDb o, Long version) {
+//        Database.asyncPool.execute(() -> {
+//            o.clean(version);
 //            try {
 //                ThreadCleanerNMSI.set.add(new P<>(o,version));
 //            } catch (Exception e) {
 //            }
-        });
-    }
+//        });
+//    }
 
     /**
      * Add object with value and increment the version
@@ -109,7 +100,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 //        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
 //        obj.unlock_write();
         long newversion = version.incrementAndGet();
-        objects.putIfAbsent(newversion, new P(value, new AtomicInteger(0)));
+        objects.putIfAbsent(newversion, value);
     }
 
     @Override
@@ -117,26 +108,19 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         if (objects.size()<1)
             return;
 
-        if (version < this.version.get()-2 && objects.get(version)!=null) {
-            if(objects.get(version).s.get() == 0){
-                objects.remove(version);
-            } else {
-                addToCleaner(this, version);
+        long myminversion = Long.MAX_VALUE;
+
+        for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
+            myminversion = Math.min(myminversion, entry.getValue());
+        }
+
+        for (Map.Entry<Long,V> entry : objects.entrySet()) {
+            if (entry.getKey() < myminversion){
+                objects.remove(entry.getKey());
             }
         }
-//        long myminversion = Long.MIN_VALUE;
-//        long mylastversion = getLastVersion()-1;
-//
-//        for (Map.Entry<Long,P<V, AtomicInteger>> entry : objects.entrySet()) {
-//            P<V, AtomicInteger> pair = entry.getValue();
-//            int counter = pair.s.get();
-//            if (entry.getKey() < mylastversion && counter == 0){
-//                myminversion = Math.max(entry.getKey() + 1, myminversion);
-//                objects.remove(entry.getKey());
-//            }
-//        }
-//
-//        minversion = myminversion;
+
+        minversion = myminversion;
     }
 
     @Override

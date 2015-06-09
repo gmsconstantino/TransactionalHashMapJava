@@ -34,11 +34,9 @@ public class ThreadCleanerNMSI<K,V> extends Thread{
 
             sleep();
 
-            Iterator<P<ObjectNMSIDb,Long>> it = set.iterator();
+            Iterator<ObjectDb> it = db.getObjectDbIterator();
             while (it.hasNext()){
-                P<ObjectNMSIDb,Long> pair = it.next();
-
-                pair.f.clean(pair.s);
+                it.next().clean(-1);
             }
 
         }
