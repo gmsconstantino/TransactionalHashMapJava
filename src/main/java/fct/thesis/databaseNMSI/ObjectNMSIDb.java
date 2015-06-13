@@ -105,10 +105,10 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     @Override
     public void clean(long version) {
-        if (objects.size()<1)
+        if (objects.size()<2)
             return;
 
-        long myminversion = Long.MAX_VALUE;
+        long myminversion = getLastVersion();
 
         for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
             myminversion = Math.min(myminversion, entry.getValue());
