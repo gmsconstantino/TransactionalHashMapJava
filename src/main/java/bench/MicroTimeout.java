@@ -84,22 +84,22 @@ public class MicroTimeout {
                 if (conflict_prob == 1) {
                     int key_shared = ThreadLocalRandom.current().nextInt(min_shared_key, max_shared_key);
                     // read-modify-write global store
-                    v = t.get(key_shared);
-                    t.put(key_shared, v + 1);
+                    v = t.get(0,key_shared);
+                    t.put(0,key_shared, v + 1);
                 }
 
                 int i = 0;
                 for (; i < rw; i++) {
-                    v = t.get(keys.get(i));
-                    t.put(keys.get(i), v + 1);
+                    v = t.get(0,keys.get(i));
+                    t.put(0,keys.get(i), v + 1);
                 }
 
                 for (; i < nread; i++) {
-                    t.get(keys.get(i));
+                    t.get(0,keys.get(i));
                 }
 
                 for (; i < nwrite; i++) {
-                    t.put(keys.get(i), i + 1);
+                    t.put(0,keys.get(i), i + 1);
                 }
 
                 if (t.commit()) {
@@ -151,7 +151,7 @@ public class MicroTimeout {
 //        System.out.println("Write = "+global_nwrite);
 
         TYPE = TransactionTypeFactory.getType(global_algorithm);
-        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE);
+        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE,1);
         loadDatabase(db);
 
         Vector<Thread> threads = new Vector<Thread>();
@@ -207,7 +207,7 @@ public class MicroTimeout {
         Transaction<Integer,Integer> t = db.newTransaction(TYPE);
 
         for (int i = 0; i < total_size; i++){
-            t.put(i, 0);
+            t.put(0,i, 0);
         }
 
         if(!t.commit()){
