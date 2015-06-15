@@ -16,7 +16,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     @Contended
     public static AtomicInteger timestamp = new AtomicInteger(0);
 
-    protected Map<K, BufferDb<K,V>> writeSet;
+    protected Map<K, BufferObjectDb<K,V>> writeSet;
 
 
     public Transaction(Database db) {
@@ -61,7 +61,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
 
         // o objecto esta na base de dados
-        BufferDb<K,V> buffer = new BufferObjectDb(key, value);
+        BufferObjectDb<K,V> buffer = new BufferObjectDb(key, value);
         addObjectDbToWriteBuffer(key, buffer);
     }
 
@@ -79,7 +79,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
-        for (BufferDb<K,V> buffer : writeSet.values()){
+        for (BufferObjectDb<K,V> buffer : writeSet.values()){
             ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) getKeyDatabase(buffer.getKey());
             //Nao existe nenhuma
             if (objectDb == null) {
@@ -92,6 +92,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
             objectDb.lock_write();
             lockObjects.add(objectDb);
+            buffer.setObjectDb(objectDb);
 
             // buffer.version == objectDb.last_version
             if (objectDb.getVersion() < id) {
@@ -145,7 +146,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         addToCleaner(this);
     }
 
-    void addObjectDbToWriteBuffer(K key, BufferDb objectDb){
+    void addObjectDbToWriteBuffer(K key, BufferObjectDb objectDb){
         writeSet.put(key, objectDb);
     }
 
