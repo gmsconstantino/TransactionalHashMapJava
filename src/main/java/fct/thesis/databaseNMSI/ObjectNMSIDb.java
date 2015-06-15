@@ -1,10 +1,11 @@
 package fct.thesis.databaseNMSI;
 
-import fct.thesis.database.ObjectDb;
+import fct.thesis.database.*;
 import fct.thesis.structures.RwLock;
 import pt.dct.util.P;
 
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -17,11 +18,14 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
     AtomicLong version;
-    volatile long minversion;
-    public ConcurrentHashMap<Long, P<V, AtomicInteger>> objects;
+    long minversion;
+    public ConcurrentHashMap<Long, V> objects;
     public ConcurrentHashMap<Transaction, Long> snapshots;
 
     RwLock rwlock;
+
+    long id;
+    static AtomicLong c = new AtomicLong(0);
 
     public ObjectNMSIDb(){
         version = new AtomicLong(-1L);
@@ -31,6 +35,8 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         snapshots = new ConcurrentHashMap<>();
 
         rwlock = new RwLock();
+
+        id = c.getAndIncrement();
     }
 
     public Long getLastVersion() {
@@ -38,10 +44,9 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
     }
 
     public void putSnapshot(Transaction t, Long v) {
-        if (v < minversion)
-            return;
+//        if (v < minversion)
+//            return;
 
-        objects.get(v).s.incrementAndGet();
         snapshots.put(t, v);
     }
 
@@ -54,13 +59,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
             return null;
 
         V value = null;
-        try {
-            value = objects.get(version).f;
-        } catch (NullPointerException e){
-            System.out.println("Version "+version+" Null");
-//            e.printStackTrace();
-            throw e;
-        }
+        value = objects.get(version);
 
         // Add tids to transaction metadata
         for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
@@ -69,17 +68,27 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
                 if (v != null && v < version)
                     aggrDataTx.add(entry.getKey());
             } else {
-                try {
-                    objects.get(v).s.decrementAndGet();
-                } catch (NullPointerException e){
+//                try {
+                    snapshots.remove(entry.getKey());
+//                } catch (NullPointerException e){
 //                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
-                }
-                snapshots.remove(entry.getKey());
+//                }
+
             }
         }
 
         return value;
     }
+
+//    public static void addToCleaner(ObjectNMSIDb o, Long version) {
+//        Database.asyncPool.execute(() -> {
+//            o.clean(version);
+//            try {
+//                ThreadCleanerNMSI.set.add(new P<>(o,version));
+//            } catch (Exception e) {
+//            }
+//        });
+//    }
 
     /**
      * Add object with value and increment the version
@@ -90,7 +99,8 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
     public void setValue(V value) {
 //        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
 //        obj.unlock_write();
-        objects.putIfAbsent(version.incrementAndGet(), new P(value, new AtomicInteger(0)));
+        long newversion = version.incrementAndGet();
+        objects.putIfAbsent(newversion, value);
     }
 
     @Override
@@ -98,16 +108,19 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         if (objects.size()<2)
             return;
 
+        long myminversion = getLastVersion();
 
-        for (Map.Entry<Long,P<V, AtomicInteger>> entry : objects.entrySet()) {
-            P<V, AtomicInteger> pair = entry.getValue();
-            int counter = pair.s.get();
-            if (entry.getKey() < getLastVersion()-1 && counter < 1){
-                minversion = entry.getKey()+1;
+        for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
+            myminversion = Math.min(myminversion, entry.getValue());
+        }
+
+        for (Map.Entry<Long,V> entry : objects.entrySet()) {
+            if (entry.getKey() < myminversion){
                 objects.remove(entry.getKey());
             }
         }
 
+        minversion = myminversion;
     }
 
     @Override

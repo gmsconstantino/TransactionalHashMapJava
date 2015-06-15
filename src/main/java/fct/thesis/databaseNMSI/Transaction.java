@@ -44,8 +44,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         Long v = obj.getVersionForTransaction(this);
         if (v==null){
             obj.lock_read();
-            v = obj.getLastVersion();
-            obj.putSnapshot(this, v);
+            v = obj.getVersionForTransaction(this);
+            if (v==null){
+                v = obj.getLastVersion();
+                obj.putSnapshot(this, v);
+            }
             obj.unlock_read();
         }
 
@@ -81,7 +84,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return true;
         }
 
-        Set<ObjectNMSIDb<K,V>> lockObjects = new HashSet<ObjectNMSIDb<K,V>>();
+        Set<ObjectNMSIDb<K,V>> lockObjects = new HashSet<>();
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
 
@@ -117,10 +120,9 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
             ObjectNMSIDb<K, V> objectDb = (ObjectNMSIDb) buffer.getObjectDb();
-            long version = objectDb.getLastVersion();
             for (Transaction tid : aggStarted){
                 if (tid.isActive() && objectDb.snapshots.get(tid) == null){
-                    objectDb.putSnapshot(this, version);
+                    objectDb.putSnapshot(tid, objectDb.getLastVersion());
                 }
             }
 

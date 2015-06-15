@@ -8,4 +8,12 @@ public class P<F,S> {
 		this.f = f;
 		this.s = s;
 	}
+
+    @Override
+    public String toString() {
+        return "P{" +
+                "f=" + f +
+                ", s=" + s +
+                '}';
+    }
 }
