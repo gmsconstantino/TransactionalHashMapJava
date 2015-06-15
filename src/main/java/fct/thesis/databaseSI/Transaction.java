@@ -60,18 +60,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return;
         }
 
-        ObjectMultiVersionLockDB<K,V> obj = (ObjectMultiVersionLockDB) getKeyDatabase(key);
-        //Nao existe nenhuma
-        if (obj == null) {
-            obj = new ObjectMultiVersionLockDB<K,V>(); // A thread fica com o write lock
-            ObjectMultiVersionLockDB<K,V> objdb = (ObjectMultiVersionLockDB) putIfAbsent(key, obj);
-
-            if (objdb != null)
-                obj = objdb;
-        }
-
         // o objecto esta na base de dados
-        BufferDb<K,V> buffer = new BufferObjectDb(key, value, obj.getVersion(), obj);
+        BufferDb<K,V> buffer = new BufferObjectDb(key, value);
         addObjectDbToWriteBuffer(key, buffer);
     }
 
@@ -90,7 +80,16 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
         for (BufferDb<K,V> buffer : writeSet.values()){
-            ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) buffer.getObjectDb();
+            ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) getKeyDatabase(buffer.getKey());
+            //Nao existe nenhuma
+            if (objectDb == null) {
+                objectDb = new ObjectMultiVersionLockDB<K,V>(); // A thread fica com o write lock
+                ObjectMultiVersionLockDB<K,V> objdb = (ObjectMultiVersionLockDB) putIfAbsent(buffer.getKey(), objectDb);
+
+                if (objdb != null)
+                    objectDb = objdb;
+            }
+
             objectDb.lock_write();
             lockObjects.add(objectDb);
 
