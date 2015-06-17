@@ -17,7 +17,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     @Contended
     public static AtomicInteger timestamp = new AtomicInteger(0);
 
-    protected Map<K, BufferObjectDb<K,V>> writeSet;
+    protected Map<P<Integer,K>, BufferObjectDb<K,V>> writeSet;
 
 
     public Transaction(Database db) {
@@ -64,7 +64,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
 
         // o objecto esta na base de dados
-        BufferObjectDb<K,V> buffer = new BufferObjectDb(key, value);
+        BufferObjectDb<K,V> buffer = new BufferObjectDb(table, key, value);
         addObjectDbToWriteBuffer(key, buffer);
     }
 
@@ -83,11 +83,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
         for (BufferObjectDb<K,V> buffer : writeSet.values()){
-            ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) getKeyDatabase(buffer.getKey());
+            ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) getKeyDatabase(buffer.getTable(), buffer.getKey());
             //Nao existe nenhuma
             if (objectDb == null) {
                 objectDb = new ObjectMultiVersionLockDB<K,V>(); // A thread fica com o write lock
-                ObjectMultiVersionLockDB<K,V> objdb = (ObjectMultiVersionLockDB) putIfAbsent(buffer.getKey(), objectDb);
+                ObjectMultiVersionLockDB<K,V> objdb = (ObjectMultiVersionLockDB) putIfAbsent(buffer.getTable(), buffer.getKey(), objectDb);
 
                 if (objdb != null)
                     objectDb = objdb;
@@ -149,7 +149,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         addToCleaner(this);
     }
 
-    void addObjectDbToWriteBuffer(K key, BufferObjectDb objectDb){
+    void addObjectDbToWriteBuffer(P key, BufferObjectDb objectDb){
         writeSet.put(key, objectDb);
     }
 
