@@ -64,7 +64,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
 
         // o objecto esta na base de dados
-        BufferObjectDb<K,V> buffer = new BufferObjectDb(table, key, value);
+        BufferObjectDb<K,V> buffer = new BufferObjectDb(table, k, value);
         addObjectDbToWriteBuffer(key, buffer);
     }
 
