@@ -80,6 +80,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return true;
         }
 
+        long st = System.nanoTime();
+
         Set<ObjectNMSIDb<K,V>> lockObjects = new HashSet<>();
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
@@ -114,6 +116,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             }
         }
 
+        long xst = System.nanoTime();
+
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
             ObjectNMSIDb<K, V> objectDb = (ObjectNMSIDb) buffer.getObjectDb();
             for (Transaction tid : aggStarted){
@@ -126,6 +130,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             objectDb.unlock_write();
         }
 
+        long en = System.nanoTime();
+        int index = (int) Thread.currentThread().getId()%100;
+        ncommit[index]++;
+        tcommit[index] += (en-st)/1000;
+        tXcommit[index] += (en-xst)/1000;
 //        unlockWrite_objects(lockObjects);
 
         isActive = false;

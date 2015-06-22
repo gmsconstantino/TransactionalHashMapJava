@@ -2,6 +2,7 @@ package fct.thesis.database;
 
 import fct.thesis.structures.MapEntry;
 
+import java.io.*;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,40 @@ public class Database<K,V> {
 
     public void cleanup(){
         asyncPool.shutdownNow();
+
+        try {
+            long ncommit = 0;
+            for (int i = 0; i < Transaction.ncommit.length; i++) {
+                ncommit += Transaction.ncommit[i];
+            }
+
+            float tcommit = 0;
+            for (int i = 0; i < Transaction.tcommit.length; i++) {
+                tcommit += Transaction.tcommit[i];
+            }
+            tcommit /= ncommit;
+
+            float tXcommit = 0;
+            for (int i = 0; i < Transaction.tXcommit.length; i++) {
+                tXcommit += Transaction.tXcommit[i];
+            }
+            tXcommit /= ncommit;
+
+            File f = new File("/local/cj.gomes/result/commit.csv");
+            boolean x = !f.exists();
+            PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(f.getAbsolutePath(), true)));
+            if (x)
+                pw.println("ncommit,t_commit,time_mutex");
+            pw.append(ncommit+","+tcommit+","+tXcommit+"\n");
+
+            pw.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public void startThreadCleaner(Thread _cleaner){

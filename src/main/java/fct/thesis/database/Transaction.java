@@ -15,6 +15,10 @@ public abstract class Transaction<K,V> implements Comparable {
     public boolean isActive;
     public boolean success;
 
+    public static long[] ncommit = new long[100];
+    public static long[] tcommit = new long[100];
+    public static long[] tXcommit = new long[100];
+
     protected Database db;
 
     public Transaction(Database db){

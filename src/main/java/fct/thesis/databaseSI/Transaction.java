@@ -77,6 +77,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return true;
         }
 
+        long st = System.nanoTime();
+
         Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
         for (BufferObjectDb<K,V> buffer : writeSet.values()){
@@ -103,6 +105,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             }
         }
 
+        long xst = System.nanoTime();
 
         commitId = timestamp.getAndIncrement();
         // Escrita
@@ -111,6 +114,12 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             objectDb.addNewVersionObject(commitId, buffer.getValue());
             objectDb.unlock_write();
         }
+
+        long en = System.nanoTime();
+        int index = (int) Thread.currentThread().getId()%100;
+        ncommit[index]++;
+        tcommit[index] += (en-st)/1000;
+        tXcommit[index] += (en-xst)/1000;
 
         isActive = false;
         success = true;
