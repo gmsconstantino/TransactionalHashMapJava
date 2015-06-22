@@ -57,13 +57,13 @@ public class TpccThread extends Thread {
     private void doNextTransaction() {
         int r = ThreadLocalRandom.current().nextInt(100);
         try {
-            if (r <= P_MIX) {
+            if (r <= P_MIX) { // 45%
                 doPayment();
-            } else if (r <= P_MIX + NO_MIX) {
+            } else if (r <= P_MIX + NO_MIX) { // 88%
                 doNewOrder();
-            } else if (r <= P_MIX + NO_MIX + OS_MIX) {
+            } else if (r <= P_MIX + NO_MIX + OS_MIX) { // 92%
                 doOrdstat();
-            } else if (r <= P_MIX + NO_MIX + OS_MIX + D_MIX) {
+            } else if (r <= P_MIX + NO_MIX + OS_MIX + D_MIX) { // 96%
                 doDelivery();
             } else {
                 doSlev();
@@ -116,7 +116,7 @@ public class TpccThread extends Thread {
             object = t.get(w_id, o_key);
             if(object == null){
                 t.abort();
-                System.out.println("Slev order key: "+o_key);
+//                System.out.println("Slev order key: "+o_key);
                 throw new TransactionException("Order Line not found.");
             }
             Order o_data = object.deepCopy().getOrder();
@@ -217,7 +217,7 @@ public class TpccThread extends Thread {
              * C_DELIVERY_CNT is incremented by 1.
              */
             String c_key = CustomerPrimaryKey(w_id,d_id,o_c_id);
-            Customer c_data = t.get(w_id, c_key).deepCopy().getCustomer();
+            Customer c_data = t.get(w_id, c_key).deepCopy().getCustomer(); //TODO: deu null pointer
 
             c_data.c_balance += sum_ol_amount;
             c_data.c_delivery_cnt++;
