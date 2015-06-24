@@ -109,6 +109,10 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             Long v = objectDb.getVersionForTransaction(this);
             if(v != null && v < objectDb.getLastVersion()){
                 abortVersions(lockObjects);
+                long en = System.nanoTime();
+                int index = (int) Thread.currentThread().getId()%100;
+                nabort[index]++;
+                tabort[index] += (en-st)/1000;
                 return false;
             } else {
                 // Line 22

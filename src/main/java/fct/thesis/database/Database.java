@@ -46,6 +46,17 @@ public class Database<K,V> {
                 ncommit += Transaction.ncommit[i];
             }
 
+            long nabort = 0;
+            for (int i = 0; i < Transaction.nabort.length; i++) {
+                nabort += Transaction.nabort[i];
+            }
+
+            float tabort = 0;
+            for (int i = 0; i < Transaction.tabort.length; i++) {
+                tabort += Transaction.tabort[i];
+            }
+            tabort /= nabort;
+
             float tcommit = 0;
             for (int i = 0; i < Transaction.tcommit.length; i++) {
                 tcommit += Transaction.tcommit[i];
@@ -62,8 +73,8 @@ public class Database<K,V> {
             boolean x = !f.exists();
             PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(f.getAbsolutePath(), true)));
             if (x)
-                pw.println("ncommit,t_commit,time_mutex");
-            pw.append(ncommit+","+tcommit+","+tXcommit+"\n");
+                pw.println("ncommit,t_commit,time_mutex,nabort,tabort");
+            pw.append(ncommit+","+tcommit+","+tXcommit+","+nabort+","+tabort+"\n");
 
             pw.close();
 
