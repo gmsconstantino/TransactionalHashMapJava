@@ -30,6 +30,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.databaseN
             return true;
         }
 
+        long st = System.nanoTime();
+
         Set<ObjectNMSIDb<K,V>> lockObjects = new HashSet<ObjectNMSIDb<K,V>>();
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
@@ -58,6 +60,10 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.databaseN
                 Long v = objectDb.getVersionForTransaction(this);
                 if(v != null && v < objectDb.getLastVersion()){
                     abortVersions(lockObjects);
+                    long en = System.nanoTime();
+                    int index = (int) Thread.currentThread().getId()%100;
+                    nabort[index]++;
+                    tabort[index] += (en-st)/1000;
                     return false;
                 } else {
                     // Line 22
@@ -65,8 +71,14 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.databaseN
                 }
             } else {
                 abortVersions(lockObjects);
+                long en = System.nanoTime();
+                int index = (int) Thread.currentThread().getId()%100;
+                nabort[index]++;
+                tabort[index] += (en-st)/1000;
             }
         }
+
+        long xst = System.nanoTime();
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
             ObjectNMSIDb<K, V> objectDb = (ObjectNMSIDb) buffer.getObjectDb();
@@ -79,6 +91,12 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.databaseN
             objectDb.setValue(buffer.getValue());
             objectDb.unlock_write();
         }
+
+        long en = System.nanoTime();
+        int index = (int) Thread.currentThread().getId()%100;
+        ncommit[index]++;
+        tcommit[index] += (en-st)/1000;
+        tXcommit[index] += (en-xst)/1000;
 
 //        unlockWrite_objects(lockObjects);
 
