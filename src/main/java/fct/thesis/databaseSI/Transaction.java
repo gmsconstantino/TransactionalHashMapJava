@@ -77,7 +77,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return true;
         }
 
-        long st = System.nanoTime();
+        st = System.nanoTime();
 
         Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
@@ -101,11 +101,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 continue;
             } else {
                 abortVersions(lockObjects);
-                long en = System.nanoTime();
-                int index = (int) Thread.currentThread().getId()%100;
-                nabort[index]++;
-                tabort[index] += (en-st)/1000;
-                return false;
             }
         }
 
@@ -140,6 +135,12 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     private void abortVersions(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
+
+        long en = System.nanoTime();
+        int index = (int) Thread.currentThread().getId()%100;
+        nabort[index]++;
+        tabort[index] += (en-st)/1000;
+
         throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
     }
 

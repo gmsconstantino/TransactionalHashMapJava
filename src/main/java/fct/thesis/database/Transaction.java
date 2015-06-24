@@ -23,6 +23,8 @@ public abstract class Transaction<K,V> implements Comparable {
 
     protected Database db;
 
+    public long st;
+
     public Transaction(Database db){
         this.db = db;
         init();
