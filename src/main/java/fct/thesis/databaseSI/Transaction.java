@@ -78,7 +78,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
 
         st = System.nanoTime();
-
+        medLock = 0;
+        i = 0;
         Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
         for (BufferObjectDb<K,V> buffer : writeSet.values()){
@@ -92,7 +93,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                     objectDb = objdb;
             }
 
+            long s = System.nanoTime();
             objectDb.lock_write();
+            long f = System.nanoTime();
+            i++;
+            medLock += (f-s)/1000;
             lockObjects.add(objectDb);
             buffer.setObjectDb(objectDb);
 
@@ -120,6 +125,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         tcommit[index] += (en-st)/1000;
         tXcommit[index] += (en-xst)/1000;
 
+        tlock[index] += medLock/i;
+
         isActive = false;
         success = true;
         addToCleaner(this);
@@ -140,6 +147,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         int index = (int) Thread.currentThread().getId()%100;
         nabort[index]++;
         tabort[index] += (en-st)/1000;
+
+        tlock[index] += medLock/i;
 
         throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
     }
