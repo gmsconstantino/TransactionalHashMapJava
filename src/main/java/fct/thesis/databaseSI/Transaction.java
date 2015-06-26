@@ -106,6 +106,15 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 continue;
             } else {
                 abortVersions(lockObjects);
+
+                long en = System.nanoTime();
+                int index = (int) Thread.currentThread().getId()%100;
+                nabort[index]++;
+                tabort[index] += (en-st)/1000;
+
+                tlock[index] += medLock/i;
+
+                return false;
             }
         }
 
@@ -119,17 +128,17 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             objectDb.unlock_write();
         }
 
+        isActive = false;
+        success = true;
+        addToCleaner(this);
+
         long en = System.nanoTime();
         int index = (int) Thread.currentThread().getId()%100;
         ncommit[index]++;
         tcommit[index] += (en-st)/1000;
         tXcommit[index] += (en-xst)/1000;
 
-        tlock[index] += medLock/i;
 
-        isActive = false;
-        success = true;
-        addToCleaner(this);
         return true;
     }
 

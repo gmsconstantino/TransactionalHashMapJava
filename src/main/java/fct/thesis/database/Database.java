@@ -73,7 +73,7 @@ public class Database<K,V> {
             for (int i = 0; i < Transaction.tlock.length; i++) {
                 tlock += Transaction.tlock[i];
             }
-            tlock /= (ncommit+nabort);
+            tlock /= nabort;
 
             File f = new File("/local/cj.gomes/result/commit.csv");
             boolean x = !f.exists();
