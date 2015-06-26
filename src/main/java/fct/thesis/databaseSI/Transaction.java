@@ -78,8 +78,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
 
         st = System.nanoTime();
-        medLock = 0;
-        i = 0;
         Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
         for (BufferObjectDb<K,V> buffer : writeSet.values()){
@@ -93,11 +91,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                     objectDb = objdb;
             }
 
-            long s = System.nanoTime();
             objectDb.lock_write();
-            long f = System.nanoTime();
-            i++;
-            medLock += (f-s)/1000;
             lockObjects.add(objectDb);
             buffer.setObjectDb(objectDb);
 
@@ -105,6 +99,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             if (objectDb.getVersion() < id) {
                 continue;
             } else {
+                long f = System.nanoTime();
                 abortVersions(lockObjects);
 
                 long en = System.nanoTime();
@@ -112,7 +107,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 nabort[index]++;
                 tabort[index] += (en-st)/1000;
 
-                tlock[index] += medLock/i;
+                tlock[index] += (f-st)/1000;
 
                 return false;
             }
@@ -152,14 +147,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         unlockWrite_objects(lockObjects);
         abort();
 
-        long en = System.nanoTime();
-        int index = (int) Thread.currentThread().getId()%100;
-        nabort[index]++;
-        tabort[index] += (en-st)/1000;
-
-        tlock[index] += medLock/i;
-
-        throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
+//        throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
     }
 
     private void unlockWrite_objects(Set<ObjectLockDb<K,V>> set){
