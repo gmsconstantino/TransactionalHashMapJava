@@ -108,7 +108,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 tabort[index] += (en-st)/1000;
 
                 tlock[index] += (fnlock-st)/1000;
-                tafterlock[index] += (en-fnlock)/1000;
 
                 return false;
             }
@@ -124,6 +123,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             objectDb.unlock_write();
         }
 
+        long xen = System.nanoTime();
+
         isActive = false;
         success = true;
         addToCleaner(this);
@@ -132,7 +133,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         int index = (int) Thread.currentThread().getId()%100;
         ncommit[index]++;
         tcommit[index] += (en-st)/1000;
-        tXcommit[index] += (en-xst)/1000;
+        tXcommit[index] += (xen-xst)/1000;
 
 
         return true;
