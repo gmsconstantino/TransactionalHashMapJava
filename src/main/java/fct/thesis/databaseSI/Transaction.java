@@ -99,7 +99,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             if (objectDb.getVersion() < id) {
                 continue;
             } else {
-                long f = System.nanoTime();
+                long fnlock = System.nanoTime();
                 abortVersions(lockObjects);
 
                 long en = System.nanoTime();
@@ -107,7 +107,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 nabort[index]++;
                 tabort[index] += (en-st)/1000;
 
-                tlock[index] += (f-st)/1000;
+                tlock[index] += (fnlock-st)/1000;
+                tafterlock[index] += (en-fnlock)/1000;
 
                 return false;
             }
