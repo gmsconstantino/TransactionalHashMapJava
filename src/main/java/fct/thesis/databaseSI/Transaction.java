@@ -189,12 +189,13 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     }
 
     public static void addToCleaner(final fct.thesis.database.Transaction t) {
-        Database.asyncPool.execute(() -> {
-            try {
-                ThreadCleanerSI.set.remove(t);
-            } catch (Exception e) {
-            }
-        });
+//        Database.asyncPool.execute(() -> {
+//            try {
+//                ThreadCleanerSI.set.remove(t);
+//            } catch (Exception e) {
+//            }
+//        });
+        ThreadCleanerSI.set.remove(t);
     }
 
 }
