@@ -99,7 +99,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             if (objectDb.getVersion() < id) {
                 continue;
             } else {
-                long fnlock = System.nanoTime();
                 abortVersions(lockObjects);
 
                 long en = System.nanoTime();
@@ -107,7 +106,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 nabort[index]++;
                 tabort[index] += (en-st)/1000;
 
-                tlock[index] += (fnlock-st)/1000;
 
                 return false;
             }
@@ -127,6 +125,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         isActive = false;
         success = true;
+
+        long stdebug = System.nanoTime();
         addToCleaner(this);
 
         long en = System.nanoTime();
@@ -135,6 +135,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         tcommit[index] += (en-st)/1000;
         tXcommit[index] += (xen-xst)/1000;
 
+        debug[index] += (en-stdebug)/1000;
 
         return true;
     }
