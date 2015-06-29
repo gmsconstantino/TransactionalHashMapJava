@@ -169,7 +169,7 @@ public class TpccLoad {
                     Date date = new java.sql.Date(System.currentTimeMillis());
                     o.o_entry_d = date.toString();
 
-                    if (o_id > 2100) {    /* the last 900 orders have not been */
+                    if (o_id > 2100) {    /* the last 900 orders have not been delivered */
                         o.o_carrier_id = 0;
 
                         t.put(w_id, OrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.order(o));
@@ -181,6 +181,7 @@ public class TpccLoad {
                         /* Put new Order */
                         t.put(w_id, NewOrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.NULL(true));
                         if (o_id==2101){
+                            // This is the oldest undelivered order data of that district.
                             t.put(w_id, NewOrderSecundaryKey(o_w_id, o_d_id), MyObject.Integer(2101));
                         }
                     } else {

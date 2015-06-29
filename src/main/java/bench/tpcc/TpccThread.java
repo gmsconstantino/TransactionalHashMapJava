@@ -78,9 +78,6 @@ public class TpccThread extends Thread {
         MyObject object = null;
         int i;
         int o_id = 0;
-        int ret = 0;
-        long beginTime = 0;
-        long endTime = 0;
         int w_id = 0;
         int d_id = 0;
         int threshold = 0;
@@ -176,11 +173,21 @@ public class TpccThread extends Thread {
 
         Transaction<String, MyObject> t = Environment.newTransaction();
 
+        /* For a given warehouse number (W_ID), for each of the 10 districts
+         * (D_W_ID, D_ID) within that warehouse, and for a given carrier number
+         * O_CARRIER_ID:
+         */
         for (d_id=1; d_id <= DIST_PER_WARE; d_id++){
+
+            /* The row int the NEW-ORDER table with matching NO_W_ID (equals W_ID),
+             * and NO_D_ID (equals D_ID) and with the lowest NO_O_ID value is
+             * selected. This is the oldest undelivered order data of that district.
+             */
             String no_key_sec = NewOrderSecundaryKey(w_id, d_id);
             Integer min_o_id = t.get(w_id, no_key_sec).deepCopy().getInteger();
 
-            // Should
+            // Should delete this object from database,
+            // the primary key of new order to the last order not delivery
             String no_key = NewOrderPrimaryKey(w_id,d_id,min_o_id);
 
             /* The row in the ORDER table with matching O_W_ID (equals W_ID), O_D_ID (equals D_ID),
