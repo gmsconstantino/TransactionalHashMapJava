@@ -73,7 +73,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (writeSet.size() == 0){
             isActive = false;
             success = true;
-            addToCleaner(this);
+            ThreadCleanerSI.set.remove(this);
             return true;
         }
 
@@ -114,7 +114,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         isActive = false;
         success = true;
-        addToCleaner(this);
+        ThreadCleanerSI.set.remove(this);
         return true;
     }
 
@@ -143,7 +143,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         isActive = false;
         success = false;
         commitId = -1;
-        addToCleaner(this);
+        ThreadCleanerSI.set.remove(this);
     }
 
     void addObjectDbToWriteBuffer(K key, BufferObjectDb objectDb){
@@ -163,15 +163,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     @Override
     public Collection getWriteSet() {
         return writeSet.values();
-    }
-
-    public static void addToCleaner(final fct.thesis.database.Transaction t) {
-        Database.asyncPool.execute(() -> {
-            try {
-                ThreadCleanerSI.set.remove(t);
-            } catch (Exception e) {
-            }
-        });
     }
 
 }
