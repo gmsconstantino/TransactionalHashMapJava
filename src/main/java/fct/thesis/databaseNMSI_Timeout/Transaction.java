@@ -83,7 +83,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.databaseN
                 nabort[index]++;
                 tabort[index] += (en-st)/1000;
 
-                debug[index] += (f-st)/1000;
+//                debug[index] += (f-st)/1000;
 
                 return false;
             }

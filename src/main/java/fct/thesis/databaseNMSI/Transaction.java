@@ -116,7 +116,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 nabort[index]++;
                 tabort[index] += (en-st)/1000;
 
-                debug[index] += (f-st)/1000;
+//                debug[index] += (f-st)/1000;
 
                 return false;
             } else {
@@ -182,15 +182,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     @Override
     public Collection getWriteSet() {
         return writeSet.values();
-    }
-
-    public static void addToCleaner(final fct.thesis.database.Transaction t) {
-//        Database.asyncPool.execute(() -> {
-//            try {
-//                Database.queue.add(t);
-//            } catch (Exception e) {
-//            }
-//        });
     }
 
     @Override

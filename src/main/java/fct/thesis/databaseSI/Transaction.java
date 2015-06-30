@@ -106,7 +106,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 nabort[index]++;
                 tabort[index] += (en-st)/1000;
 
-
                 return false;
             }
         }
@@ -127,16 +126,13 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         success = true;
         ThreadCleanerSI.set.remove(this);
 
-        long stdebug = System.nanoTime();
-        addToCleaner(this);
-
         long en = System.nanoTime();
         int index = (int) Thread.currentThread().getId()%100;
         ncommit[index]++;
         tcommit[index] += (en-st)/1000;
         tXcommit[index] += (xen-xst)/1000;
 
-        debug[index] += (en-stdebug)/1000;
+//        debug[index] += (en-stdebug)/1000;
 
         return true;
     }
