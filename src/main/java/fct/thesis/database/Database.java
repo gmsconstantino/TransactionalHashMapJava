@@ -69,18 +69,24 @@ public class Database<K,V> {
             }
             tXcommit /= ncommit;
 
-            float tcleaner = 0;
-            for (int i = 0; i < Transaction.debug.length; i++) {
-                tcleaner += Transaction.debug[i];
+            float tdebug1 = 0;
+            for (int i = 0; i < Transaction.debug1.length; i++) {
+                tdebug1 += Transaction.debug1[i];
             }
-            tcleaner /= nabort;
+            tdebug1 /= nabort;
+
+            float tdebug2 = 0;
+            for (int i = 0; i < Transaction.debug2.length; i++) {
+                tdebug2 += Transaction.debug2[i];
+            }
+            tdebug2 /= nabort;
 
             File f = new File("/local/cj.gomes/result/commit.csv");
             boolean x = !f.exists();
             PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(f.getAbsolutePath(), true)));
             if (x)
-                pw.println("ncommit,t_commit,time_mutex,nabort,tabort,t_cleaner");
-            pw.append(ncommit+","+tcommit+","+tXcommit+","+nabort+","+tabort+","+tcleaner+"\n");
+                pw.println("ncommit,t_commit,time_mutex,nabort,tabort,t_debug1,t_debug2");
+            pw.append(ncommit+","+tcommit+","+tXcommit+","+nabort+","+tabort+","+tdebug1+","+tdebug2+"\n");
 
             pw.close();
 
