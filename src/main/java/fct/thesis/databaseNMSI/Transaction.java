@@ -75,8 +75,15 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return success;
 
         if (writeSet.size() == 0){
+            st = System.nanoTime();
+
             isActive = false;
             success = true;
+
+            long en = System.nanoTime();
+            int index = (int) Thread.currentThread().getId()%100;
+            ncommit[index]++;
+            tcommit[index] += (en-st)/1000;
             return true;
         }
 
