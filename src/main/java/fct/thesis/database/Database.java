@@ -51,6 +51,12 @@ public class Database<K,V> {
                 nabort += Transaction.nabort[i];
             }
 
+            float tget = 0;
+            for (int i = 0; i < Transaction.tget.length; i++) {
+                tget += Transaction.tget[i];
+            }
+            tget /= (ncommit+nabort);
+
             float tabort = 0;
             for (int i = 0; i < Transaction.tabort.length; i++) {
                 tabort += Transaction.tabort[i];
@@ -85,8 +91,8 @@ public class Database<K,V> {
             boolean x = !f.exists();
             PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(f.getAbsolutePath(), true)));
             if (x)
-                pw.println("ncommit,t_commit,time_mutex,nabort,tabort,t_debug1,t_debug2");
-            pw.append(ncommit+","+tcommit+","+tXcommit+","+nabort+","+tabort+","+tdebug1+","+tdebug2+"\n");
+                pw.println("ncommit,t_commit,time_mutex,nabort,tabort,t_debug1,t_debug2,tget");
+            pw.append(ncommit+","+tcommit+","+tXcommit+","+nabort+","+tabort+","+tdebug1+","+tdebug2+","+tget+"\n");
 
             pw.close();
 

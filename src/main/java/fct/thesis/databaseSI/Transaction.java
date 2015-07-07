@@ -35,6 +35,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (!isActive)
             return null;
 
+        long st = System.nanoTime();
+
         if(writeSet.containsKey(key)){
             return (V) writeSet.get(key).getValue();
         }
@@ -46,6 +48,10 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return null;
 
         returnValue = obj.getValueVersionLess(id);
+
+        long en = System.nanoTime();
+        int index = (int) Thread.currentThread().getId()%100;
+        tget[index] += (en-st)/1000;
 
         return returnValue;
     }
