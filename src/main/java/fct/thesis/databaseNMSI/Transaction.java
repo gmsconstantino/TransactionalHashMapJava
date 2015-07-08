@@ -55,6 +55,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
         long en = System.nanoTime();
         int index = (int) Thread.currentThread().getId()%100;
+        nget[index]++;
         tget[index] += (en-st)/1000;
 
         return r;

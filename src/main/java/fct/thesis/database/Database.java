@@ -51,11 +51,16 @@ public class Database<K,V> {
                 nabort += Transaction.nabort[i];
             }
 
+            long nget = 0;
+            for (int i = 0; i < Transaction.nget.length; i++) {
+                nget += Transaction.nget[i];
+            }
+
             float tget = 0;
             for (int i = 0; i < Transaction.tget.length; i++) {
                 tget += Transaction.tget[i];
             }
-            tget /= (ncommit+nabort);
+            tget /= nget;
 
             float tabort = 0;
             for (int i = 0; i < Transaction.tabort.length; i++) {

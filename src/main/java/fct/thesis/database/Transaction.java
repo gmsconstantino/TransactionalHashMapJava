@@ -21,6 +21,7 @@ public abstract class Transaction<K,V> implements Comparable {
     public static long[] tcommit = new long[100];
     public static long[] tXcommit = new long[100];
 
+    public static long[] nget = new long[100];
     public static long[] tget = new long[100];
 
     public static long[] debug1 = new long[100];
