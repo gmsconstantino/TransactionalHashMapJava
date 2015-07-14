@@ -14,8 +14,6 @@ import java.util.concurrent.Executors;
  */
 public class Database<K,V> {
 
-    public final static ExecutorService asyncPool = Executors.newFixedThreadPool(2);
-
     private Thread cleaner;
 
     public ConcurrentHashMap<K, ObjectDb<K,V>> concurrentHashMap;
@@ -37,7 +35,6 @@ public class Database<K,V> {
     }
 
     public void cleanup(){
-        asyncPool.shutdownNow();
     }
 
     public void startThreadCleaner(Thread _cleaner){
