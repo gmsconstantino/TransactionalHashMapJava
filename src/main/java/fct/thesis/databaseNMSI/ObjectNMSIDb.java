@@ -29,8 +29,8 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         minversion = 0;
 
         objects = new ConcurrentHashMap<>();
-//        snapshots = new ArraySnapshotsImpl<>();
-        snapshots = new CMapSnapshotsImpl<>();
+        snapshots = new ArraySnapshotsImpl<>();
+//        snapshots = new CMapSnapshotsImpl<>();
 
         rwlock = new RwLock();
 
@@ -61,18 +61,20 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
         // Add tids to transaction metadata
         for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
-            Long v = snapshots.get(entry.getKey());
+//            Long v = snapshots.get(entry.getKey());
+            Long v = entry.getValue();
             if(entry.getKey().isActive()) {
                 if (v != null && v < version)
                     aggrDataTx.add(entry.getKey());
             }
-//            else {
+//            TODO: Preciso destas linhas para quando do concurrent, nao crescer eternamente
+            else {
 //                try {
-//                    snapshots.remove(entry.getKey());
+                    snapshots.remove(entry.getKey());
 //                } catch (NullPointerException e){
 //                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
 //                }
-//            }
+            }
         }
 
         return value;

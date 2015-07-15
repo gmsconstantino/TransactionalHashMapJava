@@ -131,7 +131,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             }
 
             objectDb.setValue(buffer.getValue());
-            objectDb.snapshots.remove(this); // Remove snapshot from object GC Active
+//            objectDb.snapshots.remove(this); // era para remover a snapshot mas tem o problema da transitividade
             objectDb.unlock_write();
         }
 
