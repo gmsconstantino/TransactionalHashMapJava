@@ -15,6 +15,9 @@ public abstract class Transaction<K,V> implements Comparable {
     public boolean isActive;
     public boolean success;
 
+    public Thread thread;
+    public int idxThread;
+
     protected Database db;
 
     public Transaction(Database db){

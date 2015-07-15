@@ -2,14 +2,11 @@ package fct.thesis.databaseNMSI;
 
 import fct.thesis.database.*;
 import fct.thesis.structures.RwLock;
-import pt.dct.util.P;
 
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -20,7 +17,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
     AtomicLong version;
     long minversion;
     public ConcurrentHashMap<Long, V> objects;
-    public ConcurrentHashMap<Transaction, Long> snapshots;
+    public SnapshotsIface<fct.thesis.databaseNMSI.Transaction> snapshots;
 
     RwLock rwlock;
 
@@ -32,7 +29,8 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         minversion = 0;
 
         objects = new ConcurrentHashMap<>();
-        snapshots = new ConcurrentHashMap<>();
+//        snapshots = new ArraySnapshotsImpl<>();
+        snapshots = new CMapSnapshotsImpl<>();
 
         rwlock = new RwLock();
 
@@ -67,28 +65,18 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
             if(entry.getKey().isActive()) {
                 if (v != null && v < version)
                     aggrDataTx.add(entry.getKey());
-            } else {
+            }
+//            else {
 //                try {
-                    snapshots.remove(entry.getKey());
+//                    snapshots.remove(entry.getKey());
 //                } catch (NullPointerException e){
 //                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
 //                }
-
-            }
+//            }
         }
 
         return value;
     }
-
-//    public static void addToCleaner(ObjectNMSIDb o, Long version) {
-//        Database.asyncPool.execute(() -> {
-//            o.clean(version);
-//            try {
-//                ThreadCleanerNMSI.set.add(new P<>(o,version));
-//            } catch (Exception e) {
-//            }
-//        });
-//    }
 
     /**
      * Add object with value and increment the version
@@ -111,7 +99,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         long myminversion = getLastVersion();
 
         for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
-            myminversion = Math.min(myminversion, entry.getValue());
+            myminversion = min(myminversion, entry.getValue());
         }
 
         for (Map.Entry<Long,V> entry : objects.entrySet()) {
@@ -121,6 +109,15 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
         }
 
         minversion = myminversion;
+    }
+
+    /*
+     * If b==null then return a
+     */
+    private long min(long a, Long b){
+        if (b != null)
+            return Math.min(a, b);
+        return a;
     }
 
     @Override

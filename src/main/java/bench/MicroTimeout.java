@@ -2,6 +2,7 @@ package bench;
 
 import fct.thesis.database.*;
 
+import java.text.DecimalFormat;
 import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -193,11 +194,11 @@ public class MicroTimeout {
         long runtime = en-st;
         System.out.println("RunTime(ms) = "+ runtime);
         double throughput = 1000.0 * ((double) opsCommit) / ((double) runtime);
-        System.out.println("Throughput(ops/sec) = " + throughput);
-        System.out.println("Number Commits = "+opsCommit);
+        System.out.println("Throughput(ops/sec) = " + String.format("%,f", throughput));
+        System.out.println("Number Commits = "+ String.format("%,d", opsCommit));
         System.out.println("Number Aborts = "+opsAbort);
         System.out.println("Abort rate = "+Math.round((opsAbort/(double)(opsCommit+opsAbort))*100)+"%");
-
+        System.out.println("");
     }
 
     private static void loadDatabase(Database<Integer,Integer> db) {

@@ -3,6 +3,7 @@ package fct.thesis.databaseNMSI;
 import fct.thesis.database.BufferObjectDb;
 import fct.thesis.database.TransactionAbortException;
 import fct.thesis.database.TransactionTimeoutException;
+import pt.dct.util.P;
 
 import java.util.*;
 
@@ -19,10 +20,17 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         super(db);
     }
 
+    protected Transaction() {
+        super(null);
+        abort();
+    }
+
     protected void init(){
         super.init();
         aggStarted = new HashSet<>();
         writeSet = new TreeMap<>();
+        thread = Thread.currentThread();
+        idxThread = (int) thread.getId() % SnapshotsIface.MAX_POS;
     }
 
     @Override
@@ -123,6 +131,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             }
 
             objectDb.setValue(buffer.getValue());
+            objectDb.snapshots.remove(this); // Remove snapshot from object GC Active
             objectDb.unlock_write();
         }
 
