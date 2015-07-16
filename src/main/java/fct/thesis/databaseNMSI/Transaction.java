@@ -131,15 +131,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             }
 
             objectDb.setValue(buffer.getValue());
-//            objectDb.snapshots.remove(this); // era para remover a snapshot mas tem o problema da transitividade
             objectDb.unlock_write();
         }
 
-//        unlockWrite_objects(lockObjects);
-
         isActive = false;
         success = true;
-//        addToCleaner(this);
         return true;
     }
 
@@ -173,18 +169,9 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         return writeSet.values();
     }
 
-    public static void addToCleaner(final fct.thesis.database.Transaction t) {
-//        Database.asyncPool.execute(() -> {
-//            try {
-//                Database.queue.add(t);
-//            } catch (Exception e) {
-//            }
-//        });
-    }
-
     @Override
     public String toString() {
-        return "Transaction@"+System.identityHashCode(this)+"{" +
+        return "Transaction@"+System.identityHashCode(this)+" {" +
                 "id=" + id +
                 ", isActive=" + isActive +
                 ", success=" + success +

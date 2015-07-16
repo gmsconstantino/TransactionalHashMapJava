@@ -26,18 +26,13 @@ public class ArraySnapshotsImpl<T extends Transaction> implements SnapshotsIface
 
     @Override
     public Long get(T tid) {
-        try {
-//            int index = (int) tid.thread.getId() % MAX_POS;
-            if (tid == snapshots[tid.idxThread].f) // Se o que esta no vetor e a tx actual entao ok
-                return snapshots[tid.idxThread].s;
-        } catch (NullPointerException e){}
-
+        if (tid == snapshots[tid.idxThread].f) // Se o que esta no vetor e' a tx actual entao ok
+            return snapshots[tid.idxThread].s;
         return null; // Senao deve ser algo passado
     }
 
     @Override
     public void put(T t, long v) {
-//        int index = (int) t.thread.getId()%MAX_POS;
         snapshots[t.idxThread].f = t;
         snapshots[t.idxThread].s = v;
     }
@@ -60,7 +55,7 @@ public class ArraySnapshotsImpl<T extends Transaction> implements SnapshotsIface
     public Collection<? extends Transaction> keySet() {
         ArrayList<T> keyset = new ArrayList<>(MAX_POS);
         for (int i = 0; i < MAX_POS; i++) {
-            if (snapshots[i].f != NULL_TX)
+            if (snapshots[i].f != NULL_TX && snapshots[i].f.isActive())
                 keyset.add(snapshots[i].f);
         }
         return keyset;

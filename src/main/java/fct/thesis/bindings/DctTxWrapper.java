@@ -30,9 +30,9 @@ public class DctTxWrapper implements Tx {
         try {
             b = tx.commit();
         } catch (TransactionTimeoutException e){
-            logger.debug("Commit Transaction Timeout",e);
+//            logger.debug("Commit Transaction Timeout",e);
         } catch (TransactionAbortException e){
-            logger.debug("Commit Transaction Abort",e);
+//            logger.debug("Commit Transaction Abort",e);
         }
         return b;
     }

@@ -61,19 +61,14 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 
         // Add tids to transaction metadata
         for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
-//            Long v = snapshots.get(entry.getKey());
             Long v = entry.getValue();
             if(entry.getKey().isActive()) {
                 if (v != null && v < version)
                     aggrDataTx.add(entry.getKey());
             }
-//            TODO: Preciso destas linhas para quando do concurrent, nao crescer eternamente
+//          Para remover as snapshots transitivas quando e' usado o concurrent hash map
             else {
-//                try {
                     snapshots.remove(entry.getKey());
-//                } catch (NullPointerException e){
-//                    System.out.println("null version: "+v); // O v esta null por isso a excepcao
-//                }
             }
         }
 
@@ -87,8 +82,6 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
      */
     @Override
     public void setValue(V value) {
-//        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
-//        obj.unlock_write();
         long newversion = version.incrementAndGet();
         objects.putIfAbsent(newversion, value);
     }
