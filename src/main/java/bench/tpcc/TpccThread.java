@@ -63,7 +63,7 @@ public class TpccThread extends Thread {
 
     public void run() {
         if (al != null && !shouldload)
-            al = al.acquireLock(AffinityStrategies.SAME_CORE, AffinityStrategies.SAME_SOCKET, sAffinityStrategies.ANY);
+            al = al.acquireLock(AffinityStrategies.SAME_CORE, AffinityStrategies.SAME_SOCKET, AffinityStrategies.ANY);
 
         if (shouldload){
             TpccLoad.LoadWare(use_ware);
