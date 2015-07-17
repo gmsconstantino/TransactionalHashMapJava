@@ -17,7 +17,7 @@ public class TpccEmbeded {
     public static boolean DEBUG = false;
 
     private static int numClientPerWare = -1;
-    private static int numWare = -1;
+    private static int numWares = -1;
     private static int measureTime = -1;
     private static boolean bindWarehouse = false;
 
@@ -33,12 +33,15 @@ public class TpccEmbeded {
 
         parseArguments(args);
 
-
-        TpccThread[] workers = new TpccThread[numClientPerWare*numWare];
+        int totalWorkers = numClientPerWare * numWares;
+        TpccThread[] workers = new TpccThread[totalWorkers];
         // Start each client.
-        for (int i = 0; i < (numClientPerWare*numWare); i++) {
-            TpccThread worker = new TpccThread(i+1, numWare, bindWarehouse);
-            workers[i] = worker;
+        int n_worker = 1;
+        for (int j = 0; j < numClientPerWare; j++) {
+            for (int i = 0; i < numWares; i++) {
+                TpccThread worker = new TpccThread(n_worker++, i+1, numWares, bindWarehouse);
+                workers[n_worker-2] = worker;
+            }
         }
 
         System.out.println("TPCC Data Load Started...");
@@ -47,19 +50,20 @@ public class TpccEmbeded {
         TpccLoad.LoadItems();
 
         //para cada thread coloca-la a fazer o load da bd
-        for (int i = 0; i < numClientPerWare; i++) {
+        for (int i = 0; i < totalWorkers; i++) {
             workers[i].start();
         }
 
-        while (signal.get() < numClientPerWare);
+        while (signal.get() < totalWorkers);
 
         DecimalFormat df = new DecimalFormat("#,##0.00");
         System.out.println("Load time (s): " + df.format((System.currentTimeMillis() - start) / 1000));
 
+        System.out.println();
         printHeapSize();
 
         int size = 0;
-        for (int i = 0; i < numWare + 1; i++) {
+        for (int i = 0; i < numWares + 1; i++) {
             size += Environment.getSizeDatabase(i);
         }
         System.out.println("Size database = "+size);
@@ -77,14 +81,14 @@ public class TpccEmbeded {
 //        loop for the measure_time
         df = new DecimalFormat("0.00");
         final long startTime = System.currentTimeMillis();
-        for (int i = 0; i < numClientPerWare; i++) {
+        for (int i = 0; i < totalWorkers; i++) {
             workers[i].start = true;
         }
 
         Thread.sleep(measureTime*1000);
         stop = true;
 
-        for (int i = 0; i < numClientPerWare; i++) {
+        for (int i = 0; i < totalWorkers; i++) {
             workers[i].join();
         }
 
@@ -111,7 +115,7 @@ public class TpccEmbeded {
         System.out.println("Latency (ms) = "+ df.format(latency));
 
         size = 0;
-        for (int i = 0; i < numWare + 1; i++) {
+        for (int i = 0; i < numWares + 1; i++) {
             size += Environment.getSizeDatabase(i);
         }
         System.out.println("Size database = "+size);
@@ -140,7 +144,7 @@ public class TpccEmbeded {
                     usageMessage();
                     System.exit(0);
                 }
-                numWare=Integer.parseInt(args[argindex]);
+                numWares =Integer.parseInt(args[argindex]);
                 argindex++;
             }
             else if (args[argindex].compareTo("-c")==0)
@@ -230,8 +234,8 @@ public class TpccEmbeded {
             }
         }
 
-        if(type!=null && numWare != -1) {
-            Environment.setTransactiontype(type, numWare+1);
+        if(type!=null && numWares != -1) {
+            Environment.setTransactiontype(type, numWares +1);
         } else {
             usageMessage();
             System.exit(0);

@@ -29,8 +29,9 @@ public class TpccThread extends Thread {
 
     public volatile boolean start = false;
 
-    int number;
-    int num_ware;
+    int n_worker;
+    int num_warehouses;
+    int use_ware;
 
     int commits = 0;
     int aborts = 0;
@@ -41,15 +42,16 @@ public class TpccThread extends Thread {
     boolean loaded = false;
     AffinityLock al;
 
-    public TpccThread(int number, int num_ware, boolean bindWarehouse) {
+    public TpccThread(int n_worker, int use_ware, int num_warehouses, boolean bindWarehouse) {
 
-        setName("TPCC_Worker@"+number+"_Ware@"+num_ware);
+        setName("Worker@"+n_worker+"_Ware@"+ use_ware);
 
-        this.number = number;
-        this.num_ware = num_ware;
+        this.n_worker = n_worker;
+        this.num_warehouses = num_warehouses;
+        this.use_ware = use_ware;
 
         if (bindWarehouse)
-            th_w_id = (number%num_ware) + 1;
+            th_w_id = use_ware;
     }
 
     public void run() {
@@ -58,10 +60,10 @@ public class TpccThread extends Thread {
 
         if (!loaded){
             //TODO: colocar as outras threads para o mesmo warehouse no mesmo CPU fisico
-            if (number <= num_ware) { // Apenas as primeiras
-                TpccLoad.LoadWare(number);
-                TpccLoad.LoadCust(number);
-                TpccLoad.LoadOrd(number);
+            if (n_worker <= num_warehouses) { // Apenas as primeiras
+                TpccLoad.LoadWare(use_ware);
+                TpccLoad.LoadCust(use_ware);
+                TpccLoad.LoadOrd(use_ware);
             }
             loaded = !loaded;
         }
@@ -115,7 +117,7 @@ public class TpccThread extends Thread {
         if (th_w_id != -1)
             w_id = th_w_id;
         else
-            w_id = Util.randomNumber(1, num_ware);
+            w_id = Util.randomNumber(1, num_warehouses);
 
         d_id = Util.randomNumber(1, DIST_PER_WARE);
         threshold = Util.randomNumber(10, 20);
@@ -192,7 +194,7 @@ public class TpccThread extends Thread {
         if (th_w_id != -1)
             w_id = th_w_id;
         else
-            w_id = Util.randomNumber(1, num_ware);
+            w_id = Util.randomNumber(1, num_warehouses);
         o_carrier_id = Util.randomNumber(1, 10);
 
         //Timestamp
@@ -284,7 +286,7 @@ public class TpccThread extends Thread {
         if (th_w_id != -1)
             w_id = th_w_id;
         else
-            w_id = Util.randomNumber(1, num_ware);
+            w_id = Util.randomNumber(1, num_warehouses);
 
         d_id = Util.randomNumber(1, DIST_PER_WARE);
         c_id = Util.nuRand(1023, 1, CUST_PER_DIST);
@@ -390,7 +392,7 @@ public class TpccThread extends Thread {
         if (th_w_id != -1)
             w_id = th_w_id;
         else
-            w_id = Util.randomNumber(1, num_ware);
+            w_id = Util.randomNumber(1, num_warehouses);
 
         d_id = Util.randomNumber(1, DIST_PER_WARE);
         c_id = Util.nuRand(1023, 1, CUST_PER_DIST);
@@ -402,7 +404,7 @@ public class TpccThread extends Thread {
             byname = 0; /* select by customer id */
         }
 
-        if (Util.randomNumber(1, 100) <= 85 || num_ware==1) {
+        if (Util.randomNumber(1, 100) <= 85 || num_warehouses ==1) {
             c_w_id = w_id;
             c_d_id = d_id;
         } else {
@@ -550,7 +552,7 @@ public class TpccThread extends Thread {
         if (th_w_id != -1)
             w_id = th_w_id;
         else
-            w_id = Util.randomNumber(1, num_ware);
+            w_id = Util.randomNumber(1, num_warehouses);
 
         d_id = Util.randomNumber(1, TpccConstants.DIST_PER_WARE);
         c_id = Util.nuRand(1023, 1, TpccConstants.CUST_PER_DIST);
@@ -580,7 +582,7 @@ public class TpccThread extends Thread {
                 order_data[i].ol_i_id = NOTFOUND;
             }
 
-            if (Util.randomNumber(1, 100) != 1 || num_ware==1) {
+            if (Util.randomNumber(1, 100) != 1 || num_warehouses ==1) {
                 order_data[i].ol_supply_w_id = w_id;
             } else {
                 /* Select warehouse other than home */
@@ -791,7 +793,7 @@ public class TpccThread extends Thread {
      */
     private int otherWare(int home_ware) {
         int tmp;
-        while ((tmp = Util.randomNumber(1, num_ware)) == home_ware) ;
+        while ((tmp = Util.randomNumber(1, num_warehouses)) == home_ware) ;
         return tmp;
     }
 
