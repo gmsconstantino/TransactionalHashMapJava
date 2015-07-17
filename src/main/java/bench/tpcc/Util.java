@@ -17,12 +17,58 @@ public class Util implements TpccConstants {
     private static int nextNum = 0;
     static Boolean first = true;
 
-    static int permCount;
     private static Random generate = new Random();
 
     private static final int C_255 = randomNumber(0, 255);
     private static final int C_1023 = randomNumber(0, 1023);
     private static final int C_8191 = randomNumber(0, 8191);
+
+    public static class Permutation {
+
+        int permCount;
+        int[] nums = new int[CUST_PER_DIST];
+
+        public Permutation() {
+            initPermutation();
+        }
+
+        private void initPermutation() {
+            int i, j = 0;
+            int[] tempNums = new int[CUST_PER_DIST];
+
+            permCount = 0;
+
+        /* initialize with consecutive values [1..ORD_PER_DIST] */
+//	 	for (i = 0, cur = nums; i < ORD_PER_DIST; i++, cur++) {
+//	 		*cur = i + 1;
+//	 	}
+
+            for (i = 0; i < ORD_PER_DIST; i++) {
+                nums[i] = i + 1;
+                tempNums[i] = i + 1;
+            }
+
+        /* now, shuffle */
+//	 	for (i = 0; i < ORD_PER_DIST-1; i++) {
+//	 		j = (int)RandomNumber(i+1, ORD_PER_DIST-1);
+//	 		swap_int(nums[i], nums[j]);
+//	 	}
+            for (i = 0; i < ORD_PER_DIST; i++) {
+                j = randomNumber(i, ORD_PER_DIST-1);
+                int temp = nums[i];
+                nums[i] = nums[j];
+                nums[j] = temp;
+            }
+        }
+
+        public int getPermutation() {
+            if (permCount >= ORD_PER_DIST) {
+                throw new RuntimeException("GetPermutation: past end of list!\n");
+            }
+            return nums[permCount++];
+        }
+
+    }
 
     //Member Functions
     public static void shuffle() {
@@ -187,40 +233,8 @@ public class Util implements TpccConstants {
         return str;
     }
 
-    public static void initPermutation() {
-        int i, j = 0;
-        int[] tempNums = new int[CUST_PER_DIST];
-
-        permCount = 0;
-
-        /* initialize with consecutive values [1..ORD_PER_DIST] */
-//	 	for (i = 0, cur = nums; i < ORD_PER_DIST; i++, cur++) {
-//	 		*cur = i + 1;
-//	 	}
-
-        for (i = 0; i < ORD_PER_DIST; i++) {
-            nums[i] = i + 1;
-            tempNums[i] = i + 1;
-        }
-
-        /* now, shuffle */
-//	 	for (i = 0; i < ORD_PER_DIST-1; i++) {
-//	 		j = (int)RandomNumber(i+1, ORD_PER_DIST-1);
-//	 		swap_int(nums[i], nums[j]);
-//	 	}
-        for (i = 0; i < ORD_PER_DIST; i++) {
-            j = randomNumber(i, ORD_PER_DIST-1);
-            int temp = nums[i];
-            nums[i] = nums[j];
-            nums[j] = temp;
-        }
-    }
-
-    public static int getPermutation() {
-        if (permCount >= ORD_PER_DIST) {
-            throw new RuntimeException("GetPermutation: past end of list!\n");
-        }
-        return nums[permCount++];
+    public static Permutation initPermutation() {
+        return new Permutation();
     }
 
     static String lastName(int num) {

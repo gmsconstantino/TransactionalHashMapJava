@@ -2,9 +2,10 @@ package bench.tpcc;
 
 import fct.thesis.database.TransactionFactory;
 import fct.thesis.database.TransactionTypeFactory;
+import net.openhft.affinity.AffinityLock;
 
 import java.text.DecimalFormat;
-import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Constantino Gomes on 12/05/15.
@@ -12,9 +13,10 @@ import java.util.Scanner;
 public class TpccEmbeded {
 
     public static volatile boolean stop = false;
+    public static AtomicInteger signal = new AtomicInteger(0);
     public static boolean DEBUG = false;
 
-    private static int numConn = -1;
+    private static int numClientPerWare = -1;
     private static int numWare = -1;
     private static int measureTime = -1;
     private static boolean bindWarehouse = false;
@@ -31,23 +33,39 @@ public class TpccEmbeded {
 
         parseArguments(args);
 
-        TpccLoad.tpccLoadData(numWare);
 
-        printHeapSize();
-
-        TpccThread[] workers = new TpccThread[numConn];
-
-        // Start each server.
-        for (int i = 0; i < numConn; i++) {
-            TpccThread worker = new TpccThread(i+1, numWare, numConn, bindWarehouse);
+        TpccThread[] workers = new TpccThread[numClientPerWare*numWare];
+        // Start each client.
+        for (int i = 0; i < (numClientPerWare*numWare); i++) {
+            TpccThread worker = new TpccThread(i+1, numWare, bindWarehouse);
             workers[i] = worker;
         }
+
+        System.out.println("TPCC Data Load Started...");
+        long start = System.currentTimeMillis();
+        // load global porque é para todas as threads
+        TpccLoad.LoadItems();
+
+        //para cada thread coloca-la a fazer o load da bd
+        for (int i = 0; i < numClientPerWare; i++) {
+            workers[i].start();
+        }
+
+        while (signal.get() < numClientPerWare);
+
+        DecimalFormat df = new DecimalFormat("#,##0.00");
+        System.out.println("Load time (s): " + df.format((System.currentTimeMillis() - start) / 1000));
+
+        printHeapSize();
 
         int size = 0;
         for (int i = 0; i < numWare + 1; i++) {
             size += Environment.getSizeDatabase(i);
         }
         System.out.println("Size database = "+size);
+
+        System.out.println("\nThe assignment of CPUs is\n" + AffinityLock.dumpLocks());
+
 
         // TODO: Remove scanner only debug
 //        Scanner in = new Scanner(System.in);
@@ -57,17 +75,16 @@ public class TpccEmbeded {
         System.out.printf("\nSTART BENCHMARK.\n\n");
 
 //        loop for the measure_time
-        DecimalFormat df = new DecimalFormat("0.00");
-
+        df = new DecimalFormat("0.00");
         final long startTime = System.currentTimeMillis();
-        for (int i = 0; i < numConn; i++) {
-            workers[i].start();
+        for (int i = 0; i < numClientPerWare; i++) {
+            workers[i].start = true;
         }
 
         Thread.sleep(measureTime*1000);
         stop = true;
 
-        for (int i = 0; i < numConn; i++) {
+        for (int i = 0; i < numClientPerWare; i++) {
             workers[i].join();
         }
 
@@ -134,7 +151,7 @@ public class TpccEmbeded {
                     usageMessage();
                     System.exit(0);
                 }
-                numConn=Integer.parseInt(args[argindex]);
+                numClientPerWare =Integer.parseInt(args[argindex]);
                 argindex++;
             }
             else if (args[argindex].compareTo("-t")==0)

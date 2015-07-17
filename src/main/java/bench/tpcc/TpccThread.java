@@ -2,6 +2,7 @@ package bench.tpcc;
 
 import fct.thesis.database.Transaction;
 import fct.thesis.database.TransactionException;
+import net.openhft.affinity.AffinityLock;
 import thrift.tpcc.schema.*;
 
 import java.sql.Timestamp;
@@ -26,9 +27,10 @@ public class TpccThread extends Thread {
     public static final int ITEM_TABLE = 0;
     public static int NOTFOUND = TpccConstants.MAXITEMS + 1;
 
+    public volatile boolean start = false;
+
     int number;
     int num_ware;
-    int num_conn;
 
     int commits = 0;
     int aborts = 0;
@@ -36,10 +38,12 @@ public class TpccThread extends Thread {
 
     int th_w_id = -1;
 
-    public TpccThread(int number, int num_ware, int num_conn, boolean bindWarehouse) {
+    boolean loaded = false;
+    AffinityLock al;
+
+    public TpccThread(int number, int num_ware, boolean bindWarehouse) {
 
         this.number = number;
-        this.num_conn = num_conn;
         this.num_ware = num_ware;
 
         if (bindWarehouse)
@@ -47,11 +51,35 @@ public class TpccThread extends Thread {
     }
 
     public void run() {
-        int count = 0;
-        while (!TpccEmbeded.stop) {
-            doNextTransaction();
-            count++;
+        if (al == null)
+            al = AffinityLock.acquireLock();
+
+        if (!loaded){
+            //TODO: colocar as outras threads para o mesmo warehouse no mesmo CPU fisico
+            if (number <= num_ware) { // Apenas as primeiras
+                TpccLoad.LoadWare(number);
+                TpccLoad.LoadCust(number);
+                TpccLoad.LoadOrd(number);
+            }
+            loaded = !loaded;
         }
+
+        TpccEmbeded.signal.getAndIncrement();
+
+        try {
+
+            while (!start);
+
+            int count = 0;
+            while (!TpccEmbeded.stop) {
+                doNextTransaction();
+                count++;
+            }
+        } finally {
+            if (al != null)
+                al.release();
+        }
+
     }
 
     private void doNextTransaction() {
