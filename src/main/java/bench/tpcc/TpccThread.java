@@ -54,22 +54,21 @@ public class TpccThread extends Thread {
 
         this.shouldload = shouldload;
 
-        if (shouldload)
-            al = AffinityLock.acquireLock();
-
         if (bindWarehouse)
             th_w_id = use_ware;
     }
 
     public void run() {
-        if (al != null && !shouldload)
-            al = al.acquireLock(AffinityStrategies.SAME_CORE, AffinityStrategies.SAME_SOCKET, AffinityStrategies.ANY);
 
         if (shouldload){
+            al = AffinityLock.acquireLock();
             TpccLoad.LoadWare(use_ware);
             TpccLoad.LoadCust(use_ware);
             TpccLoad.LoadOrd(use_ware);
         }
+
+        if (al != null) // deve ser um segundo cliente para um warehouse que deve ter sido loaded por outra thread anterior
+            al = al.acquireLock(AffinityStrategies.SAME_CORE, AffinityStrategies.SAME_SOCKET, AffinityStrategies.ANY);
 
         TpccEmbeded.signal.getAndIncrement();
 
@@ -90,6 +89,7 @@ public class TpccThread extends Thread {
     }
 
     public AffinityLock getAffinityLock() {
+        while (al == null);
         return al;
     }
 

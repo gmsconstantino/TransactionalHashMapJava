@@ -33,6 +33,11 @@ public class TpccEmbeded {
 
         parseArguments(args);
 
+        System.out.println("TPCC Data Load Started...");
+        long start = System.currentTimeMillis();
+        // load global porque e' uma tabela 'a parte
+        TpccLoad.LoadItems();
+
         int totalWorkers = numClientPerWare * numWares;
         TpccThread[] workers = new TpccThread[totalWorkers];
         AffinityLock master_Ware_lock = null;
@@ -44,6 +49,8 @@ public class TpccEmbeded {
             boolean shouldload = true;
             for (int j = 0; j < numClientPerWare; j++) {
                 TpccThread worker = new TpccThread(n_worker++, i+1, numWares, bindWarehouse, shouldload);
+                worker.start();
+
                 if (shouldload)
                     master_Ware_lock = worker.getAffinityLock();
                 else
@@ -53,16 +60,6 @@ public class TpccEmbeded {
 
                 shouldload = false;
             }
-        }
-
-        System.out.println("TPCC Data Load Started...");
-        long start = System.currentTimeMillis();
-        // load global porque e' uma tabela 'a parte
-        TpccLoad.LoadItems();
-
-        //para cada thread coloca-la a fazer o load da bd
-        for (int i = 0; i < totalWorkers; i++) {
-            workers[i].start();
         }
 
         while (signal.get() < totalWorkers);
