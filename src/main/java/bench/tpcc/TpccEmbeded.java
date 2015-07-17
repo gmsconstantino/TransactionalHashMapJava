@@ -35,12 +35,23 @@ public class TpccEmbeded {
 
         int totalWorkers = numClientPerWare * numWares;
         TpccThread[] workers = new TpccThread[totalWorkers];
+        AffinityLock master_Ware_lock = null;
+
         // Start each client.
         int n_worker = 1;
-        for (int j = 0; j < numClientPerWare; j++) {
-            for (int i = 0; i < numWares; i++) {
-                TpccThread worker = new TpccThread(n_worker++, i+1, numWares, bindWarehouse);
+
+        for (int i = 0; i < numWares; i++) {
+            boolean shouldload = true;
+            for (int j = 0; j < numClientPerWare; j++) {
+                TpccThread worker = new TpccThread(n_worker++, i+1, numWares, bindWarehouse, shouldload);
+                if (shouldload)
+                    master_Ware_lock = worker.getAffinityLock();
+                else
+                    worker.setAffinityLock(master_Ware_lock);
+
                 workers[n_worker-2] = worker;
+
+                shouldload = false;
             }
         }
 

@@ -3,6 +3,7 @@ package bench.tpcc;
 import fct.thesis.database.Transaction;
 import fct.thesis.database.TransactionException;
 import net.openhft.affinity.AffinityLock;
+import net.openhft.affinity.AffinityStrategies;
 import thrift.tpcc.schema.*;
 
 import java.sql.Timestamp;
@@ -39,10 +40,11 @@ public class TpccThread extends Thread {
 
     int th_w_id = -1;
 
+    boolean shouldload = false;
     boolean loaded = false;
     AffinityLock al;
 
-    public TpccThread(int n_worker, int use_ware, int num_warehouses, boolean bindWarehouse) {
+    public TpccThread(int n_worker, int use_ware, int num_warehouses, boolean bindWarehouse, boolean shouldload) {
 
         setName("Worker@"+n_worker+"_Ware@"+ use_ware);
 
@@ -50,22 +52,23 @@ public class TpccThread extends Thread {
         this.num_warehouses = num_warehouses;
         this.use_ware = use_ware;
 
+        this.shouldload = shouldload;
+
+        if (shouldload)
+            al = AffinityLock.acquireLock();
+
         if (bindWarehouse)
             th_w_id = use_ware;
     }
 
     public void run() {
-        if (al == null)
-            al = AffinityLock.acquireLock();
+        if (al != null && !shouldload)
+            al = al.acquireLock(AffinityStrategies.SAME_CORE, AffinityStrategies.SAME_SOCKET, sAffinityStrategies.ANY);
 
-        if (!loaded){
-            //TODO: colocar as outras threads para o mesmo warehouse no mesmo CPU fisico
-            if (n_worker <= num_warehouses) { // Apenas as primeiras
-                TpccLoad.LoadWare(use_ware);
-                TpccLoad.LoadCust(use_ware);
-                TpccLoad.LoadOrd(use_ware);
-            }
-            loaded = !loaded;
+        if (shouldload){
+            TpccLoad.LoadWare(use_ware);
+            TpccLoad.LoadCust(use_ware);
+            TpccLoad.LoadOrd(use_ware);
         }
 
         TpccEmbeded.signal.getAndIncrement();
@@ -84,6 +87,14 @@ public class TpccThread extends Thread {
                 al.release();
         }
 
+    }
+
+    public AffinityLock getAffinityLock() {
+        return al;
+    }
+
+    public void setAffinityLock(AffinityLock al) {
+        this.al = al;
     }
 
     private void doNextTransaction() {
