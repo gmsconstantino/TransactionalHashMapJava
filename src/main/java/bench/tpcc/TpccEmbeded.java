@@ -43,7 +43,7 @@ public class TpccEmbeded {
 
         System.out.println("TPCC Data Load Started...");
         long start = System.currentTimeMillis();
-        // load global porque é para todas as threads
+        // load global porque e' uma tabela 'a parte
         TpccLoad.LoadItems();
 
         //para cada thread coloca-la a fazer o load da bd
