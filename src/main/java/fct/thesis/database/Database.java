@@ -19,9 +19,8 @@ public class Database<K,V> {
 
     public static int numberTables;
     public ConcurrentHashMap[] tables;
-    public final static ExecutorService asyncPool = Executors.newSingleThreadExecutor();
 
-    private Thread cleaner;
+    private ThreadCleaner cleaner;
 
     public Database(int ntables){
         numberTables = ntables;
@@ -44,12 +43,12 @@ public class Database<K,V> {
     }
 
     public void cleanup(){
-        asyncPool.shutdownNow();
+        cleaner.stop = true;
     }
 
-    public void startThreadCleaner(Thread _cleaner){
+    public void startThreadCleaner(ThreadCleaner _cleaner){
         cleaner = _cleaner;
-        cleaner.setDaemon(true);
+//        cleaner.setDaemon(true);
         cleaner.start();
     }
 
