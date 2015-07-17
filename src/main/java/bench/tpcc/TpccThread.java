@@ -43,6 +43,8 @@ public class TpccThread extends Thread {
 
     public TpccThread(int number, int num_ware, boolean bindWarehouse) {
 
+        setName("TPCC_Worker@"+number+"_Ware@"+num_ware);
+
         this.number = number;
         this.num_ware = num_ware;
 
