@@ -25,10 +25,19 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.databaseN
             return success;
 
         if (writeSet.size() == 0){
+            st = System.nanoTime();
+
             isActive = false;
             success = true;
+
+            long en = System.nanoTime();
+            int index = (int) Thread.currentThread().getId()%100;
+            ncommit[index]++;
+            tcommit[index] += (en-st)/1000;
             return true;
         }
+
+        st = System.nanoTime();
 
         Set<ObjectNMSIDb<K,V>> lockObjects = new HashSet<ObjectNMSIDb<K,V>>();
 
@@ -57,16 +66,38 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.databaseN
 
                 Long v = objectDb.getVersionForTransaction(this);
                 if(v != null && v < objectDb.getLastVersion()){
+                    long f = System.nanoTime();
                     abortVersions(lockObjects);
+
+                    long en = System.nanoTime();
+                    int index = (int) Thread.currentThread().getId()%100;
+                    nabort[index]++;
+                    tabort[index] += (en-st)/1000;
+
+                    debug1[index] += (f-st)/1000;
+                    debug2[index] += (en-f)/1000;
+
                     return false;
                 } else {
                     // Line 22
                     aggStarted.addAll(objectDb.snapshots.keySet());
                 }
             } else {
+                long f = System.nanoTime();
                 abortVersions(lockObjects);
+
+                long en = System.nanoTime();
+                int index = (int) Thread.currentThread().getId()%100;
+                nabort[index]++;
+                tabort[index] += (en-st)/1000;
+
+//                debug[index] += (f-st)/1000;
+
+                return false;
             }
         }
+
+        long xst = System.nanoTime();
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
             ObjectNMSIDb<K, V> objectDb = (ObjectNMSIDb) buffer.getObjectDb();
@@ -81,10 +112,16 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.databaseN
         }
 
 //        unlockWrite_objects(lockObjects);
-
         isActive = false;
         success = true;
 //        addToCleaner(this);
+
+        long en = System.nanoTime();
+        int index = (int) Thread.currentThread().getId()%100;
+        ncommit[index]++;
+        tcommit[index] += (en-st)/1000;
+        tXcommit[index] += (en-xst)/1000;
+
         return true;
     }
 

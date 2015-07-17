@@ -35,6 +35,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if (!isActive)
             return null;
 
+        long st = System.nanoTime();
+
         if(writeSet.containsKey(key)){
             return (V) writeSet.get(key).getValue();
         }
@@ -46,6 +48,11 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return null;
 
         returnValue = obj.getValueVersionLess(id);
+
+        long en = System.nanoTime();
+        int index = (int) Thread.currentThread().getId()%100;
+        nget[index]++;
+        tget[index] += (en-st)/1000;
 
         return returnValue;
     }
@@ -71,12 +78,20 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return success;
 
         if (writeSet.size() == 0){
+            st = System.nanoTime();
+
             isActive = false;
             success = true;
             ThreadCleanerSI.set.remove(this);
+
+            long en = System.nanoTime();
+            int index = (int) Thread.currentThread().getId()%100;
+            ncommit[index]++;
+            tcommit[index] += (en-st)/1000;
             return true;
         }
 
+        st = System.nanoTime();
         Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
 
         for (BufferObjectDb<K,V> buffer : writeSet.values()){
@@ -98,11 +113,22 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             if (objectDb.getVersion() < id) {
                 continue;
             } else {
+                long f = System.nanoTime();
                 abortVersions(lockObjects);
+
+                long en = System.nanoTime();
+                int index = (int) Thread.currentThread().getId()%100;
+                nabort[index]++;
+                tabort[index] += (en-st)/1000;
+
+                debug1[index] += (f-st)/1000;
+                debug2[index] += (en-f)/1000;
+
                 return false;
             }
         }
 
+        long xst = System.nanoTime();
 
         commitId = timestamp.getAndIncrement();
         // Escrita
@@ -112,9 +138,20 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             objectDb.unlock_write();
         }
 
+        long xen = System.nanoTime();
+
         isActive = false;
         success = true;
         ThreadCleanerSI.set.remove(this);
+
+        long en = System.nanoTime();
+        int index = (int) Thread.currentThread().getId()%100;
+        ncommit[index]++;
+        tcommit[index] += (en-st)/1000;
+        tXcommit[index] += (xen-xst)/1000;
+
+//        debug[index] += (en-stdebug)/1000;
+
         return true;
     }
 
@@ -127,7 +164,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     private void abortVersions(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
-        throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
+
+//        throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
     }
 
     private void unlockWrite_objects(Set<ObjectLockDb<K,V>> set){
