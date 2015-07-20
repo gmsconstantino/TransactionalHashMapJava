@@ -14,7 +14,7 @@ import java.util.concurrent.Executors;
  */
 public class Database<K,V> {
 
-    private Thread cleaner;
+    private ThreadCleaner cleaner;
 
     public ConcurrentHashMap<K, ObjectDb<K,V>> concurrentHashMap;
 
@@ -35,9 +35,10 @@ public class Database<K,V> {
     }
 
     public void cleanup(){
+        cleaner.stop = true;
     }
 
-    public void startThreadCleaner(Thread _cleaner){
+    public void startThreadCleaner(ThreadCleaner _cleaner){
         cleaner = _cleaner;
         cleaner.setDaemon(true);
         cleaner.start();
