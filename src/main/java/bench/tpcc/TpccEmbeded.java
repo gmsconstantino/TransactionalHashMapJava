@@ -51,11 +51,6 @@ public class TpccEmbeded {
                 TpccThread worker = new TpccThread(n_worker++, i+1, numWares, bindWarehouse, shouldload);
                 worker.start();
 
-                if (shouldload)
-                    master_Ware_lock = worker.getAffinityLock();
-                else
-                    worker.setAffinityLock(master_Ware_lock);
-
                 workers[n_worker-2] = worker;
 
                 shouldload = false;

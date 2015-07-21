@@ -59,16 +59,15 @@ public class TpccThread extends Thread {
     }
 
     public void run() {
+        if (al != null)
+            al = AffinityLock.acquireLock();
 
         if (shouldload){
-            al = AffinityLock.acquireLock();
             TpccLoad.LoadWare(use_ware);
             TpccLoad.LoadCust(use_ware);
             TpccLoad.LoadOrd(use_ware);
         }
 
-        if (al != null) // deve ser um segundo cliente para um warehouse que deve ter sido loaded por outra thread anterior
-            al = al.acquireLock(AffinityStrategies.SAME_SOCKET, AffinityStrategies.ANY);
 
         TpccEmbeded.signal.getAndIncrement();
 
