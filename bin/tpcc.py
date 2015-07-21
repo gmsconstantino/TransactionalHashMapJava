@@ -12,13 +12,13 @@ algorithm = [
 ]
 
 time = 60
-clientsPerWare = [1,2,3,4,5]
-warehouses = [1,2,3,4,5,6,8,7,8,9,10]
+clientsPerWare = [1]
+warehouses = range(1,21) # 1 a 20
 
 
 for nware in warehouses:
     for nclients in clientsPerWare:
         for alg in  algorithm:
-            ycsb_command = ["java", "-Xmx20g", "-Xms5g", "-cp", "target/myhashdb-1.0.3-jar-with-dependencies.jar:", \
+            ycsb_command = ["java", "-Xmx30g", "-Xms5g", "-cp", "target/myhashdb-1.0.3-jar-with-dependencies.jar:", \
                             "bench.tpcc.TpccEmbeded", "-w", str(nware), "-c", str(nclients), "-t", str(time), "-tp", alg, "-B" ]
             subprocess.call(ycsb_command)

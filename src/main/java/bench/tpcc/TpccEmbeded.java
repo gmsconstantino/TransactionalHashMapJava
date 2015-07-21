@@ -71,7 +71,7 @@ public class TpccEmbeded {
         }
         System.out.println("Size database = "+size);
 
-//        System.out.println("\nThe assignment of CPUs is\n" + AffinityLock.dumpLocks());
+        System.out.println("\nThe assignment of CPUs is\n" + AffinityLock.dumpLocks());
 
 
         // TODO: Remove scanner only debug
