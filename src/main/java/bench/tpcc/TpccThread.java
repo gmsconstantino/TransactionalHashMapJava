@@ -59,7 +59,7 @@ public class TpccThread extends Thread {
     }
 
     public void run() {
-        if (al != null)
+        if (al == null)
             al = AffinityLock.acquireLock();
 
         if (shouldload){
