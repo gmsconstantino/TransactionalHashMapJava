@@ -12,13 +12,13 @@ algorithm = [
 ]
 
 time = 60
-clients = [1,2,3,4,5,6,7,8,9,10]
-threads = [1,2,4,8]
+clientsPerWare = [1,2,3,4,5]
+warehouses = [1,2,3,4,5,6,8,7,8,9,10]
 
 
-for thread in threads:
-    for c in clients:
+for nware in warehouses:
+    for nclients in clientsPerWare:
         for alg in  algorithm:
-            ycsb_command = ["java", "-Xmx20g", "-Xms15g", "-cp", "target/myhashdb-1.0.3.jar:/local/cj.gomes/thrift-0.9.2/lib/java/build/libthrift-0.9.2.jar",  \
-                            "bench.tpcc.TpccEmbeded", "-w", str(thread), "-c", str(thread*c), "-t", str(time), "-tp", alg, "-B" ]
+            ycsb_command = ["java", "-Xmx20g", "-Xms5g", "-cp", "target/myhashdb-1.0.3-jar-with-dependencies.jar:", \
+                            "bench.tpcc.TpccEmbeded", "-w", str(nware), "-c", str(nclients), "-t", str(time), "-tp", alg, "-B" ]
             subprocess.call(ycsb_command)
