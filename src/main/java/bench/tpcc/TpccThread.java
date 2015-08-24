@@ -2,8 +2,8 @@ package bench.tpcc;
 
 import fct.thesis.database.Transaction;
 import fct.thesis.database.TransactionException;
+import net.openhft.affinity.Affinity;
 import net.openhft.affinity.AffinityLock;
-import net.openhft.affinity.AffinityStrategies;
 import thrift.tpcc.schema.*;
 
 import java.sql.Timestamp;
@@ -44,15 +44,16 @@ public class TpccThread extends Thread {
     boolean loaded = false;
     AffinityLock al;
 
-    public TpccThread(int n_worker, int use_ware, int num_warehouses, boolean bindWarehouse, boolean shouldload) {
-
-        setName("Worker@"+n_worker+"_Ware@"+ use_ware);
+    public TpccThread(int n_worker, int use_ware, int num_warehouses, boolean bindWarehouse, int core, boolean shouldload) {
+        super();
+        setName("Worker@" + n_worker + "_Ware@" + use_ware);
 
         this.n_worker = n_worker;
         this.num_warehouses = num_warehouses;
         this.use_ware = use_ware;
 
         this.shouldload = shouldload;
+        Affinity.setAffinity(core);
 
         if (bindWarehouse)
             th_w_id = use_ware;
