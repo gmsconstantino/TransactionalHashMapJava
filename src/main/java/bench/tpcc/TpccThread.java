@@ -27,6 +27,7 @@ public class TpccThread extends Thread {
 
     public static final int ITEM_TABLE = 0;
     public static int NOTFOUND = TpccConstants.MAXITEMS + 1;
+    private final boolean bindWarehouse;
 
     public volatile boolean start = false;
 
@@ -42,7 +43,8 @@ public class TpccThread extends Thread {
 
     boolean shouldload = false;
     boolean loaded = false;
-    AffinityLock al;
+    
+    int core;
 
     public TpccThread(int n_worker, int use_ware, int num_warehouses, boolean bindWarehouse, int core, boolean shouldload) {
         super();
@@ -54,18 +56,20 @@ public class TpccThread extends Thread {
 
         this.shouldload = shouldload;
 
+        this.bindWarehouse = bindWarehouse;
 
         if (bindWarehouse) {
             th_w_id = use_ware;
 
-            System.out.println("Binding to core number: "+core);
-            Affinity.setAffinity(core);
+            
         }
     }
 
     public void run() {
-        if (al == null)
-            al = AffinityLock.acquireLock();
+        if (bindWarehouse){
+            System.out.println("Binding to core number: "+core);
+            Affinity.setAffinity(core);
+        }
 
         if (shouldload){
             TpccLoad.LoadWare(use_ware);
@@ -76,7 +80,6 @@ public class TpccThread extends Thread {
 
         TpccEmbeded.signal.getAndIncrement();
 
-        try {
 
             while (!start);
 
@@ -85,20 +88,7 @@ public class TpccThread extends Thread {
                 doNextTransaction();
                 count++;
             }
-        } finally {
-            if (al != null)
-                al.release();
-        }
 
-    }
-
-    public AffinityLock getAffinityLock() {
-        while (al == null);
-        return al;
-    }
-
-    public void setAffinityLock(AffinityLock al) {
-        this.al = al;
     }
 
     private void doNextTransaction() {
