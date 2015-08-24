@@ -57,6 +57,7 @@ public class TpccThread extends Thread {
         this.shouldload = shouldload;
 
         this.bindWarehouse = bindWarehouse;
+        this.core = core;
 
         if (bindWarehouse) {
             th_w_id = use_ware;
