@@ -4,6 +4,8 @@ import fct.thesis.database.TransactionFactory;
 import fct.thesis.database.TransactionTypeFactory;
 import net.openhft.affinity.AffinityLock;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.DecimalFormat;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,7 +23,7 @@ public class TpccEmbeded {
     private static int measureTime = -1;
     private static boolean bindWarehouse = false;
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, UnknownHostException {
 
         System.out.print("Arguments: ");
         int n = args.length-1;
@@ -45,10 +47,19 @@ public class TpccEmbeded {
         int n_worker = 1;
 
         int[] cpu_list = new int[64];
-        for (int i = 0, j=0, k=0; i < cpu_list.length; i++){
-            cpu_list[i] = j;
-            j=j+16; k++;
-            if(k==4){ j=++j%16; k=0; }
+        String hostname = InetAddress.getLocalHost().getHostName();
+        if(hostname.equals("node10")){
+            for (int i = 0, j=0, k=0; i < cpu_list.length; i++){
+                cpu_list[i] = j;
+                j=j+16; k++;
+                if(k==4){ j=++j%16; k=0; }
+            }
+        } else if(hostname.equals("node9")){
+
+        } else {
+            for (int i = 0; i < 64; i++) {
+                cpu_list[i] = i;
+            }
         }
 
         for (int i = 0; i < numWares; i++) {
