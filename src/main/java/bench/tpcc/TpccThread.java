@@ -53,10 +53,14 @@ public class TpccThread extends Thread {
         this.use_ware = use_ware;
 
         this.shouldload = shouldload;
-        Affinity.setAffinity(core);
 
-        if (bindWarehouse)
+
+        if (bindWarehouse) {
             th_w_id = use_ware;
+
+            System.out.println("Binding to core number: "+core);
+            Affinity.setAffinity(core);
+        }
     }
 
     public void run() {
