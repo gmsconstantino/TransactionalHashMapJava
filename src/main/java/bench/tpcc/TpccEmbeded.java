@@ -72,8 +72,8 @@ public class TpccEmbeded {
             boolean shouldload = true;
             for (int j = 0; j < numClientPerWare; j++) {
                 TpccThread worker = new TpccThread(n_worker, i+1, numWares, bindWarehouse, cpu_list[n_worker-1], shouldload);
-                workers[n_worker-2] = worker;
                 n_worker++;
+                workers[n_worker-2] = worker;
 
                 threads[n_worker-2] = factory.newThread(worker);
                 threads[n_worker-2].start();
