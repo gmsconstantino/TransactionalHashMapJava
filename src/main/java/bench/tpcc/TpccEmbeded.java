@@ -3,11 +3,14 @@ package bench.tpcc;
 import fct.thesis.database.TransactionFactory;
 import fct.thesis.database.TransactionTypeFactory;
 import net.openhft.affinity.AffinityLock;
+import net.openhft.affinity.AffinityThreadFactory;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.DecimalFormat;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static net.openhft.affinity.AffinityStrategies.*;
 
 /**
  * Created by Constantino Gomes on 12/05/15.
@@ -42,6 +45,7 @@ public class TpccEmbeded {
 
         int totalWorkers = numClientPerWare * numWares;
         TpccThread[] workers = new TpccThread[totalWorkers];
+        Thread[] threads = new Thread[totalWorkers];
 
         // Start each client.
         int n_worker = 1;
@@ -62,14 +66,17 @@ public class TpccEmbeded {
             }
         }
 
+        AffinityThreadFactory factory = new AffinityThreadFactory("worker", DIFFERENT_SOCKET, DIFFERENT_CORE);
+
         for (int i = 0; i < numWares; i++) {
             boolean shouldload = true;
             for (int j = 0; j < numClientPerWare; j++) {
                 TpccThread worker = new TpccThread(n_worker, i+1, numWares, bindWarehouse, cpu_list[n_worker-1], shouldload);
-                n_worker++;
-                worker.start();
-
                 workers[n_worker-2] = worker;
+                n_worker++;
+
+                threads[n_worker-2] = factory.newThread(worker);
+                threads[n_worker-2].start();
 
                 shouldload = false;
             }
@@ -110,7 +117,7 @@ public class TpccEmbeded {
         stop = true;
 
         for (int i = 0; i < totalWorkers; i++) {
-            workers[i].join();
+            threads[i].join();
         }
 
         final long actualTestTime = System.currentTimeMillis() - startTime;

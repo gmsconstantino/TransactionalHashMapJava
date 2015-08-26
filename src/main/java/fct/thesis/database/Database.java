@@ -48,7 +48,7 @@ public class Database<K,V> {
 
     public void startThreadCleaner(ThreadCleaner _cleaner){
         cleaner = _cleaner;
-//        cleaner.setDaemon(true);
+        cleaner.setDaemon(true);
         cleaner.start();
     }
 

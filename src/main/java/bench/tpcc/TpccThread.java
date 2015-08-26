@@ -13,7 +13,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static bench.tpcc.KeysUtils.*;
 import static bench.tpcc.TpccConstants.*;
 
-public class TpccThread extends Thread {
+public class TpccThread implements Runnable {
 
     public static final int P_MIX = 45;
     public static final int NO_MIX = 43;
@@ -47,8 +47,8 @@ public class TpccThread extends Thread {
     int core;
 
     public TpccThread(int n_worker, int use_ware, int num_warehouses, boolean bindWarehouse, int core, boolean shouldload) {
-        super();
-        setName("Worker@" + n_worker + "_Ware@" + use_ware);
+        //super();
+        //setName("Worker@" + n_worker + "_Ware@" + use_ware);
 
         this.n_worker = n_worker;
         this.num_warehouses = num_warehouses;
@@ -61,16 +61,14 @@ public class TpccThread extends Thread {
 
         if (bindWarehouse) {
             th_w_id = use_ware;
-
-            
         }
     }
 
     public void run() {
-        if (bindWarehouse){
-            System.out.println("Binding to core number: "+core);
-            Affinity.setAffinity(core);
-        }
+//        if (bindWarehouse){
+//            System.out.println("Binding to core number: "+core);
+//            Affinity.setAffinity(core);
+//        }
 
         if (shouldload){
             TpccLoad.LoadWare(use_ware);
