@@ -74,6 +74,10 @@ public class TpccThread implements Runnable {
         if (bindWarehouse) {
             th_w_id = use_ware;
         }
+
+        for (int i = 0; i < 15; i++) {
+            order_data[i] = new NewOrderItemInfo();
+        }
     }
 
     public void run() {
