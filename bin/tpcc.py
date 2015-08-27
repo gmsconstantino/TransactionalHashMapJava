@@ -17,6 +17,8 @@ clientsPerWare = [1]
 warehouses = range(1,10) # 1 a 20
 
 for i in range(1,4):
+    print "### Execution "+i
+
     for nware in warehouses:
         for nclients in clientsPerWare:
             for alg in  algorithm:
@@ -24,6 +26,8 @@ for i in range(1,4):
                                 "bench.tpcc.TpccEmbeded", "-w", str(nware), "-c", str(nclients), "-t", str(test_time), "-tp", alg, "-B" ]
                 subprocess.call(ycsb_command)
                 time.sleep(5)
+
+    print "\n"
 
 subprocess.Popen('cat /home/a41903/mail.txt | /local/cj.gomes/mail/msmtp/bin/msmtp -t cj.gomes@campus.fct.unl.pt', shell=True)
 subprocess.Popen('cp /local/cj.gomes/result/* ~/raw', shell=True)
