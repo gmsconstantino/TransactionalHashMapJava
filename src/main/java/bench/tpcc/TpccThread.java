@@ -27,7 +27,6 @@ public class TpccThread implements Runnable {
 
     public static final int ITEM_TABLE = 0;
     public static int NOTFOUND = TpccConstants.MAXITEMS + 1;
-    private final boolean bindWarehouse;
 
     public volatile boolean start = false;
 
@@ -35,6 +34,7 @@ public class TpccThread implements Runnable {
     int num_warehouses;
     int use_ware;
 
+    int count = 0;
     int commits = 0;
     int aborts = 0;
     double latency = 0;
@@ -45,10 +45,23 @@ public class TpccThread implements Runnable {
     boolean loaded = false;
     
     int core;
+    private int d_id;
+    private int w_id;
+    private int o_id;
+    private int i;
+    private int ol_id;
+    private int o_c_id;
+    private int o_carrier_id;
+    private long begintime;
+    private long endtime;
+    private int c_id;
+    private int byname;
+    private int c_w_id;
+    private int c_d_id;
+
+    private NewOrderItemInfo order_data[] = new NewOrderItemInfo[15];
 
     public TpccThread(int n_worker, int use_ware, int num_warehouses, boolean bindWarehouse, int core, boolean shouldload) {
-        //super();
-        //setName("Worker@" + n_worker + "_Ware@" + use_ware);
 
         this.n_worker = n_worker;
         this.num_warehouses = num_warehouses;
@@ -56,7 +69,6 @@ public class TpccThread implements Runnable {
 
         this.shouldload = shouldload;
 
-        this.bindWarehouse = bindWarehouse;
         this.core = core;
 
         if (bindWarehouse) {
@@ -77,7 +89,6 @@ public class TpccThread implements Runnable {
 
         while (!start);
 
-        int count = 0;
         while (!TpccEmbeded.stop) {
             doNextTransaction();
             count++;
@@ -107,10 +118,10 @@ public class TpccThread implements Runnable {
 
     private void doSlev() {
         MyObject object = null;
-        int i;
-        int o_id = 0;
-        int w_id = 0;
-        int d_id = 0;
+        i = 0;
+        o_id = 0;
+        w_id = 0;
+        d_id = 0;
         int threshold = 0;
 
         if (th_w_id != -1)
@@ -123,7 +134,7 @@ public class TpccThread implements Runnable {
 
         Set<Integer> set = new HashSet<>();
 
-        long begintime = System.currentTimeMillis();
+        begintime = System.currentTimeMillis();
 
         Transaction<String, MyObject> t = Environment.newTransaction();
 
@@ -176,7 +187,7 @@ public class TpccThread implements Runnable {
 
         t.commit();
 
-        long endtime = System.currentTimeMillis();
+        endtime = System.currentTimeMillis();
         latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
     }
 
@@ -184,11 +195,11 @@ public class TpccThread implements Runnable {
       * execute delivery transaction
       */
     private void doDelivery() {
-        int ol_id = 0;
-        int d_id = 0;
-        int o_c_id = 0;
-        int w_id;
-        int o_carrier_id;
+        ol_id = 0;
+        d_id = 0;
+        o_c_id = 0;
+        w_id = 0;
+        o_carrier_id = 0;
 
         if (th_w_id != -1)
             w_id = th_w_id;
@@ -200,7 +211,7 @@ public class TpccThread implements Runnable {
         java.sql.Timestamp time = new Timestamp(System.currentTimeMillis());
         String timeStamp = time.toString();
 
-        long begintime = System.currentTimeMillis();
+        begintime = System.currentTimeMillis();
 
         Transaction<String, MyObject> t = Environment.newTransaction();
 
@@ -266,7 +277,7 @@ public class TpccThread implements Runnable {
 
         t.commit();
 
-        long endtime = System.currentTimeMillis();
+        endtime = System.currentTimeMillis();
         latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
     }
 
@@ -274,12 +285,11 @@ public class TpccThread implements Runnable {
       * prepare data and execute order status transaction
       */
     private void doOrdstat() {
-        int i = 0;
-
-        int byname = 0;
-        int w_id = 0;
-        int d_id = 0;
-        int c_id = 0;
+        i = 0;
+        byname = 0;
+        w_id = 0;
+        d_id = 0;
+        c_id = 0;
         String c_last = null;
 
         if (th_w_id != -1)
@@ -308,7 +318,7 @@ public class TpccThread implements Runnable {
     }
 
     private int ProcessOrderStatus(int byname, int w_id, int d_id, int c_id, String c_last, OrderStatusInfo[] order_data) {
-        int i;
+        i = 0;
 
         Transaction<String,MyObject> t = Environment.newTransaction();
 
@@ -378,13 +388,13 @@ public class TpccThread implements Runnable {
     }
 
     private void doPayment() {
-        int byname;
+        byname = 0;
 
-        int w_id = 0;
-        int d_id = 0;
-        int c_w_id = 0;
-        int c_d_id = 0;
-        int c_id = 0;
+        w_id = 0;
+        d_id = 0;
+        c_w_id = 0;
+        c_d_id = 0;
+        c_id = 0;
         int h_amount = 0;
         String c_last = null;
 
@@ -419,12 +429,12 @@ public class TpccThread implements Runnable {
          * Begining the Transaction
          */
         long begintime = System.currentTimeMillis();
-        int ret = ProcessPayment(byname, w_id, d_id, c_w_id, c_d_id, c_id, h_amount, c_last, timeStamp);
+        int ret = ProcessPayment(h_amount, c_last, timeStamp);
         long endtime = System.currentTimeMillis();
         latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
     }
 
-    private int ProcessPayment(int byname, int w_id, int d_id, int c_w_id, int c_d_id, int c_id, int h_amount, String c_last, String timeStamp) {
+    private int ProcessPayment(int h_amount, String c_last, String timeStamp) {
         Transaction<String,MyObject> t = Environment.newTransaction();
 
         /* The row in the WAREHOUSE table with matching W_ID is selected.
@@ -531,20 +541,8 @@ public class TpccThread implements Runnable {
     }
 
     private void doNewOrder() {
-        int i = 0;
-        int w_id;
-        int d_id;
-        int c_id;
-        int o_id;
+        i = 0;
         int o_ol_cnt;
-        double c_discount;
-        double w_tax;
-        double d_tax;
-        String o_entry_d;
-        String c_credit;
-        String c_last;
-
-        int d_next_o_oid;
 
         o_ol_cnt = Util.randomNumber(5, 15);
 
@@ -556,9 +554,9 @@ public class TpccThread implements Runnable {
         d_id = Util.randomNumber(1, TpccConstants.DIST_PER_WARE);
         c_id = Util.nuRand(1023, 1, TpccConstants.CUST_PER_DIST);
 
-        NewOrderItemInfo order_data[] = new NewOrderItemInfo[o_ol_cnt];
 
-        String status;
+
+//        String status;
         double total = 0.0;
         int all_local = 1;
 
@@ -602,12 +600,12 @@ public class TpccThread implements Runnable {
          * Begining the Transaction
          */
         long begintime = System.currentTimeMillis();
-        int ret = ProcessNewOrder(w_id, d_id, c_id, o_ol_cnt, order_data, total, all_local, timeStamp, ol_dist_info);
+        int ret = ProcessNewOrder(o_ol_cnt, total, all_local, timeStamp, ol_dist_info);
         long endtime = System.currentTimeMillis();
         latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
     }
 
-    private int ProcessNewOrder(int w_id, int d_id, int c_id, int o_ol_cnt, NewOrderItemInfo[] order_data, double total, int all_local, String timeStamp, String[] ol_dist_info) {
+    private int ProcessNewOrder(int o_ol_cnt, double total, int all_local, String timeStamp, String[] ol_dist_info) {
         double w_tax;
         double d_tax;
         int d_next_o_oid;
