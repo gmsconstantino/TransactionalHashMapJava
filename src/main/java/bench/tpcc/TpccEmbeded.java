@@ -3,7 +3,9 @@ package bench.tpcc;
 import fct.thesis.database.TransactionFactory;
 import fct.thesis.database.TransactionTypeFactory;
 import net.openhft.affinity.AffinityLock;
+import net.openhft.affinity.AffinityStrategy;
 import net.openhft.affinity.AffinityThreadFactory;
+import net.openhft.affinity.CpuLayout;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -19,12 +21,72 @@ public class TpccEmbeded {
 
     public static volatile boolean stop = false;
     public static AtomicInteger signal = new AtomicInteger(0);
+    public static AtomicInteger init_signal = new AtomicInteger(0);
     public static boolean DEBUG = false;
 
     private static int numClientPerWare = -1;
     private static int numWares = -1;
     private static int measureTime = -1;
     private static boolean bindWarehouse = false;
+
+    static int index = 0;
+    static int[] cpu_list = new int[64];
+    static {
+        String hostname = "";
+        try {
+            hostname = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        if(hostname.equals("node10")){
+             // cpu_list = [
+             //     0, 16, 32, 48,
+             //     1, 17, 33, 49,
+             //     2, 18, 34, 50,
+             //     3, 19, 35, 51,
+             //     4, 20, 36, 52,
+             //     5, 21, 37, 53,
+             //     6, 22, 38, 54,
+             //     7, 23, 39, 55,
+             //     8, 24, 40, 56,
+             //     9, 25, 41, 57,
+             //     10, 26, 42, 58,
+             //     11, 27, 43, 59,
+             //     12, 28, 44, 60,
+             //     13, 29, 45, 61,
+             //     14, 30, 46, 62,
+             //     15, 31, 47, 63]
+            for (int i = 0, j=0, k=0; i < cpu_list.length; i++){
+                cpu_list[i] = j;
+                j=j+16; k++;
+                if(k==4){ j=++j%16; k=0; }
+            }
+        } else if(hostname.equals("node9")){
+
+        } else {
+            for (int i = 0; i < 64; i++) {
+                cpu_list[i] = i;
+            }
+        }
+    }
+
+    static final AffinityStrategy TPCC_STRATEGY = new AffinityStrategy(){
+        @Override
+        public boolean matches(int cpuId, int cpuId2) {
+            CpuLayout cpuLayout = AffinityLock.cpuLayout();
+
+            boolean result = cpu_list[index]==cpuId2;
+            if(result)
+                index++;
+
+            return result;
+        }
+
+        @Override
+        public String toString(){
+            return "TPCC_STRATEGY";
+        }
+    };
 
     public static void main(String[] args) throws InterruptedException, UnknownHostException {
 
@@ -50,23 +112,7 @@ public class TpccEmbeded {
         // Start each client.
         int n_worker = 1;
 
-        int[] cpu_list = new int[64];
-        String hostname = InetAddress.getLocalHost().getHostName();
-        if(hostname.equals("node10")){
-            for (int i = 0, j=0, k=0; i < cpu_list.length; i++){
-                cpu_list[i] = j;
-                j=j+16; k++;
-                if(k==4){ j=++j%16; k=0; }
-            }
-        } else if(hostname.equals("node9")){
-
-        } else {
-            for (int i = 0; i < 64; i++) {
-                cpu_list[i] = i;
-            }
-        }
-
-        AffinityThreadFactory factory = new AffinityThreadFactory("worker", DIFFERENT_SOCKET, DIFFERENT_CORE);
+        AffinityThreadFactory factory = new AffinityThreadFactory("worker", TPCC_STRATEGY, ANY);
 
         for (int i = 0; i < numWares; i++) {
             boolean shouldload = true;
@@ -77,6 +123,8 @@ public class TpccEmbeded {
 
                 threads[n_worker-2] = factory.newThread(worker);
                 threads[n_worker-2].start();
+
+                while(init_signal.get() < n_worker);
 
                 shouldload = false;
             }

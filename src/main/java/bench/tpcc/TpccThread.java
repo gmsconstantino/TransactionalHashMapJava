@@ -65,10 +65,7 @@ public class TpccThread implements Runnable {
     }
 
     public void run() {
-//        if (bindWarehouse){
-//            System.out.println("Binding to core number: "+core);
-//            Affinity.setAffinity(core);
-//        }
+        TpccEmbeded.init_signal.incrementAndGet();
 
         if (shouldload){
             TpccLoad.LoadWare(use_ware);
@@ -76,17 +73,15 @@ public class TpccThread implements Runnable {
             TpccLoad.LoadOrd(use_ware);
         }
 
-
         TpccEmbeded.signal.getAndIncrement();
 
+        while (!start);
 
-            while (!start);
-
-            int count = 0;
-            while (!TpccEmbeded.stop) {
-                doNextTransaction();
-                count++;
-            }
+        int count = 0;
+        while (!TpccEmbeded.stop) {
+            doNextTransaction();
+            count++;
+        }
 
     }
 
