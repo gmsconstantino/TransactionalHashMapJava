@@ -59,7 +59,11 @@ public class TpccThread implements Runnable {
     private int c_w_id;
     private int c_d_id;
 
+    MyObject object = null;
     private NewOrderItemInfo order_data[] = new NewOrderItemInfo[15];
+
+    //So para conseguir perceber onde deu erro
+    private static int indexErr = 0;
 
     public TpccThread(int n_worker, int use_ware, int num_warehouses, boolean bindWarehouse, int core, boolean shouldload) {
 
@@ -121,7 +125,6 @@ public class TpccThread implements Runnable {
     }
 
     private void doSlev() {
-        MyObject object = null;
         i = 0;
         o_id = 0;
         w_id = 0;
@@ -146,7 +149,12 @@ public class TpccThread implements Runnable {
          * is selected and D_NEXT_O_OID is retrieved.
          */
         String d_key = DistrictPrimaryKey(w_id, d_id);
-        District d_data = t.get(w_id, d_key).deepCopy().getDistrict();
+        object = t.get(w_id, d_key);
+        if (object == null){
+            t.abort();
+            throw new TransactionException("Some error "+(indexErr++));
+        }
+        District d_data = object.deepCopy().getDistrict();
 
         /* All rows in the ORDER_LINE table with matching OL_W_ID (equals W_ID),
          * OL_D_ID (equals D_ID), and OL_O_ID (lower than D_NEXT_O_ID and greater
@@ -183,7 +191,12 @@ public class TpccThread implements Runnable {
         int count = 0;
         for (Integer i_id : set){
             String s_key = StockPrimaryKey(w_id, i_id);
-            Stock s_data = t.get(w_id, s_key).deepCopy().getStock();
+            object = t.get(w_id, s_key);
+            if (object == null){
+                t.abort();
+                throw new TransactionException("Some error "+(indexErr++));
+            }
+            Stock s_data = object.deepCopy().getStock();
 
             if(s_data.s_quantity < threshold)
                 count++;
@@ -230,7 +243,12 @@ public class TpccThread implements Runnable {
              * selected. This is the oldest undelivered order data of that district.
              */
             String no_key_sec = NewOrderSecundaryKey(w_id, d_id);
-            Integer min_o_id = t.get(w_id, no_key_sec).deepCopy().getInteger();
+            object = t.get(w_id, no_key_sec);
+            if (object == null){
+                t.abort();
+                throw new TransactionException("Some error "+(indexErr++));
+            }
+            Integer min_o_id = object.deepCopy().getInteger();
 
             // Should delete this object from database,
             // the primary key of new order to the last order not delivery
@@ -241,7 +259,12 @@ public class TpccThread implements Runnable {
              * O_CARRIER_ID is updated.
              */
             String o_key = OrderPrimaryKey(w_id,d_id, min_o_id);
-            Order o_data = t.get(w_id, o_key).deepCopy().getOrder();
+            object = t.get(w_id, o_key);
+            if (object == null){
+                t.abort();
+                throw new TransactionException("Some error "+(indexErr++));
+            }
+            Order o_data = object.deepCopy().getOrder();
 
             o_c_id = o_data.o_c_id;
             o_data.o_carrier_id = o_carrier_id;
@@ -256,7 +279,12 @@ public class TpccThread implements Runnable {
             int sum_ol_amount = 0;
             for (ol_id = 1; ol_id <= o_data.o_ol_cnt; ol_id++){
                 String ol_key = OrderLinePrimaryKey(w_id,d_id,min_o_id, ol_id);
-                OrderLine ol_data = t.get(w_id, ol_key).deepCopy().getOrderline();
+                object = t.get(w_id, ol_key);
+                if (object == null){
+                    t.abort();
+                    throw new TransactionException("Some error "+(indexErr++));
+                }
+                OrderLine ol_data = object.deepCopy().getOrderline();
 
                 sum_ol_amount += ol_data.ol_amount;
 
@@ -270,7 +298,12 @@ public class TpccThread implements Runnable {
              * C_DELIVERY_CNT is incremented by 1.
              */
             String c_key = CustomerPrimaryKey(w_id,d_id,o_c_id);
-            Customer c_data = t.get(w_id, c_key).deepCopy().getCustomer(); //TODO: deu null pointer
+            object = t.get(w_id, c_key);
+            if (object == null){
+                t.abort();
+                throw new TransactionException("Some error "+(indexErr++));
+            }
+            Customer c_data = object.deepCopy().getCustomer(); //TODO: deu null pointer
 
             c_data.c_balance += sum_ol_amount;
             c_data.c_delivery_cnt++;
@@ -329,7 +362,12 @@ public class TpccThread implements Runnable {
         if (byname >= 0) {
             // Case 2: the customer is selected based on customer last name
             String c_key_sec = CustomerSecundaryKey(w_id, d_id, c_last);
-            Integer count = t.get(w_id, c_key_sec).deepCopy().getInteger();
+            object = t.get(w_id, c_key_sec);
+            if (object == null){
+                t.abort();
+                throw new TransactionException("Some error "+(indexErr++));
+            }
+            Integer count = object.deepCopy().getInteger();
             c_id = count / 2 + 1;
         }
 
@@ -339,7 +377,12 @@ public class TpccThread implements Runnable {
          * are retrieved.
          */
         String c_key = CustomerPrimaryKey(w_id,d_id,c_id);
-        Customer c_data = t.get(w_id, c_key).deepCopy().getCustomer();
+        object = t.get(w_id, c_key);
+        if (object == null){
+            t.abort();
+            throw new TransactionException("Some error "+(indexErr++));
+        }
+        Customer c_data = object.deepCopy().getCustomer();
 
         String c_first = c_data.c_first;
         String c_middle = c_data.c_middle;
@@ -353,11 +396,21 @@ public class TpccThread implements Runnable {
          * that customer. O_ID, O_ENTRY_D, and O_CARRIER_ID are retrieved.
          */
         String o_key_sec = OrderSecundaryKey(w_id,d_id,c_id);
-        Integer o_id = t.get(w_id, o_key_sec).deepCopy().getInteger();
+        object = t.get(w_id, o_key_sec);
+        if (object == null){
+            t.abort();
+            throw new TransactionException("Some error "+(indexErr++));
+        }
+        Integer o_id = object.deepCopy().getInteger();
 
         // How many orderlines exists?
         String o_key = OrderPrimaryKey(w_id,d_id,o_id);
-        Order o_data = t.get(w_id, o_key).deepCopy().getOrder();
+        object = t.get(w_id, o_key);
+        if (object == null){
+            t.abort();
+            throw new TransactionException("Some error "+(indexErr++));
+        }
+        Order o_data = object.deepCopy().getOrder();
 
         String o_entry_d = o_data.o_entry_d;
         int o_carrier_id = o_data.o_carrier_id;
@@ -371,14 +424,14 @@ public class TpccThread implements Runnable {
         for (i=0; i < o_ol_cnt; i++) {
             order_data[i] = new OrderStatusInfo();
 
-            String ol_key = OrderLinePrimaryKey(w_id, d_id, o_id, i+1);
-            MyObject obj = t.get(w_id, ol_key);
-            if (obj == null){
+            String ol_key = OrderLinePrimaryKey(w_id, d_id, o_id, i + 1);
+            object = t.get(w_id, ol_key);
+            if (object == null){
                 t.abort();
                 System.out.println("OrderStatus order line key: "+ol_key);
                 throw new TransactionException("Order Line not found.");
             }
-            OrderLine ol_data = obj.deepCopy().getOrderline();
+            OrderLine ol_data = object.deepCopy().getOrderline();
 
             order_data[i].ol_supply_w_id = ol_data.ol_supply_w_id;
             order_data[i].ol_i_id = ol_data.ol_i_id;
@@ -447,7 +500,12 @@ public class TpccThread implements Runnable {
          * increased by H_AMOUNT.
          */
         String w_key = WarehousePrimaryKey(w_id);
-        Warehouse w_data = t.get(w_id, w_key).deepCopy().getWarehouse();
+        object = t.get(w_id, w_key);
+        if (object == null){
+            t.abort();
+            throw new TransactionException("Some error "+(indexErr++));
+        }
+        Warehouse w_data = object.deepCopy().getWarehouse();
 
         String w_name = w_data.w_name;
         String w_street_1 = w_data.w_street_1;
@@ -465,7 +523,12 @@ public class TpccThread implements Runnable {
          * and D_YTD, the district's year-to-date balance, is increased by H_AMOUNT
          */
         String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
-        District d_data = t.get(w_id, d_key).deepCopy().getDistrict();
+        object = t.get(w_id, d_key);
+        if (object == null){
+            t.abort();
+            throw new TransactionException("Some error "+(indexErr++));
+        }
+        District d_data = object.deepCopy().getDistrict();
 
         String d_name = d_data.d_name;
         String d_street_1 = d_data.d_street_1;
@@ -485,7 +548,12 @@ public class TpccThread implements Runnable {
              */
 
             String c_key_sec = CustomerSecundaryKey(c_w_id, c_d_id, c_last);
-            Integer count = t.get(c_w_id, c_key_sec).deepCopy().getInteger();
+            object = t.get(c_w_id, c_key_sec);
+            if (object == null){
+                t.abort();
+                throw new TransactionException("Some error "+(indexErr++));
+            }
+            Integer count = object.deepCopy().getInteger();
             c_id = count / 2 + 1;
         }
 
@@ -498,7 +566,12 @@ public class TpccThread implements Runnable {
          * by H_AMOUNT. C_PAYMENT_CNT is incremented by 1.
          */
         String c_key = CustomerPrimaryKey(c_w_id,c_d_id,c_id);
-        Customer c_data = t.get(c_w_id, c_key).deepCopy().getCustomer();
+        object = t.get(c_w_id, c_key);
+        if (object == null){
+            t.abort();
+            throw new TransactionException("Some error "+(indexErr++));
+        }
+        Customer c_data = object.deepCopy().getCustomer();
 
         String c_first = c_data.c_first;
         String c_middle = c_data.c_middle;
@@ -620,7 +693,12 @@ public class TpccThread implements Runnable {
         /* The row in the WAREHOUSE table with matching W_ID is selected and W_TAX
          * rate is retrieved. */
         String w_key = KeysUtils.WarehousePrimaryKey(w_id);
-        Warehouse ware = t.get(w_id, w_key).deepCopy().getWarehouse();
+        object = t.get(w_id, w_key);
+        if (object == null){
+            t.abort();
+            throw new TransactionException("Some error "+(indexErr++));
+        }
+        Warehouse ware = object.deepCopy().getWarehouse();
         w_tax = ware.w_tax;
 
         /* The row in the DISTRICT table with matching D_W_ID and D_ID is selected,
@@ -628,7 +706,12 @@ public class TpccThread implements Runnable {
          * order number for the district, is retireved and incremented by one.
          */
         String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
-        District district = t.get(w_id, d_key).deepCopy().getDistrict();
+        object = t.get(w_id, d_key);
+        if (object == null){
+            t.abort();
+            throw new TransactionException("Some error "+(indexErr++));
+        }
+        District district = object.deepCopy().getDistrict();
         d_tax = district.d_tax;
         d_next_o_oid = district.d_next_o_id;
 
@@ -642,7 +725,12 @@ public class TpccThread implements Runnable {
              * and C_CREDIT, the customer's credit status are retrieved.
              */
         String c_key = KeysUtils.CustomerPrimaryKey(w_id,d_id,c_id);
-        Customer customer = t.get(w_id, c_key).deepCopy().getCustomer();
+        object = t.get(w_id, c_key);
+        if (object == null){
+            t.abort();
+            throw new TransactionException("Some error "+(indexErr++));
+        }
+        Customer customer = object.deepCopy().getCustomer();
 
 
         /* A new row is inserted into both the NEW_ORDER table and the ORDER
@@ -674,20 +762,24 @@ public class TpccThread implements Runnable {
             }
 
             String i_key = KeysUtils.ItemPrimaryKey(order_data[i].ol_i_id);
-            MyObject obj = t.get(ITEM_TABLE, i_key);
-            if (obj == null){
+            object = t.get(ITEM_TABLE, i_key);
+            if (object == null){
                 t.abort();
-                System.out.println("NewOrder item key: "+i_key);
-                throw new TransactionException("Order Line not found.");
+                throw new TransactionException("Some error "+(indexErr++));
             }
-            Item item = obj.deepCopy().getItem();
+            Item item = object.deepCopy().getItem();
 
             /* The row in the STOCK table with matching S_I_ID (equals OL_I_ID) and
              * S_W_ID (equals OL_SUPPLY_W_ID) is selected. S_QUANTITY, the quantity in stock,
              * S_DIST_xx, where xx represents the district number, and S_DATA are retrieved.
              */
             String s_key = KeysUtils.StockPrimaryKey(order_data[i].ol_supply_w_id, order_data[i].ol_i_id);
-            Stock stock = t.get(order_data[i].ol_supply_w_id, s_key).deepCopy().getStock();
+            object = t.get(order_data[i].ol_supply_w_id, s_key);
+            if (object == null){
+                t.abort();
+                throw new TransactionException("Some error "+(indexErr++));
+            }
+            Stock stock = object.deepCopy().getStock();
 
             /* If the retrieved value for S_QUANTITY exceeds OL_QUANTITY by 10 or more, then
              * S_QUANTITY is decreased by OL_QUANTITY; otherwise S_QUANTITY is updated to
