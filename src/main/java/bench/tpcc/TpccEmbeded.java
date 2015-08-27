@@ -21,7 +21,7 @@ public class TpccEmbeded {
 
     public static volatile boolean stop = false;
     public static AtomicInteger signal = new AtomicInteger(0);
-    public static AtomicInteger init_signal = new AtomicInteger(0);
+    public static AtomicInteger init_signal = new AtomicInteger(1);
     public static boolean DEBUG = false;
 
     private static int numClientPerWare = -1;
