@@ -9,3 +9,7 @@ java -Xmx4g -Xms2g -cp target/myhashdb-1.0.3.jar:/local/cj.gomes/thrift-0.9.2/li
 java -cp target/myhashdb-1.0.3.jar bench.MicroSI SI 30000 8 20 10 10
 
 mvn exec:java -Dexec.mainClass="bench.tpcc.TpccEmbeded" -Dexec.args="-w 4 -c 1 -t 60 -tp SI -B"
+
+-XX:MaxGCPauseMillis=1000 -XX:GCTimeRatio=99
+
+java -Xmx40g -Xms40g -verbose:gc -cp target/myhashdb-1.0.3-jar-with-dependencies.jar bench.tpcc.TpccEmbeded -w 4 -c 1 -t 60 -tp SI -B
