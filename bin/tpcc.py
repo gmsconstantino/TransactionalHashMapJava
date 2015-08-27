@@ -5,20 +5,25 @@ __author__ = 'Constantino Gomes'
 import os
 import sys
 import subprocess
+import time
 
 algorithm = [
     "SI",
     "NMSI"
 ]
 
-time = 60
+test_time = 60
 clientsPerWare = [1]
-warehouses = range(1,21) # 1 a 20
+warehouses = range(1,10) # 1 a 20
 
+for i in range(1,4):
+    for nware in warehouses:
+        for nclients in clientsPerWare:
+            for alg in  algorithm:
+                ycsb_command = ["java", "-Xmx40g", "-Xms40g", "-cp", "target/myhashdb-1.0.3-jar-with-dependencies.jar:", \
+                                "bench.tpcc.TpccEmbeded", "-w", str(nware), "-c", str(nclients), "-t", str(test_time), "-tp", alg, "-B" ]
+                subprocess.call(ycsb_command)
+                time.sleep(5)
 
-for nware in warehouses:
-    for nclients in clientsPerWare:
-        for alg in  algorithm:
-            ycsb_command = ["java", "-Xmx30g", "-Xms5g", "-cp", "target/myhashdb-1.0.3-jar-with-dependencies.jar:", \
-                            "bench.tpcc.TpccEmbeded", "-w", str(nware), "-c", str(nclients), "-t", str(time), "-tp", alg, "-B" ]
-            subprocess.call(ycsb_command)
+subprocess.Popen('cat /home/a41903/mail.txt | /local/cj.gomes/mail/msmtp/bin/msmtp -t cj.gomes@campus.fct.unl.pt', shell=True)
+subprocess.Popen('cp /local/cj.gomes/result/* ~/raw', shell=True)
