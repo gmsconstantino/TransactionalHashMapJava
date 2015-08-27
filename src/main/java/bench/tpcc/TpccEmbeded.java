@@ -118,6 +118,7 @@ public class TpccEmbeded {
             boolean shouldload = true;
             for (int j = 0; j < numClientPerWare; j++) {
                 TpccThread worker = new TpccThread(n_worker, i+1, numWares, bindWarehouse, cpu_list[n_worker-1], shouldload);
+                System.out.println("Start worker "+n_worker);
                 n_worker++;
                 workers[n_worker-2] = worker;
 
@@ -129,7 +130,7 @@ public class TpccEmbeded {
                 shouldload = false;
             }
         }
-
+        System.out.println("Waiting to load database...");
         while (signal.get() < totalWorkers);
 
         DecimalFormat df = new DecimalFormat("#,##0.00");
