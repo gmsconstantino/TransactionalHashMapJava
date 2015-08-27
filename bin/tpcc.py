@@ -17,7 +17,7 @@ clientsPerWare = [1]
 warehouses = range(1,10) # 1 a 20
 
 for i in range(1,4):
-    print "### Execution "+i
+    print "### Execution "+str(i)
 
     for nware in warehouses:
         for nclients in clientsPerWare:
