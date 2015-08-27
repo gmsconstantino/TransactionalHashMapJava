@@ -18,6 +18,7 @@ warehouses = range(1,10) # 1 a 20
 
 for i in range(1,4):
     print "### Execution "+str(i)
+    sys.stdout.flush()
 
     for nware in warehouses:
         for nclients in clientsPerWare:
