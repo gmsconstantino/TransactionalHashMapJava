@@ -154,7 +154,7 @@ public class TpccThread implements Runnable {
             t.abort();
             throw new TransactionException("Some error "+(indexErr++));
         }
-        District d_data = object.deepCopy().getDistrict();
+        District d_data = object.getDistrict();
 
         /* All rows in the ORDER_LINE table with matching OL_W_ID (equals W_ID),
          * OL_D_ID (equals D_ID), and OL_O_ID (lower than D_NEXT_O_ID and greater
@@ -170,17 +170,18 @@ public class TpccThread implements Runnable {
 //                System.out.println("Slev order key: "+o_key);
                 throw new TransactionException("Order Line not found.");
             }
-            Order o_data = object.deepCopy().getOrder();
+            Order o_data = object.getOrder();
+            long o_ol_cnt = o_data.o_ol_cnt;
 
-            for (i=1; i <= o_data.o_ol_cnt; i++){
+            for (i=1; i <= o_ol_cnt; i++){
                 String ol_key = OrderLinePrimaryKey(w_id,d_id,o_id, i);
                 object = t.get(w_id, ol_key);
                 if(object == null){
                     t.abort();
                     throw new TransactionException("Order Line not found.");
                 }
-                OrderLine ol_data = object.deepCopy().getOrderline();
-                set.add(ol_data.ol_i_id);
+                OrderLine ol_data = object.getOrderline();
+                set.add(new Integer(ol_data.ol_i_id));
             }
         }
 
@@ -196,7 +197,7 @@ public class TpccThread implements Runnable {
                 t.abort();
                 throw new TransactionException("Some error "+(indexErr++));
             }
-            Stock s_data = object.deepCopy().getStock();
+            Stock s_data = object.getStock();
 
             if(s_data.s_quantity < threshold)
                 count++;
@@ -248,7 +249,7 @@ public class TpccThread implements Runnable {
                 t.abort();
                 throw new TransactionException("Some error "+(indexErr++));
             }
-            Integer min_o_id = object.deepCopy().getInteger();
+            int min_o_id = object.getInteger();
 
             // Should delete this object from database,
             // the primary key of new order to the last order not delivery
@@ -349,12 +350,12 @@ public class TpccThread implements Runnable {
          * Begining the Transaction
          */
         long begintime = System.currentTimeMillis();
-        int ret = ProcessOrderStatus(byname, w_id, d_id, c_id, c_last, order_data);
+        int ret = ProcessOrderStatus(byname, c_last, order_data);
         long endtime = System.currentTimeMillis();
         latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
     }
 
-    private int ProcessOrderStatus(int byname, int w_id, int d_id, int c_id, String c_last, OrderStatusInfo[] order_data) {
+    private int ProcessOrderStatus(int byname, String c_last, OrderStatusInfo[] order_data) {
         i = 0;
 
         Transaction<String,MyObject> t = Environment.newTransaction();
@@ -367,7 +368,7 @@ public class TpccThread implements Runnable {
                 t.abort();
                 throw new TransactionException("Some error "+(indexErr++));
             }
-            Integer count = object.deepCopy().getInteger();
+            int count = object.getInteger();
             c_id = count / 2 + 1;
         }
 
@@ -382,11 +383,11 @@ public class TpccThread implements Runnable {
             t.abort();
             throw new TransactionException("Some error "+(indexErr++));
         }
-        Customer c_data = object.deepCopy().getCustomer();
+        Customer c_data = object.getCustomer();
 
         String c_first = c_data.c_first;
         String c_middle = c_data.c_middle;
-        c_last = c_data.c_last;
+        c_last = new String(c_data.c_last);
         double c_balance = c_data.c_balance;
 
 
@@ -401,7 +402,7 @@ public class TpccThread implements Runnable {
             t.abort();
             throw new TransactionException("Some error "+(indexErr++));
         }
-        Integer o_id = object.deepCopy().getInteger();
+        o_id = object.getInteger();
 
         // How many orderlines exists?
         String o_key = OrderPrimaryKey(w_id,d_id,o_id);
@@ -410,7 +411,7 @@ public class TpccThread implements Runnable {
             t.abort();
             throw new TransactionException("Some error "+(indexErr++));
         }
-        Order o_data = object.deepCopy().getOrder();
+        Order o_data = object.getOrder();
 
         String o_entry_d = o_data.o_entry_d;
         int o_carrier_id = o_data.o_carrier_id;
@@ -553,7 +554,7 @@ public class TpccThread implements Runnable {
                 t.abort();
                 throw new TransactionException("Some error "+(indexErr++));
             }
-            Integer count = object.deepCopy().getInteger();
+            int count = object.getInteger();
             c_id = count / 2 + 1;
         }
 
@@ -666,7 +667,7 @@ public class TpccThread implements Runnable {
             order_data[i].ol_quantity = Util.randomNumber(1, 10);
         }
         /* sort orders to avoid DeadLock */
-        Arrays.sort(order_data, new Comparator<NewOrderItemInfo>() {
+        Arrays.sort(order_data, 0, o_ol_cnt,new Comparator<NewOrderItemInfo>() {
             @Override
             public int compare(NewOrderItemInfo o1, NewOrderItemInfo o2) {
                 return Integer.compare(o1.ol_i_id,o2.ol_i_id);
@@ -698,7 +699,7 @@ public class TpccThread implements Runnable {
             t.abort();
             throw new TransactionException("Some error "+(indexErr++));
         }
-        Warehouse ware = object.deepCopy().getWarehouse();
+        Warehouse ware = object.getWarehouse();
         w_tax = ware.w_tax;
 
         /* The row in the DISTRICT table with matching D_W_ID and D_ID is selected,
@@ -767,7 +768,8 @@ public class TpccThread implements Runnable {
                 t.abort();
                 throw new TransactionException("Some error "+(indexErr++));
             }
-            Item item = object.deepCopy().getItem();
+            Item item = object.getItem();
+            double i_price = item.i_price;
 
             /* The row in the STOCK table with matching S_I_ID (equals OL_I_ID) and
              * S_W_ID (equals OL_SUPPLY_W_ID) is selected. S_QUANTITY, the quantity in stock,
@@ -780,6 +782,7 @@ public class TpccThread implements Runnable {
                 throw new TransactionException("Some error "+(indexErr++));
             }
             Stock stock = object.deepCopy().getStock();
+
 
             /* If the retrieved value for S_QUANTITY exceeds OL_QUANTITY by 10 or more, then
              * S_QUANTITY is decreased by OL_QUANTITY; otherwise S_QUANTITY is updated to
@@ -808,7 +811,7 @@ public class TpccThread implements Runnable {
             /* The amount for the item in the order (OL_AMOUNT) is computed as:
 	         * OL_QUANTITY * I_PRICE */
             OrderLine orderLine = new OrderLine();
-            orderLine.ol_amount = order_data[i].ol_quantity*item.i_price;
+            orderLine.ol_amount = order_data[i].ol_quantity*i_price;
 
             total += orderLine.ol_amount;
 
@@ -828,10 +831,10 @@ public class TpccThread implements Runnable {
             ol_dist_info[i] = stock.s_dist_01 + (d_id-1)*25;
 
             order_data[i].ol_supply_w_id = orderLine.ol_supply_w_id;
-            order_data[i].i_name = item.i_name;
+            order_data[i].i_name = new String(item.i_name);
             order_data[i].ol_quantity = orderLine.ol_quantity;
             order_data[i].s_quantity = stock.s_quantity;
-            order_data[i].i_price = item.i_price;
+            order_data[i].i_price = i_price;
             order_data[i].ol_amount = orderLine.ol_amount;
         }
 

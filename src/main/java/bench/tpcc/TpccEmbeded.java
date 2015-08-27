@@ -113,6 +113,7 @@ public class TpccEmbeded {
         int n_worker = 1;
 
         AffinityThreadFactory factory = new AffinityThreadFactory("worker", TPCC_STRATEGY, ANY);
+//        MyThreadFactory factory = new MyThreadFactory("worker", TPCC_STRATEGY, ANY);
 
         for (int i = 0; i < numWares; i++) {
             boolean shouldload = true;
