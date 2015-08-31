@@ -16,7 +16,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 /**
  * Created by Constantino Gomes on 21/05/15.
  */
-public class ThreadCleanerNMSI<K,V> extends Thread{
+public class ThreadCleanerNMSI<K,V> extends ThreadCleaner{
 
     private final static long WAITCLEANERTIME = 100;
     public final Database db;
@@ -30,15 +30,14 @@ public class ThreadCleanerNMSI<K,V> extends Thread{
     }
 
     public void run(){
-        for (;;){
-
-            sleep();
+        while (!stop){
 
             Iterator<ObjectDb> it = db.getObjectDbIterator();
             while (it.hasNext()){
                 it.next().clean(-1);
             }
 
+            sleep();
         }
     }
 

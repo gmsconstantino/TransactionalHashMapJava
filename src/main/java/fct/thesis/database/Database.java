@@ -14,8 +14,8 @@ import java.util.concurrent.Executors;
  * Created by gomes on 26/02/15.
  */
 public class Database<K,V> {
-    
-    private Thread cleaner;
+
+    private ThreadCleaner cleaner;
 
     public ConcurrentHashMap<K, ObjectDb<K,V>> concurrentHashMap;
 
@@ -36,6 +36,7 @@ public class Database<K,V> {
     }
 
     public void cleanup(){
+        cleaner.stop = true;
         try {
             long ncommit = 0;
             for (int i = 0; i < Transaction.ncommit.length; i++) {
@@ -103,9 +104,10 @@ public class Database<K,V> {
             e.printStackTrace();
         }
 
+        
     }
 
-    public void startThreadCleaner(Thread _cleaner){
+    public void startThreadCleaner(ThreadCleaner _cleaner){
         cleaner = _cleaner;
         cleaner.setDaemon(true);
         cleaner.start();

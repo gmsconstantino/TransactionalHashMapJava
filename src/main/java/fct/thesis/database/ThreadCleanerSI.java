@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 /**
  * Created by Constantino Gomes on 21/05/15.
  */
-public class ThreadCleanerSI<K,V> extends Thread{
+public class ThreadCleanerSI<K,V> extends ThreadCleaner {
 
 
     private final static long WAITCLEANERTIME = 100;
@@ -44,8 +44,7 @@ public class ThreadCleanerSI<K,V> extends Thread{
     }
 
     public void run(){
-        for (;;){
-            sleep();
+        while (!stop){
 
             long minVersion = getMin();
             if (minVersion == fct.thesis.databaseSI.Transaction.timestamp.get())
@@ -60,6 +59,8 @@ public class ThreadCleanerSI<K,V> extends Thread{
             while (it.hasNext()){
                 it.next().clean(minVersion);
             }
+
+            sleep();
         }
     }
 
@@ -67,7 +68,7 @@ public class ThreadCleanerSI<K,V> extends Thread{
         try {
             Thread.sleep(WAITCLEANERTIME);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
     }
 }
