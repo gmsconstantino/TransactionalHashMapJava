@@ -1,5 +1,6 @@
 package thrift;
 
+import fct.thesis.database.MultiHashMapStorage;
 import fct.thesis.database.TransactionFactory;
 import fct.thesis.database.TransactionTypeFactory;
 import org.apache.thrift.server.TServer;
@@ -131,9 +132,10 @@ public class ServerDB {
             System.exit(0);
         }
 
-        System.out.println("Database Transactions Type : "+ props.getProperty("transaction.type","TWOPL"));
+        System.out.println("Database Transactions Type : " + props.getProperty("transaction.type", "TWOPL"));
         TransactionFactory.type type = TransactionTypeFactory.getType(props.getProperty("transaction.type","TWOPL"));
-        DatabaseSingleton.setTransactionype(type, 1);
+        DatabaseSingleton.setTransactionype(type);
+        DatabaseSingleton.setStorage(new MultiHashMapStorage<>());
 
         ServerDB();
     }

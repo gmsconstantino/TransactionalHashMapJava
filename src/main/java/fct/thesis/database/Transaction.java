@@ -30,7 +30,15 @@ public abstract class Transaction<K,V> implements Comparable {
 
     public abstract V get(int table, K key) throws TransactionTimeoutException, TransactionAbortException;
 
+    public V get(K key) throws TransactionTimeoutException, TransactionAbortException{
+        return get(0, key);
+    }
+
     public abstract void put(int table, K key, V value) throws TransactionTimeoutException, TransactionAbortException;
+
+    public void put(K key, V value) throws TransactionTimeoutException, TransactionAbortException {
+        put(0, key, value);
+    }
 
     public abstract boolean commit() throws TransactionTimeoutException, TransactionAbortException;
 

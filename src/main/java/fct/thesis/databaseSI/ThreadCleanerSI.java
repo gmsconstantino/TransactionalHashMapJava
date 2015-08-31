@@ -1,4 +1,9 @@
-package fct.thesis.database;
+package fct.thesis.databaseSI;
+
+import fct.thesis.database.Database;
+import fct.thesis.database.ObjectDb;
+import fct.thesis.database.Storage;
+import fct.thesis.database.ThreadCleaner;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -14,25 +19,27 @@ public class ThreadCleanerSI<K,V> extends ThreadCleaner {
 
     private final static long WAITCLEANERTIME = 100;
 
-    public final static ConcurrentLinkedDeque<Transaction> set = new ConcurrentLinkedDeque();
+    public final static ConcurrentLinkedDeque<fct.thesis.database.Transaction> set = new ConcurrentLinkedDeque();
 
     private long min = -1;
+    Storage storage;
     Database db;
 
     /*
      * Vejo a versao ate onde posso apagar pelas versoes que as transacoes activas esta a usar
      * obtenho o minimo dessas versoes e posso apagar as versoes abaixo dessa
      */
-    public ThreadCleanerSI(Database db) {
+    public ThreadCleanerSI(Database db, Storage storage) {
         this.db = db;
+        this.storage = storage;
         setName("Thread-Cleaner");
     }
 
     public long getMin() {
         long min = fct.thesis.databaseSI.Transaction.timestamp.get();
-        Iterator<Transaction> it = set.iterator();
+        Iterator<fct.thesis.database.Transaction> it = set.iterator();
         while (it.hasNext()){
-            Transaction t = it.next();
+            fct.thesis.database.Transaction t = it.next();
 
             while (t.id == -1) {}
 
@@ -44,6 +51,8 @@ public class ThreadCleanerSI<K,V> extends ThreadCleaner {
     }
 
     public void run(){
+        int tables = storage.getTablesNumber();
+
         while (!stop){
 
             long minVersion = getMin();
@@ -55,8 +64,8 @@ public class ThreadCleanerSI<K,V> extends ThreadCleaner {
             if (minVersion < 0)
                 continue;
 
-            for (int i = 0; i < Database.numberTables; i++) {
-                Iterator<ObjectDb> it = db.getObjectDbIterator(i);
+            for (int i = 0; i < tables; i++) {
+                Iterator<ObjectDb> it = storage.getObjectDbIterator(i);
                 while (it.hasNext()){
                     it.next().clean(minVersion);
                 }

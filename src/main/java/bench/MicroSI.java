@@ -2,6 +2,8 @@ package bench;
 
 import fct.thesis.database.*;
 import fct.thesis.database.TransactionTypeFactory;
+import fct.thesis.databaseNMSI.ThreadCleanerNMSI;
+import fct.thesis.databaseSI.ThreadCleanerSI;
 
 import java.util.Random;
 
@@ -45,12 +47,12 @@ public class MicroSI {
             try {
 
                 for (int r : reads) {
-                    t.get(1,r);
+                    t.get(r);
                 }
 
                 if (writes != null) {
                     for (int w : writes) {
-                        t.put(1,w, 3);
+                        t.put(w, 3);
                     }
                 }
 
@@ -120,11 +122,22 @@ public class MicroSI {
 
 
         TYPE = TransactionTypeFactory.getType(global_algorithm);
-        db = DatabaseFactory.createDatabase(TYPE,1);
+        db = new Database<>();
+        Storage<Integer,Integer> storage = new MultiHashMapStorage<>();
+        db.setStorage(storage);
+        switch (TYPE){
+            case SI:
+                db.startThreadCleaner(new ThreadCleanerSI(db, storage));
+                break;
+            case OCC_MULTI:
+            case NMSI:
+                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, storage));
+                break;
+        }
 
         for (int i=0; i < max_num_accesses; i++) {
             Transaction<Integer,Integer> t = db.newTransaction(TYPE);
-            t.put(1,i, 4);
+            t.put(i, 4);
             if (!t.commit()) {
                 throw new RuntimeException();
             }

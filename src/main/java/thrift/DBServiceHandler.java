@@ -75,7 +75,7 @@ public class DBServiceHandler implements DBService.Iface {
         if (t == null)
             return false;
 
-        DatabaseSingleton.setTransactionype(t,1);
+        DatabaseSingleton.setTransactionype(t);
         return true;
     }
 

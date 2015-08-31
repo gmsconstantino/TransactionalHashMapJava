@@ -1,6 +1,8 @@
 package bench;
 
 import fct.thesis.database.*;
+import fct.thesis.databaseNMSI.ThreadCleanerNMSI;
+import fct.thesis.databaseSI.ThreadCleanerSI;
 
 import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
@@ -151,7 +153,18 @@ public class MicroTimeout {
 //        System.out.println("Write = "+global_nwrite);
 
         TYPE = TransactionTypeFactory.getType(global_algorithm);
-        Database<Integer,Integer> db= DatabaseFactory.createDatabase(TYPE,1);
+        Database<Integer,Integer> db= new Database<>();
+        Storage<Integer,Integer> storage = new MultiHashMapStorage<>();
+        db.setStorage(storage);
+        switch (TYPE){
+            case SI:
+                db.startThreadCleaner(new ThreadCleanerSI(db, storage));
+                break;
+            case OCC_MULTI:
+            case NMSI:
+                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, storage));
+                break;
+        }
         loadDatabase(db);
 
         Vector<Thread> threads = new Vector<Thread>();

@@ -1,7 +1,6 @@
-package fct.thesis.database;
+package fct.thesis.databaseNMSI;
 
-import fct.thesis.database.Database;
-import fct.thesis.database.ObjectDb;
+import fct.thesis.database.*;
 import fct.thesis.database.Transaction;
 import fct.thesis.databaseNMSI.ObjectNMSIDb;
 import fct.thesis.structures.MapEntry;
@@ -22,18 +21,21 @@ public class ThreadCleanerNMSI<K,V> extends ThreadCleaner {
     public final Database db;
 
     public final static ConcurrentLinkedDeque<P<ObjectNMSIDb,Long>> set = new ConcurrentLinkedDeque<>();
+    private final Storage storage;
 
 
-    public ThreadCleanerNMSI(Database _db) {
+    public ThreadCleanerNMSI(Database _db, Storage storage) {
         db = _db;
+        this.storage = storage;
         setName("Thread-Cleaner");
     }
 
     public void run(){
+        int tables = storage.getTablesNumber();
         while (!stop){
 
-            for (int i = 0; i < Database.numberTables; i++) {
-                Iterator<ObjectDb> it = db.getObjectDbIterator(i);
+            for (int i = 0; i < tables; i++) {
+                Iterator<ObjectDb> it = storage.getObjectDbIterator(i);
                 while (it.hasNext()){
                     it.next().clean(-1);
                 }

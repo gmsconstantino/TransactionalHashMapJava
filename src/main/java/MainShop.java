@@ -1,7 +1,4 @@
-import fct.thesis.database.Database;
-import fct.thesis.database.Transaction;
-import fct.thesis.database.TransactionFactory;
-import fct.thesis.database.TransactionTimeoutException;
+import fct.thesis.database.*;
 
 
 import java.util.*;
@@ -48,7 +45,10 @@ public class MainShop {
 
     public static void main(String[] args) {
 
-        db = new Database<Integer, Integer>(0);
+        Storage<Integer, Integer> storage = new MultiHashMapStorage<>();
+        db = new Database<Integer, Integer>();
+        db.setStorage(storage);
+
         concurrentHashMap = new ConcurrentHashMap<Integer, Integer>();
         synclog = Collections.synchronizedList(new ArrayList<Log>());
         transactions = new ConcurrentSkipListSet<Transaction>();

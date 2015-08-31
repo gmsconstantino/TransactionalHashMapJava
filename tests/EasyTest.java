@@ -12,7 +12,18 @@ public class EasyTest {
 
     public static void main(String[] args) {
 
-        Database<Integer, Integer> db = DatabaseFactory.createDatabase(TransactionFactory.type.SI, 1);
+        Database<Integer, Integer> db = new Database<>();
+        Storage<Integer,Integer> storage = new MultiHashMapStorage<>();
+        db.setStorage(storage);
+        switch (type){
+            case SI:
+                db.startThreadCleaner(new ThreadCleanerSI(db, storage));
+                break;
+            case OCC_MULTI:
+            case NMSI:
+                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, storage));
+                break;
+        }
 
         Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.SI);
         t.put(0, 10,1);

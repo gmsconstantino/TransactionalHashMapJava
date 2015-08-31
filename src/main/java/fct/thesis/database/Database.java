@@ -17,29 +17,22 @@ import java.util.function.BiFunction;
  */
 public class Database<K,V> {
 
-    public static int numberTables;
-    public ConcurrentHashMap[] tables;
-
+    protected Storage<K,V> storage;
     private ThreadCleaner cleaner;
 
-    public Database(int ntables){
-        numberTables = ntables;
-        tables = new ConcurrentHashMap[ntables];
-        for (int i = 0; i < ntables; i++) {
-            tables[i] = new ConcurrentHashMap<K,ObjectDb<K,V>>(1000000,0.75f,256);
-        }
+    public Database(){
     }
 
     protected ObjectDb<K,V> getKey(int table, K key){
-        return (ObjectDb<K,V>) tables[table].get(key);
+        return storage.getKey(table, key);
     }
 
     protected ObjectDb<K,V> putIfAbsent(int table, K key, ObjectDb<K,V> obj){
-        return (ObjectDb<K,V>) tables[table].putIfAbsent(key, obj);
+        return storage.putIfAbsent(table, key, obj);
     }
 
     protected ObjectDb<K,V> removeKey(int table, K key){
-        return (ObjectDb<K,V>) tables[table].remove(key);
+        return storage.removeKey(table, key);
     }
 
     public void cleanup(){
@@ -56,81 +49,26 @@ public class Database<K,V> {
      * Public
      */
 
+    public void setStorage(Storage storage){
+        this.storage = storage;
+    }
+
     public Transaction<K,V> newTransaction(TransactionFactory.type t){
         return TransactionFactory.createTransaction(t, this);
     }
 
     public int size(int table){
-        return tables[table].size();
+        return storage.getSizeTable(table);
     }
 
-    public Iterator getIterator(int table) {
-        return new DbIterator(table);
-    }
+//    public Iterator getIterator(int table) {
+//        return new DbIterator(table);
+//    }
 
     protected Iterator<ObjectDb<K,V>> getObjectDbIterator(int table){
-        return new ObjectDbIterator(table);
+        return storage.getObjectDbIterator(table);
     }
 
-    private class DbIterator implements Iterator {
 
-        Set<Map.Entry<K, ObjectDb<K,V>>> set;
-        Iterator<Map.Entry<K, ObjectDb<K,V>>> it;
-        DbIterator(int table){
-            set = tables[table].entrySet();
-            it = set.iterator();
-        }
-
-        @Override
-        public boolean hasNext() {
-            return it.hasNext();
-        }
-
-        @Override
-        public Object next() {
-
-            if(this.hasNext()){
-                Map.Entry<K, ObjectDb<K,V>> obj = it.next();
-                ObjectDb<K,V> objectDb = obj.getValue();
-                return new MapEntry<K,V>(obj.getKey(),objectDb.getValue());
-            }
-            return null;
-        }
-
-        @Override
-        public void remove() {
-
-        }
-    }
-
-    private class ObjectDbIterator implements Iterator {
-
-        Set<Map.Entry<K, ObjectDb<K,V>>> set;
-        Iterator<Map.Entry<K, ObjectDb<K,V>>> it;
-        ObjectDbIterator(int table){
-            set = tables[table].entrySet();
-            it = set.iterator();
-        }
-
-        @Override
-        public boolean hasNext() {
-            return it.hasNext();
-        }
-
-        @Override
-        public Object next() {
-
-            if(this.hasNext()){
-                Map.Entry<K, ObjectDb<K,V>> obj = it.next();
-                return obj.getValue();
-            }
-            return null;
-        }
-
-        @Override
-        public void remove() {
-
-        }
-    }
 
 }

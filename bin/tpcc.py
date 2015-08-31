@@ -14,7 +14,7 @@ algorithm = [
 
 test_time = 60
 clientsPerWare = [1]
-warehouses = range(1,10) # 1 a 20
+warehouses = range(1,20+1) # Add +1 on range to include the number you want
 
 for i in range(1,4):
     print "### Execution "+str(i)

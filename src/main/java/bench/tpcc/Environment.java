@@ -1,10 +1,9 @@
 package bench.tpcc;
 
 import bench.tpcc.server.ThriftTransaction;
-import fct.thesis.database.Database;
-import fct.thesis.database.DatabaseFactory;
-import fct.thesis.database.TransactionFactory;
-import fct.thesis.database.Transaction;
+import fct.thesis.database.*;
+import fct.thesis.databaseNMSI.ThreadCleanerNMSI;
+import fct.thesis.databaseSI.ThreadCleanerSI;
 import thrift.tpcc.schema.*;
 
 /**
@@ -48,6 +47,10 @@ public class Environment {
         return getInstance().db.size(table);
     }
 
+    public static void setStorage(Storage st){
+        getInstance()._setStorage(st);
+    }
+
     private Environment() {
 //        type = TransactionFactory.type.TWOPL;
 //        setType(type);
@@ -60,6 +63,21 @@ public class Environment {
     public void setType(TransactionFactory.type type, int ntables) {
         this.type = type;
         System.out.println("Set new Database Transactions Type : "+ type);
-        db = (Database<String , MyObject>) DatabaseFactory.createDatabase(type, ntables);
+        db = new Database<>();
+        Storage<Integer,Integer> storage = new MultiHashMapStorage<>(ntables);
+        db.setStorage(storage);
+        switch (type){
+            case SI:
+                db.startThreadCleaner(new ThreadCleanerSI(db, storage));
+                break;
+            case OCC_MULTI:
+            case NMSI:
+                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, storage));
+                break;
+        }
+    }
+
+    private void _setStorage(Storage st){
+        db.setStorage(st);
     }
 }

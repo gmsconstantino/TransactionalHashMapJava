@@ -1,8 +1,8 @@
 package thrift;
 
-import fct.thesis.database.Database;
-import fct.thesis.database.DatabaseFactory;
-import fct.thesis.database.TransactionFactory;
+import fct.thesis.database.*;
+import fct.thesis.databaseNMSI.ThreadCleanerNMSI;
+import fct.thesis.databaseSI.ThreadCleanerSI;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -32,8 +32,12 @@ public class DatabaseSingleton {
         return getInstance().getType();
     }
 
-    public static void setTransactionype(TransactionFactory.type type, int ntables){
-        getInstance().setType(type, ntables);
+    public static void setTransactionype(TransactionFactory.type type){
+        getInstance().setType(type);
+    }
+
+    public static void setStorage(Storage st){
+        getInstance()._setStorage(st);
     }
 
     private DatabaseSingleton() {
@@ -48,9 +52,24 @@ public class DatabaseSingleton {
         return type;
     }
 
-    public void setType(TransactionFactory.type type, int ntables) {
+    public void setType(TransactionFactory.type type) {
         this.type = type;
-        db = (Database<String, HashMap<String, ByteBuffer>>) DatabaseFactory.createDatabase(type, ntables);
+        db = new Database<>();
+        Storage<Integer,Integer> storage = new MultiHashMapStorage<>();
+        db.setStorage(storage);
+        switch (type){
+            case SI:
+                db.startThreadCleaner(new ThreadCleanerSI(db, storage));
+                break;
+            case OCC_MULTI:
+            case NMSI:
+                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, storage));
+                break;
+        }
         System.out.println("Set new Database Transactions Type : "+ type);
+    }
+
+    private void _setStorage(Storage st){
+        db.setStorage(st);
     }
 }
