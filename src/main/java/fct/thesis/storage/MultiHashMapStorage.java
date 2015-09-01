@@ -1,5 +1,7 @@
-package fct.thesis.database;
+package fct.thesis.storage;
 
+import fct.thesis.database.ObjectDb;
+import fct.thesis.database.Storage;
 import fct.thesis.structures.MapEntry;
 
 import java.util.Iterator;

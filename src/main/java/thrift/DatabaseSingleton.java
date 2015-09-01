@@ -3,6 +3,7 @@ package thrift;
 import fct.thesis.database.*;
 import fct.thesis.databaseNMSI.ThreadCleanerNMSI;
 import fct.thesis.databaseSI.ThreadCleanerSI;
+import fct.thesis.storage.MultiHashMapStorage;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;

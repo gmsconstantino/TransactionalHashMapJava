@@ -4,6 +4,7 @@ import bench.tpcc.server.ThriftTransaction;
 import fct.thesis.database.*;
 import fct.thesis.databaseNMSI.ThreadCleanerNMSI;
 import fct.thesis.databaseSI.ThreadCleanerSI;
+import fct.thesis.storage.MultiHashMapStorage;
 import thrift.tpcc.schema.*;
 
 /**

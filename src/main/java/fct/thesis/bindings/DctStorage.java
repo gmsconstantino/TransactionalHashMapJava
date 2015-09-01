@@ -3,6 +3,7 @@ package fct.thesis.bindings;
 import fct.thesis.database.*;
 import fct.thesis.databaseNMSI.ThreadCleanerNMSI;
 import fct.thesis.databaseSI.ThreadCleanerSI;
+import fct.thesis.storage.MultiHashMapStorage;
 import pt.dct.cli.Tx;
 import pt.dct.cli.TxStorage;
 

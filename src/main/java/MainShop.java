@@ -1,4 +1,5 @@
 import fct.thesis.database.*;
+import fct.thesis.storage.MultiHashMapStorage;
 
 
 import java.util.*;

@@ -1,9 +1,5 @@
 import fct.thesis.database.*;
-
-import java.util.InputMismatchException;
-import java.util.IntSummaryStatistics;
-import java.util.Random;
-import java.util.TreeMap;
+import fct.thesis.storage.MultiHashMapStorage;
 
 /**
  * Created by gomes on 10/03/15.

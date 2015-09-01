@@ -1,6 +1,6 @@
 package thrift;
 
-import fct.thesis.database.MultiHashMapStorage;
+import fct.thesis.storage.MultiHashMapStorage;
 import fct.thesis.database.TransactionFactory;
 import fct.thesis.database.TransactionTypeFactory;
 import org.apache.thrift.server.TServer;

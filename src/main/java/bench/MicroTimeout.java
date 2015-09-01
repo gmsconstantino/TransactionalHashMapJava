@@ -3,8 +3,8 @@ package bench;
 import fct.thesis.database.*;
 import fct.thesis.databaseNMSI.ThreadCleanerNMSI;
 import fct.thesis.databaseSI.ThreadCleanerSI;
+import fct.thesis.storage.MultiHashMapStorage;
 
-import java.text.DecimalFormat;
 import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
