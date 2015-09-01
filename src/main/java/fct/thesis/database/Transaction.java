@@ -2,7 +2,6 @@ package fct.thesis.database;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Created by gomes on 26/02/15.
@@ -14,6 +13,9 @@ public abstract class Transaction<K,V> implements Comparable {
     public long commitId;
     public boolean isActive;
     public boolean success;
+
+    public Thread thread;
+    public int idxThread;
 
     protected Database db;
 

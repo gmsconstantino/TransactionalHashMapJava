@@ -29,6 +29,8 @@ public class TransactionTypeFactory {
             return TransactionFactory.type.SI;
         } else if(value.toUpperCase().equals("NMSI")) {
             return TransactionFactory.type.NMSI;
+        } else if(value.toUpperCase().equals("NMSI+ARR")) {
+            return TransactionFactory.type.NMSI_ARRAY;
         } else if(value.toUpperCase().equals("NMSI+TO")){
             return TransactionFactory.type.NMSI_TIMEOUT;
         } else

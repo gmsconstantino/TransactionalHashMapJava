@@ -1,4 +1,4 @@
-package fct.thesis.databaseNMSI;
+package fct.thesis.databaseNMSI_Array;
 
 import fct.thesis.database.BufferObjectDb;
 import fct.thesis.database.TransactionAbortException;
@@ -21,10 +21,17 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         super(db);
     }
 
+    protected Transaction() {
+        super(null);
+        abort();
+    }
+
     protected void init(){
         super.init();
         aggStarted = new HashSet<>();
         writeSet = new TreeMap<>();
+        thread = Thread.currentThread();
+        idxThread = (int) thread.getId() % SnapshotsIface.MAX_POS;
     }
 
     @Override
@@ -130,11 +137,8 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             objectDb.unlock_write();
         }
 
-//        unlockWrite_objects(lockObjects);
-
         isActive = false;
         success = true;
-//        addToCleaner(this);
         return true;
     }
 
@@ -166,15 +170,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
     @Override
     public Collection getWriteSet() {
         return writeSet.values();
-    }
-
-    public static void addToCleaner(final fct.thesis.database.Transaction t) {
-//        Database.asyncPool.execute(() -> {
-//            try {
-//                Database.queue.add(t);
-//            } catch (Exception e) {
-//            }
-//        });
     }
 
     @Override

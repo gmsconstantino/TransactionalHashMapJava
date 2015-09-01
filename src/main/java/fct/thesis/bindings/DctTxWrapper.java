@@ -14,7 +14,7 @@ public class DctTxWrapper implements Tx {
 
     private static final Logger logger = LoggerFactory.getLogger(DctTxWrapper.class);
 
-    private static final int TABLE = 1;
+    private static final int TABLE = 0;
 
     protected Database<String,Integer> db;
     protected Transaction<String,Integer> tx;

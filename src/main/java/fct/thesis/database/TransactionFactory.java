@@ -5,7 +5,7 @@ package fct.thesis.database;
  */
 public class TransactionFactory {
 
-    public enum type { TWOPL, OCC, OCCNA, OCCLL, OCCRDIAS, OCC_MULTI, SI, NMSI, NMSI_TIMEOUT}
+    public enum type { TWOPL, OCC, OCCNA, OCCLL, OCCRDIAS, OCC_MULTI, SI, NMSI, NMSI_ARRAY, NMSI_TIMEOUT}
 
     public static fct.thesis.database.Transaction createTransaction(type t, Database db){
         switch (t){
@@ -25,6 +25,8 @@ public class TransactionFactory {
                 return new fct.thesis.databaseSI.Transaction(db);
             case NMSI:
                 return new fct.thesis.databaseNMSI.Transaction(db);
+            case NMSI_ARRAY:
+                return new fct.thesis.databaseNMSI_Array.Transaction(db);
             case NMSI_TIMEOUT:
                 return new fct.thesis.databaseNMSI_Timeout.Transaction<>(db);
             default:
