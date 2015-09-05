@@ -37,10 +37,6 @@ public class DatabaseSingleton {
         getInstance().setType(type);
     }
 
-    public static void setStorage(Storage st){
-        getInstance()._setStorage(st);
-    }
-
     private DatabaseSingleton() {
         type = TransactionFactory.type.TWOPL;
     }
@@ -56,21 +52,17 @@ public class DatabaseSingleton {
     public void setType(TransactionFactory.type type) {
         this.type = type;
         db = new Database<>();
-        Storage<Integer,Integer> storage = new MultiHashMapStorage<>();
+        Storage storage = new MultiHashMapStorage<>();
         db.setStorage(storage);
         switch (type){
             case SI:
-                db.startThreadCleaner(new ThreadCleanerSI(db, storage));
+                db.startThreadCleaner(new ThreadCleanerSI(db, db.getStorage()));
                 break;
             case OCC_MULTI:
             case NMSI:
-                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, storage));
+                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, db.getStorage()));
                 break;
         }
         System.out.println("Set new Database Transactions Type : "+ type);
-    }
-
-    private void _setStorage(Storage st){
-        db.setStorage(st);
     }
 }

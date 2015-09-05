@@ -5,11 +5,8 @@ import fct.thesis.database.ObjectDb;
 import fct.thesis.database.Storage;
 import fct.thesis.database.ThreadCleaner;
 
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * Created by Constantino Gomes on 21/05/15.
@@ -65,7 +62,7 @@ public class ThreadCleanerSI<K,V> extends ThreadCleaner {
                 continue;
 
             for (int i = 0; i < tables; i++) {
-                Iterator<ObjectDb> it = storage.getObjectDbIterator(i);
+                Iterator<ObjectDb> it = storage.getIterator(i);
                 while (it.hasNext()){
                     it.next().clean(minVersion);
                 }

@@ -155,15 +155,17 @@ public class MicroTimeout {
 
         TYPE = TransactionTypeFactory.getType(global_algorithm);
         Database<Integer,Integer> db= new Database<>();
-        Storage<Integer,Integer> storage = new MultiHashMapStorage<>();
+        Storage storage = new MultiHashMapStorage<>();
         db.setStorage(storage);
         switch (TYPE){
             case SI:
-                db.startThreadCleaner(new ThreadCleanerSI(db, storage));
+                db.startThreadCleaner(new ThreadCleanerSI(db, db.getStorage()));
                 break;
             case OCC_MULTI:
             case NMSI:
-                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, storage));
+            case NMSI_ARRAY:
+            case NMSI_TIMEOUT:
+                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, db.getStorage()));
                 break;
         }
         loadDatabase(db);

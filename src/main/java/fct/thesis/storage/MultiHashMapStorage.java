@@ -25,48 +25,23 @@ public class MultiHashMapStorage<K,V> implements Storage<K,V> {
         numberTables = ntables;
         tables = new ConcurrentHashMap[ntables];
         for (int i = 0; i < ntables; i++) {
-            tables[i] = new ConcurrentHashMap<K,ObjectDb<K,V>>(1000000,0.75f,256);
+            tables[i] = new ConcurrentHashMap<K,V>(1000000,0.75f,256);
         }
     }
 
     @Override
-    public ObjectDb<K, V> getKey(int table, K key) {
-        return (ObjectDb<K, V>) tables[table].get(key);
+    public V getKey(int table, K key) {
+        return (V) tables[table].get(key);
     }
 
     @Override
-    public ObjectDb<K, V> putIfAbsent(int table, K key, ObjectDb<K, V> obj) {
-        return (ObjectDb<K,V>) tables[table].putIfAbsent(key, obj);
+    public V putIfAbsent(int table, K key, V obj) {
+        return (V) tables[table].putIfAbsent(key, obj);
     }
 
     @Override
-    public ObjectDb<K, V> removeKey(int table, K key) {
-        return (ObjectDb<K,V>) tables[table].remove(key);
-    }
-
-    @Override
-    public ObjectDb<K, V> getKey(K key) {
-        return getKey(0, key);
-    }
-
-    @Override
-    public ObjectDb<K, V> putIfAbsent(K key, ObjectDb<K, V> obj) {
-        return putIfAbsent(0, key, obj);
-    }
-
-    @Override
-    public ObjectDb<K, V> removeKey(K key) {
-        return removeKey(0, key);
-    }
-
-    @Override
-    public Iterator<ObjectDb<K, V>> getObjectDbIterator(int table) {
-        return new ObjectDbIterator(table);
-    }
-
-    @Override
-    public Iterator<ObjectDb<K, V>> getObjectDbIterator() {
-        return getObjectDbIterator(0);
+    public Iterator<V> getIterator(int table) {
+        return new StorageIterator(table);
     }
 
     @Override
@@ -89,11 +64,11 @@ public class MultiHashMapStorage<K,V> implements Storage<K,V> {
 
     }
 
-    private class DbIterator implements Iterator {
+    private class StorageIterator implements Iterator {
 
-        Set<Map.Entry<K, ObjectDb<K,V>>> set;
-        Iterator<Map.Entry<K, ObjectDb<K,V>>> it;
-        DbIterator(int table){
+        Set<Map.Entry<K, V>> set;
+        Iterator<Map.Entry<K, V>> it;
+        StorageIterator(int table){
             set = tables[table].entrySet();
             it = set.iterator();
         }
@@ -107,38 +82,7 @@ public class MultiHashMapStorage<K,V> implements Storage<K,V> {
         public Object next() {
 
             if(this.hasNext()){
-                Map.Entry<K, ObjectDb<K,V>> obj = it.next();
-                ObjectDb<K,V> objectDb = obj.getValue();
-                return new MapEntry<K,V>(obj.getKey(),objectDb.getValue());
-            }
-            return null;
-        }
-
-        @Override
-        public void remove() {
-
-        }
-    }
-
-    private class ObjectDbIterator implements Iterator {
-
-        Set<Map.Entry<K, ObjectDb<K,V>>> set;
-        Iterator<Map.Entry<K, ObjectDb<K,V>>> it;
-        ObjectDbIterator(int table){
-            set = tables[table].entrySet();
-            it = set.iterator();
-        }
-
-        @Override
-        public boolean hasNext() {
-            return it.hasNext();
-        }
-
-        @Override
-        public Object next() {
-
-            if(this.hasNext()){
-                Map.Entry<K, ObjectDb<K,V>> obj = it.next();
+                Map.Entry<K, V> obj = it.next();
                 return obj.getValue();
             }
             return null;

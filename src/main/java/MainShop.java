@@ -46,7 +46,7 @@ public class MainShop {
 
     public static void main(String[] args) {
 
-        Storage<Integer, Integer> storage = new MultiHashMapStorage<>();
+        Storage storage = new MultiHashMapStorage<>();
         db = new Database<Integer, Integer>();
         db.setStorage(storage);
 

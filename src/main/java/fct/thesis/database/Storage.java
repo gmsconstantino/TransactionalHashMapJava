@@ -7,21 +7,11 @@ import java.util.Iterator;
  */
 public interface Storage<K,V> {
 
-    ObjectDb<K,V> getKey(int table, K key);
+    V getKey(int table, K key);
 
-    ObjectDb<K,V> putIfAbsent(int table, K key, ObjectDb<K,V> obj);
+    V putIfAbsent(int table, K key, V obj);
 
-    ObjectDb<K,V> removeKey(int table, K key);
-
-    ObjectDb<K,V> getKey(K key);
-
-    ObjectDb<K,V> putIfAbsent(K key, ObjectDb<K,V> obj);
-
-    ObjectDb<K,V> removeKey(K key);
-
-    Iterator<ObjectDb<K,V>> getObjectDbIterator(int table);
-
-    Iterator<ObjectDb<K,V>> getObjectDbIterator();
+    Iterator<V> getIterator(int table);
 
     int getTablesNumber();
 

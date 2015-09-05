@@ -16,22 +16,25 @@ public class DctStorage implements TxStorage {
 
     static final TransactionFactory.type TYPE = TransactionFactory.type.NMSI;
     protected Database<String,Integer> db;
-    protected Storage<String,Integer> storage;
+    protected Storage storage;
 
     @Override
     public void init() {
         db= new Database<>();
-        storage = new MultiHashMapStorage<>();
+        storage = new MultiHashMapStorage();
         db.setStorage(storage);
         switch (TYPE){
             case SI:
-                db.startThreadCleaner(new ThreadCleanerSI(db, storage));
+                db.startThreadCleaner(new ThreadCleanerSI(db, db.getStorage()));
                 break;
             case OCC_MULTI:
             case NMSI:
-                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, storage));
+            case NMSI_ARRAY:
+            case NMSI_TIMEOUT:
+                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, db.getStorage()));
                 break;
         }
+//        storage = db.getStorage();
     }
 
     @Override

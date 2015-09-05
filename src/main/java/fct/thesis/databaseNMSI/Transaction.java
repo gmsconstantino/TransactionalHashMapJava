@@ -3,7 +3,6 @@ package fct.thesis.databaseNMSI;
 import fct.thesis.database.BufferObjectDb;
 import fct.thesis.database.TransactionAbortException;
 import fct.thesis.database.TransactionTimeoutException;
-import fct.thesis.database2PL.Config;
 import fct.thesis.structures.P;
 
 import java.util.*;

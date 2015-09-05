@@ -135,7 +135,7 @@ public class ServerDB {
         System.out.println("Database Transactions Type : " + props.getProperty("transaction.type", "TWOPL"));
         TransactionFactory.type type = TransactionTypeFactory.getType(props.getProperty("transaction.type","TWOPL"));
         DatabaseSingleton.setTransactionype(type);
-        DatabaseSingleton.setStorage(new MultiHashMapStorage<>());
+//        DatabaseSingleton.setStorage(new MultiHashMapStorage<>());
 
         ServerDB();
     }

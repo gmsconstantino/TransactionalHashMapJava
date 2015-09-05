@@ -7,7 +7,7 @@ import java.util.Iterator;
  */
 public class Database<K,V> {
 
-    protected Storage<K,V> storage;
+    protected Storage<K,ObjectDb<K,V>> storage;
     private ThreadCleaner cleaner;
 
     public Database(){
@@ -22,11 +22,13 @@ public class Database<K,V> {
     }
 
     protected ObjectDb<K,V> removeKey(int table, K key){
-        return storage.removeKey(table, key);
+        return null;
     }
 
     public void cleanup(){
-        cleaner.stop = true;
+        if (cleaner != null) {
+            cleaner.stop = true;
+        }
     }
 
     public void startThreadCleaner(ThreadCleaner _cleaner){
@@ -43,6 +45,10 @@ public class Database<K,V> {
         this.storage = storage;
     }
 
+    public Storage<K, ObjectDb<K, V>> getStorage() {
+        return storage;
+    }
+
     public Transaction<K,V> newTransaction(TransactionFactory.type t){
         return TransactionFactory.createTransaction(t, this);
     }
@@ -56,7 +62,7 @@ public class Database<K,V> {
 //    }
 
     protected Iterator<ObjectDb<K,V>> getObjectDbIterator(int table){
-        return storage.getObjectDbIterator(table);
+        return storage.getIterator(table);
     }
 
 

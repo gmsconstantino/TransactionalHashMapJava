@@ -48,10 +48,6 @@ public class Environment {
         return getInstance().db.size(table);
     }
 
-    public static void setStorage(Storage st){
-        getInstance()._setStorage(st);
-    }
-
     private Environment() {
 //        type = TransactionFactory.type.TWOPL;
 //        setType(type);
@@ -65,20 +61,19 @@ public class Environment {
         this.type = type;
         System.out.println("Set new Database Transactions Type : "+ type);
         db = new Database<>();
-        Storage<Integer,Integer> storage = new MultiHashMapStorage<>(ntables);
+        Storage storage = new MultiHashMapStorage(ntables);
         db.setStorage(storage);
         switch (type){
             case SI:
-                db.startThreadCleaner(new ThreadCleanerSI(db, storage));
+                db.startThreadCleaner(new ThreadCleanerSI(db, db.getStorage()));
                 break;
             case OCC_MULTI:
+            case NMSI_ARRAY:
+            case NMSI_TIMEOUT:
             case NMSI:
-                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, storage));
+                db.startThreadCleaner(new ThreadCleanerNMSI<>(db, db.getStorage()));
                 break;
         }
     }
 
-    private void _setStorage(Storage st){
-        db.setStorage(st);
-    }
 }

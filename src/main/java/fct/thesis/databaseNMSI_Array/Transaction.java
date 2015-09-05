@@ -3,7 +3,6 @@ package fct.thesis.databaseNMSI_Array;
 import fct.thesis.database.BufferObjectDb;
 import fct.thesis.database.TransactionAbortException;
 import fct.thesis.database.TransactionTimeoutException;
-import fct.thesis.database2PL.Config;
 import fct.thesis.structures.P;
 
 import java.util.*;
@@ -44,7 +43,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return (V) writeSet.get(key).getValue();
         }
 
-        ObjectNMSIDb<K,V> obj = (ObjectNMSIDb) getKeyDatabase(table, k);
+        ObjectNMSIDbArray<K,V> obj = (ObjectNMSIDbArray) getKeyDatabase(table, k);
         if (obj == null || obj.getLastVersion() == -1)
             return null;
 
@@ -91,17 +90,17 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return true;
         }
 
-        Set<ObjectNMSIDb<K,V>> lockObjects = new HashSet<>();
+        Set<ObjectNMSIDbArray<K,V>> lockObjects = new HashSet<>();
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
 
-            ObjectNMSIDb<K,V> objectDb = (ObjectNMSIDb) getKeyDatabase(buffer.getTable(), buffer.getKey());
+            ObjectNMSIDbArray<K,V> objectDb = (ObjectNMSIDbArray) getKeyDatabase(buffer.getTable(), buffer.getKey());
             //Nao existe nenhuma
             if (objectDb == null) {
-                ObjectNMSIDb<K,V> obj = new ObjectNMSIDb<K,V>(); // Thread tem o lock do objecto
+                ObjectNMSIDbArray<K,V> obj = new ObjectNMSIDbArray<K,V>(); // Thread tem o lock do objecto
                 obj.lock_write();
 
-                ObjectNMSIDb<K,V> objdb = (ObjectNMSIDb) putIfAbsent(buffer.getTable(), buffer.getKey(), obj);
+                ObjectNMSIDbArray<K,V> objdb = (ObjectNMSIDbArray) putIfAbsent(buffer.getTable(), buffer.getKey(), obj);
                 if (objdb != null) {
                     objectDb = objdb;
                 }else {
@@ -126,7 +125,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
 
         for (BufferObjectDb<K, V> buffer : writeSet.values()) {
-            ObjectNMSIDb<K, V> objectDb = (ObjectNMSIDb) buffer.getObjectDb();
+            ObjectNMSIDbArray<K, V> objectDb = (ObjectNMSIDbArray) buffer.getObjectDb();
             for (Transaction tid : aggStarted){
                 if (tid.isActive() && objectDb.snapshots.get(tid) == null){
                     objectDb.putSnapshot(tid, objectDb.getLastVersion());
@@ -142,16 +141,16 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         return true;
     }
 
-    protected void abortVersions(Set<ObjectNMSIDb<K,V>> lockObjects) throws TransactionTimeoutException{
+    protected void abortVersions(Set<ObjectNMSIDbArray<K,V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
         throw new TransactionAbortException("Transaction Abort " + getId() +": Thread "+Thread.currentThread().getName()+" - Version change");
     }
 
-    protected void unlockWrite_objects(Set<ObjectNMSIDb<K,V>> set){
-        Iterator<ObjectNMSIDb<K,V>> it_locks = set.iterator();
+    protected void unlockWrite_objects(Set<ObjectNMSIDbArray<K,V>> set){
+        Iterator<ObjectNMSIDbArray<K,V>> it_locks = set.iterator();
         while (it_locks.hasNext()) {
-            ObjectNMSIDb<K,V> objectDb = it_locks.next();
+            ObjectNMSIDbArray<K,V> objectDb = it_locks.next();
             objectDb.unlock_write();
         }
     }
