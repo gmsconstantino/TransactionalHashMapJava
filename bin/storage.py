@@ -37,7 +37,7 @@ for i in range(1,4):
             if thread < partition:
                 continue
 
-            command = ["java", "-Xmx20g", "-Xms8g", "-cp", "target/myhashdb-1.0.3.jar", \
+            command = ["java", "-Xmx40g", "-Xms40g", "-cp", "target/myhashdb-1.0.3.jar", \
                             "bench.MicroStorage", "-d" ,str(exectime), "-t", str(thread), \
                        "-p", str(partition), "-sz", str(size_partition), "-r", str(read_perc),\
                        "-sh", str(share),"-debug", str(debug)]
