@@ -110,7 +110,7 @@ public class MicroStorage {
         }
 
         System.out.println();
-
+        System.out.println("Start....");
         long st = System.currentTimeMillis();
 
         for (Thread t : threads)
