@@ -45,4 +45,4 @@ for i in range(1,4):
             subprocess.call(command)
             time.sleep(5)
 
-        print "\n"
+    print "\n"
