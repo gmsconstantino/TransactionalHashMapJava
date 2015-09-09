@@ -28,21 +28,27 @@ debug = 0
 if len(sys.argv) > 5:
     debug = sys.argv[5]
 
-for i in range(1,4):
-    print "### Execution %s - Time %s(s), Size Partition %s, Read_Perc %s%%, Share %s" % (str(i),exectime,size_partition,read_perc,share)
-    sys.stdout.flush()
+exectime=60
+for share in [0, 1]:
+    for read_perc in [100, 95]:
+        for size_partition in [1000, 1000000]:
+            for i in range(1,4):
+                print "### Execution %s - Time %s(s), Size Partition %s, Read_Perc %s%%, Share %s" % (str(i),exectime,size_partition,read_perc,share)
+                sys.stdout.flush()
 
-    for thread in threads:
-        for partition in partitions:
-            if thread < partition:
-                continue
+                for thread in threads:
+                    for partition in partitions:
+                        if thread < partition:
+                            continue
 
-            command = ["java", "-Xmx40g", "-Xms40g", "-cp", "target/myhashdb-1.0.3.jar", \
-                            "bench.MicroStorage", "-d" ,str(exectime), "-t", str(thread), \
-                       "-p", str(partition), "-sz", str(size_partition), "-r", str(read_perc),\
-                       "-sh", str(share),"-debug", str(debug)]
-            # print " ".join(command)
-            subprocess.call(command)
-            time.sleep(5)
+                        command = ["java", "-Xmx40g", "-Xms40g", "-cp", "target/myhashdb-1.0.3.jar", \
+                                        "bench.MicroStorage", "-d" ,str(exectime), "-t", str(thread), \
+                                   "-p", str(partition), "-sz", str(size_partition), "-r", str(read_perc),\
+                                   "-sh", str(share),"-debug", str(debug)]
+                        # print " ".join(command)
+                        subprocess.call(command)
+                        time.sleep(5)
 
-    print "\n"
+                print "\n"
+
+            print "\n\n"
