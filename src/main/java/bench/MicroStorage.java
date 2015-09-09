@@ -16,7 +16,7 @@ public class MicroStorage {
     static class ClientThread extends Thread
     {
         Storage<String,Integer> _storage;
-        int _ops;
+        long _ops;
         int _threadid;
         int partition;
         int min_key;
@@ -39,7 +39,7 @@ public class MicroStorage {
                 System.out.println("Thread "+threadid+" Partition: "+partition+" MinKey:"+min_key+" MaxKey:"+max_key);
         }
 
-        public int getOps() {
+        public long getOps() {
             return _ops;
         }
 
@@ -125,7 +125,7 @@ public class MicroStorage {
         long en=System.currentTimeMillis();
 
 
-        int ops = 0;
+        long ops = 0;
 
         for (Thread t : threads) {
             try {
