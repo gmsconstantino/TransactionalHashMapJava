@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Created by gomes on 23/03/15.
  */
-public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
+public class ObjectNMSIDb<K,V> implements ObjectDb<V> {
 
     AtomicLong version;
     long minversion;
@@ -101,6 +101,11 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<K,V> {
 //        obj.unlock_write();
         long newversion = version.incrementAndGet();
         objects.putIfAbsent(newversion, value);
+    }
+
+    @Override
+    public long getVersion() {
+        return version.get();
     }
 
     @Override

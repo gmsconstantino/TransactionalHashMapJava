@@ -2,6 +2,7 @@ package fct.thesis.databaseNMSI_Array;
 
 import fct.thesis.database.BufferObjectDb;
 import fct.thesis.database.TransactionAbortException;
+import fct.thesis.database.TransactionAbst;
 import fct.thesis.database.TransactionTimeoutException;
 import fct.thesis.structures.P;
 
@@ -11,7 +12,7 @@ import java.util.*;
  * Created by gomes on 26/02/15.
  */
 
-public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
+public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V> {
 
     public Set<Transaction> aggStarted;
     protected Map<P<Integer,K>, BufferObjectDb<K,V>> writeSet;
@@ -164,11 +165,6 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
 
     private void addObjectDbToWriteBuffer(P key, BufferObjectDb objectDb){
         writeSet.put(key, objectDb);
-    }
-
-    @Override
-    public Collection getWriteSet() {
-        return writeSet.values();
     }
 
     @Override

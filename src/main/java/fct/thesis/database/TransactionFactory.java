@@ -7,7 +7,7 @@ public class TransactionFactory {
 
     public enum type { TWOPL, OCC, OCCNA, OCCLL, OCCRDIAS, OCC_MULTI, SI, NMSI, NMSI_ARRAY, NMSI_TIMEOUT}
 
-    public static fct.thesis.database.Transaction createTransaction(type t, Database db){
+    public static TransactionAbst createTransaction(type t, Database db){
         switch (t){
             case TWOPL:
                 return new fct.thesis.database2PL.Transaction(db);

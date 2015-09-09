@@ -7,7 +7,7 @@ import java.util.Collection;
  * Created by gomes on 26/02/15.
  */
 
-public abstract class Transaction<K,V> implements Comparable {
+public abstract class TransactionAbst<K,V> implements Comparable {
 
     public long id;
     public long commitId;
@@ -19,7 +19,7 @@ public abstract class Transaction<K,V> implements Comparable {
 
     protected Database db;
 
-    public Transaction(Database db){
+    public TransactionAbst(Database db){
         this.db = db;
         init();
     }
@@ -30,37 +30,37 @@ public abstract class Transaction<K,V> implements Comparable {
         success = false;
     }
 
-    public abstract V get(int table, K key) throws TransactionTimeoutException, TransactionAbortException;
+    public abstract V get(int table, K key) throws TransactionException;
 
-    public V get(K key) throws TransactionTimeoutException, TransactionAbortException{
+    public V get(K key) throws TransactionException{
         return get(0, key);
     }
 
-    public abstract void put(int table, K key, V value) throws TransactionTimeoutException, TransactionAbortException;
+    public abstract void put(int table, K key, V value) throws TransactionException;
 
-    public void put(K key, V value) throws TransactionTimeoutException, TransactionAbortException {
+    public void put(K key, V value) throws TransactionException {
         put(0, key, value);
     }
 
-    public abstract boolean commit() throws TransactionTimeoutException, TransactionAbortException;
+    public abstract boolean commit() throws TransactionException;
 
-    public abstract void abort() throws TransactionTimeoutException;
+    public abstract void abort() throws TransactionException;
 
-    protected ObjectDb<K,V> getKeyDatabase(int table, K key){
+    protected ObjectDb<V> getKeyDatabase(int table, K key){
         return db.getKey(table, key);
     }
 
-    protected ObjectDb<K,V> putIfAbsent(int table, K key, ObjectDb<K,V> obj){
+    protected ObjectDb<V> putIfAbsent(int table, K key, ObjectDb<V> obj){
         return db.putIfAbsent(table, key, obj);
     }
 
-    protected ObjectDb<K,V> removeKey(int table, K key){
+    protected ObjectDb<V> removeKey(int table, K key){
         return db.removeKey(table, key);
     }
 
     @Override
     public int compareTo(Object o) {
-        Transaction t = (Transaction) o;
+        TransactionAbst t = (TransactionAbst) o;
         return (new Long(this.id)).compareTo(t.id);
     }
 
@@ -83,9 +83,9 @@ public abstract class Transaction<K,V> implements Comparable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Transaction)) return false;
+        if (!(o instanceof TransactionAbst)) return false;
 
-        Transaction that = (Transaction) o;
+        TransactionAbst that = (TransactionAbst) o;
 
         if (id != that.id) return false;
 
@@ -99,10 +99,6 @@ public abstract class Transaction<K,V> implements Comparable {
                 ", isActive=" + isActive +
                 ", success=" + success +
                 '}';
-    }
-
-    public Collection getWriteSet(){
-        return new ArrayList<>();
     }
 
 }

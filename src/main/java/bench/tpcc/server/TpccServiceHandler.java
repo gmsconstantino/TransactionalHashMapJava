@@ -1,7 +1,7 @@
 package bench.tpcc.server;
 
 import bench.tpcc.Environment;
-import fct.thesis.database.Transaction;
+import fct.thesis.database.TransactionAbst;
 import fct.thesis.database.TransactionAbortException;
 import fct.thesis.database.TransactionFactory;
 import fct.thesis.database.TransactionTimeoutException;
@@ -10,14 +10,14 @@ import fct.thesis.database.TransactionTypeFactory;
 import thrift.server.AbortException;
 import thrift.server.NoSuchKeyException;
 import thrift.tpcc.TpccService;
-import thrift.tpcc.schema.MyObject;
+import thrift.tpcc.schema.TObject;
 
 /**
  * Created by gomes on 01/05/15.
  */
 public class TpccServiceHandler implements TpccService.Iface {
 
-    Transaction<String, MyObject> t;
+    TransactionAbst<String, TObject> t;
 
     TpccServiceHandler(){
     }
@@ -46,9 +46,9 @@ public class TpccServiceHandler implements TpccService.Iface {
     }
 
     @Override
-    public MyObject get(int table, String key) throws AbortException,NoSuchKeyException,TException {
+    public TObject get(int table, String key) throws AbortException,NoSuchKeyException,TException {
         try {
-            MyObject m = t.get(table, key);
+            TObject m = t.get(table, key);
             if (m==null)
                 throw new NoSuchKeyException();
             return m;
@@ -60,7 +60,7 @@ public class TpccServiceHandler implements TpccService.Iface {
     }
 
     @Override
-    public void put(int table, String key, MyObject value) throws AbortException,TException {
+    public void put(int table, String key, TObject value) throws AbortException,TException {
         try {
             t.put(table, key,value);
         } catch(TransactionTimeoutException e){

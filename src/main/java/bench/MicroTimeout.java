@@ -82,7 +82,7 @@ public class MicroTimeout {
             int v;
             try {
 
-                Transaction<Integer,Integer> t = _db.newTransaction(TYPE);
+                TransactionAbst<Integer,Integer> t = _db.newTransaction(TYPE);
 
                 if (conflict_prob == 1) {
                     int key_shared = ThreadLocalRandom.current().nextInt(min_shared_key, max_shared_key);
@@ -220,7 +220,7 @@ public class MicroTimeout {
 
         int total_size = global_txn_size*global_num_threads + global_store_size;
 
-        Transaction<Integer,Integer> t = db.newTransaction(TYPE);
+        TransactionAbst<Integer,Integer> t = db.newTransaction(TYPE);
 
         for (int i = 0; i < total_size; i++){
             t.put(0,i, 0);

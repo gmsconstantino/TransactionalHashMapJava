@@ -1,6 +1,6 @@
 package bench.tpcc;
 
-import fct.thesis.database.Transaction;
+import fct.thesis.database.TransactionAbst;
 import fct.thesis.database.TransactionFactory;
 import fct.thesis.database.TransactionTypeFactory;
 import thrift.tpcc.schema.*;
@@ -28,12 +28,12 @@ public class TpccLoad {
     }
 
 
-    public static void main(String[] args) {
-        parseArguments(args);
-
-        Environment.getInstance();
-        tpccLoadData(numWare);
-    }
+//    public static void main(String[] args) {
+//        parseArguments(args);
+//
+//        Environment.getInstance();
+//        tpccLoadData(numWare);
+//    }
 
     public static void tpccLoadData(int cnt_warehouses){
         System.out.println("TPCC Data Load Started...");
@@ -69,12 +69,12 @@ public class TpccLoad {
             Util.Permutation p = Util.initPermutation();    /* initialize permutation of customer numbers */
             for (int o_id = 1; o_id <= TpccConstants.ORD_PER_DIST; o_id++) {
 
-                Transaction<String, MyObject> t = Environment.newTransaction();
+                TransactionAbst<String, TObject> t = Environment.newTransaction();
 
                 String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
                 District district = t.get(w_id, d_key).deepCopy().getDistrict();
                 district.d_next_o_id++;
-                t.put(w_id, d_key, MyObject.district(district));
+                t.put(w_id, d_key, TObject.district(district));
 
                     /* Generate Order Data */
                 Order o = new Order();
@@ -88,25 +88,25 @@ public class TpccLoad {
                 if (o_id > 2100) {    /* the last 900 orders have not been delivered */
                     o.o_carrier_id = 0;
 
-                    t.put(w_id, OrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.order(o));
+                    t.put(w_id, OrderPrimaryKey(o_w_id, o_d_id, o_id), TObject.order(o));
 
                         /* Put order on Secondary index */
                     String o_key_sec = OrderSecundaryKey(o_w_id, o_d_id, o.o_c_id);
-                    t.put(w_id, o_key_sec, MyObject.Integer(o_id));
+                    t.put(w_id, o_key_sec, TObject.Integer(o_id));
 
                         /* Put new Order */
-                    t.put(w_id, NewOrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.NULL(true));
+                    t.put(w_id, NewOrderPrimaryKey(o_w_id, o_d_id, o_id), TObject.NULL(true));
                     if (o_id==2101){
                         // This is the oldest undelivered order data of that district.
-                        t.put(w_id, NewOrderSecundaryKey(o_w_id, o_d_id), MyObject.Integer(2101));
+                        t.put(w_id, NewOrderSecundaryKey(o_w_id, o_d_id), TObject.Integer(2101));
                     }
                 } else {
 
-                    t.put(w_id, OrderPrimaryKey(o_w_id, o_d_id, o_id), MyObject.order(o));
+                    t.put(w_id, OrderPrimaryKey(o_w_id, o_d_id, o_id), TObject.order(o));
 
                         /* Put order on Secondary index */
                     String o_key_sec = OrderSecundaryKey(o_w_id, o_d_id, o.o_c_id);
-                    t.put(w_id, o_key_sec, MyObject.Integer(o_id));
+                    t.put(w_id, o_key_sec, TObject.Integer(o_id));
                 }
 
                 if (option_debug)
@@ -124,13 +124,13 @@ public class TpccLoad {
                     ol.ol_dist_info = Util.makeAlphaString(24, 24);
 
                     if (o_id > 2100) {
-                        t.put(w_id, OrderLinePrimaryKey(o_w_id, o_d_id, o_id, ol_i), MyObject.orderline(ol));
+                        t.put(w_id, OrderLinePrimaryKey(o_w_id, o_d_id, o_id, ol_i), TObject.orderline(ol));
                     } else {
 
                         ol.ol_amount = ((float) (Util.randomNumber(10, 10000)) / 100.0);
                         ol.ol_delivery_d = date.toString();
 
-                        t.put(w_id, OrderLinePrimaryKey(o_w_id, o_d_id, o_id, ol_i), MyObject.orderline(ol));
+                        t.put(w_id, OrderLinePrimaryKey(o_w_id, o_d_id, o_id, ol_i), TObject.orderline(ol));
                     }
 
                     if (option_debug)
@@ -166,7 +166,7 @@ public class TpccLoad {
 
     public static void LoadCust(int w_id) {
 
-        Transaction t = Environment.newTransaction();
+        TransactionAbst t = Environment.newTransaction();
         for (int d_id = 1; d_id <= TpccConstants.DIST_PER_WARE; d_id++) {
             if(verbose)
                 System.out.printf("Loading Customer for DID=%d, WID=%d\n", d_id, w_id);
@@ -211,7 +211,7 @@ public class TpccLoad {
 
                 c.c_data = Util.makeAlphaString(300, 500);
 
-                t.put(w_id, c_key, MyObject.customer(c));
+                t.put(w_id, c_key, TObject.customer(c));
 
                 History h = new History();
                 h.h_c_id = c_id;
@@ -227,7 +227,7 @@ public class TpccLoad {
                 h.h_date = date.toString();
 
                 String h_key = HistoryPrimaryKey(h);
-                t.put(w_id, h_key, MyObject.history(h));
+                t.put(w_id, h_key, TObject.history(h));
 
                 if (option_debug) {
                     System.out.printf("CID = %d, LST = %s, P# = %s\n",
@@ -242,7 +242,7 @@ public class TpccLoad {
 
             // Set the primary key to use when search by lastname
             for (Map.Entry<String,Integer> e : countLastname.entrySet()){
-                t.put(w_id, CustomerSecundaryKey(w_id, d_id, e.getKey()), MyObject.Integer(e.getValue()));
+                t.put(w_id, CustomerSecundaryKey(w_id, d_id, e.getKey()), TObject.Integer(e.getValue()));
             }
         }
         t.commit();
@@ -270,7 +270,7 @@ public class TpccLoad {
             orig[pos] = 1;
         }
 
-        Transaction t = Environment.newTransaction();
+        TransactionAbst t = Environment.newTransaction();
         for (int i_id = 1; i_id <= TpccConstants.MAXITEMS; i_id++) {
 
             /* Generate Item Data */
@@ -291,7 +291,7 @@ public class TpccLoad {
                 System.out.printf("IID = %d, Name= %s, Price = %.2f\n",
                         i_id, it.i_name, it.i_price);
 
-            t.put(ITEM_TABLE, it_key, MyObject.item(it));
+            t.put(ITEM_TABLE, it_key, TObject.item(it));
 
             if ((i_id % 100) == 0 && verbose) {
                 System.out.printf(".");
@@ -335,8 +335,8 @@ public class TpccLoad {
             System.out.println("WID="+wareKey+", Name="+ware.w_name+", Tax="+ware.w_tax);
         }
 
-        Transaction t = Environment.newTransaction();
-        t.put(w_id, wareKey, MyObject.warehouse(ware));
+        TransactionAbst t = Environment.newTransaction();
+        t.put(w_id, wareKey, TObject.warehouse(ware));
         t.commit();
 
         LoadStock(w_id);
@@ -358,7 +358,7 @@ public class TpccLoad {
             orig[pos] = 1;
         }
 
-        Transaction t = Environment.newTransaction();
+        TransactionAbst t = Environment.newTransaction();
         for (int s_i_id = 1; s_i_id <= TpccConstants.MAXITEMS; s_i_id++) {
 
             Stock s = new Stock();
@@ -387,7 +387,7 @@ public class TpccLoad {
                 s.s_data = s.s_data.substring(0, pos)+"original"+s.s_data.substring(pos+8);
             }
 
-            t.put(w_id, s_key, MyObject.stock(s));
+            t.put(w_id, s_key, TObject.stock(s));
 
             if (option_debug){
                 System.out.println("SID=" + s_i_id + ", WID=" + w_id + ", Quan=" + s.s_quantity);
@@ -407,7 +407,7 @@ public class TpccLoad {
         if(verbose)
             System.out.println("Loading District");
 
-        Transaction t = Environment.newTransaction();
+        TransactionAbst t = Environment.newTransaction();
         for (int d_id = 1; d_id <= TpccConstants.DIST_PER_WARE; d_id++) {
             District d = new District();
             String d_key = DistrictPrimaryKey(w_id, d_id);
@@ -420,7 +420,7 @@ public class TpccLoad {
             d.d_zip = makeAlphaString(9, 9);
             d.d_tax = ((double)randomNumber(10,20))/100;
 
-            t.put(w_id, d_key, MyObject.district(d));
+            t.put(w_id, d_key, TObject.district(d));
 
             if (option_debug){
                 System.out.println("DID="+d_key+", WID="+w_id+", Name="+d.d_name+", Tax="+d.d_tax);

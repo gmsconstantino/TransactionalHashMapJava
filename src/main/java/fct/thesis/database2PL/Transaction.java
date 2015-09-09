@@ -9,7 +9,7 @@ import java.util.*;
  * Created by gomes on 26/02/15.
  */
 
-public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
+public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V> {
 
     protected Set<P<Integer,K>> readSet;
 
@@ -40,7 +40,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         }
 
         // Passa a ser um objecto do tipo ObjectLockDbImpl
-        ObjectLock2PL<?,?> obj = (ObjectLock2PL) getKeyDatabase(table, key);
+        ObjectLock2PL<?> obj = (ObjectLock2PL) getKeyDatabase(table, key);
 
         if (obj == null)
             return null;
@@ -68,21 +68,21 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
             return;
 
         // Se esta na cache e pq ja tenho o write lock do objecto
-        ObjectLockDb<K,V> objBuffer = getObjectFromWriteBuffer(key);
+        ObjectLockDb<V> objBuffer = getObjectFromWriteBuffer(key);
         if (objBuffer != null){
             objBuffer.setValue(value);
             return;
         }
 
         // Search
-        ObjectLock2PL<K,V> obj = (ObjectLock2PL<K,V>) getKeyDatabase(table, key); // Passa a ser um objecto do tipo ObjectDbImpl
+        ObjectLock2PL<V> obj = (ObjectLock2PL<V>) getKeyDatabase(table, key); // Passa a ser um objecto do tipo ObjectDbImpl
 
         long stamp = 0L;
 
         if(obj == null){
-            obj = new ObjectLock2PL<K,V>(value);
+            obj = new ObjectLock2PL<V>(value);
 
-            ObjectLock2PL<K,V> map_obj = (ObjectLock2PL<K,V>) putIfAbsent(table, key, obj);
+            ObjectLock2PL<V> map_obj = (ObjectLock2PL<V>) putIfAbsent(table, key, obj);
             obj = map_obj!=null? map_obj : obj;
         }
 
@@ -172,7 +172,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         writeSet.put(key, obj);
     }
 
-    ObjectLockDb<K,V> getObjectFromWriteBuffer(K key){
+    ObjectLockDb<V> getObjectFromWriteBuffer(K key){
         return (ObjectLockDb) ((writeSet.get(key)!=null) ? writeSet.get(key).getObjectDb() : null);
     }
 

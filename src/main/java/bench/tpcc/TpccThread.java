@@ -1,9 +1,7 @@
 package bench.tpcc;
 
-import fct.thesis.database.Transaction;
+import fct.thesis.database.TransactionAbst;
 import fct.thesis.database.TransactionException;
-import net.openhft.affinity.Affinity;
-import net.openhft.affinity.AffinityLock;
 import thrift.tpcc.schema.*;
 
 import java.sql.Timestamp;
@@ -59,7 +57,7 @@ public class TpccThread implements Runnable {
     private int c_w_id;
     private int c_d_id;
 
-    MyObject object = null;
+    TObject object = null;
     private NewOrderItemInfo order_data[] = new NewOrderItemInfo[15];
 
     //So para conseguir perceber onde deu erro
@@ -143,7 +141,7 @@ public class TpccThread implements Runnable {
 
         begintime = System.currentTimeMillis();
 
-        Transaction<String, MyObject> t = Environment.newTransaction();
+        TransactionAbst<String, TObject> t = Environment.newTransaction();
 
         /* The row in the DISTRICT table with matching D_W_ID and D_ID
          * is selected and D_NEXT_O_OID is retrieved.
@@ -231,7 +229,7 @@ public class TpccThread implements Runnable {
 
         begintime = System.currentTimeMillis();
 
-        Transaction<String, MyObject> t = Environment.newTransaction();
+        TransactionAbst<String, TObject> t = Environment.newTransaction();
 
         /* For a given warehouse number (W_ID), for each of the 10 districts
          * (D_W_ID, D_ID) within that warehouse, and for a given carrier number
@@ -270,7 +268,7 @@ public class TpccThread implements Runnable {
             o_c_id = o_data.o_c_id;
             o_data.o_carrier_id = o_carrier_id;
 
-            t.put(w_id, o_key, MyObject.order(o_data));
+            t.put(w_id, o_key, TObject.order(o_data));
 
             /* All rows in ORDER-LINE table with matching OL_W_ID (equals
              * O_W_ID), OL_D_ID, * equals (O_D_ID), and OL_O_ID (equals O_ID)
@@ -290,7 +288,7 @@ public class TpccThread implements Runnable {
                 sum_ol_amount += ol_data.ol_amount;
 
                 ol_data.ol_delivery_d = timeStamp;
-                t.put(w_id, ol_key, MyObject.orderline(ol_data));
+                t.put(w_id, ol_key, TObject.orderline(ol_data));
             }
 
             /* The row in the customer table with matching C_W_ID (equals W_ID), C_D_ID
@@ -308,9 +306,9 @@ public class TpccThread implements Runnable {
 
             c_data.c_balance += sum_ol_amount;
             c_data.c_delivery_cnt++;
-            t.put(w_id, c_key, MyObject.customer(c_data));
+            t.put(w_id, c_key, TObject.customer(c_data));
 
-            t.put(w_id, no_key_sec, MyObject.Integer(min_o_id++));
+            t.put(w_id, no_key_sec, TObject.Integer(min_o_id++));
         }
 
         t.commit();
@@ -358,7 +356,7 @@ public class TpccThread implements Runnable {
     private int ProcessOrderStatus(int byname, String c_last, OrderStatusInfo[] order_data) {
         i = 0;
 
-        Transaction<String,MyObject> t = Environment.newTransaction();
+        TransactionAbst<String,TObject> t = Environment.newTransaction();
 
         if (byname >= 0) {
             // Case 2: the customer is selected based on customer last name
@@ -493,7 +491,7 @@ public class TpccThread implements Runnable {
     }
 
     private int ProcessPayment(int h_amount, String c_last, String timeStamp) {
-        Transaction<String,MyObject> t = Environment.newTransaction();
+        TransactionAbst<String,TObject> t = Environment.newTransaction();
 
         /* The row in the WAREHOUSE table with matching W_ID is selected.
          * W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, and W_ZIP are
@@ -517,7 +515,7 @@ public class TpccThread implements Runnable {
 
         w_data.w_ytd += h_amount;
 
-        t.put(w_id, w_key, MyObject.warehouse(w_data));
+        t.put(w_id, w_key, TObject.warehouse(w_data));
 
         /* The row in the DISTRICT table with matching D_W_ID and D_ID is selected.
          * D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, and D_ZIP are retrieved
@@ -540,7 +538,7 @@ public class TpccThread implements Runnable {
 
         d_data.d_ytd += h_amount;
 
-        t.put(w_id, d_key, MyObject.district(d_data));
+        t.put(w_id, d_key, TObject.district(d_data));
 
         if (byname >= 1) {
             /* Case 2: the customer is selected based on customer last name
@@ -608,11 +606,11 @@ public class TpccThread implements Runnable {
             c_data.c_data = c_new_data;
         }
 
-        t.put(w_id, c_key, MyObject.customer(c_data));
+        t.put(w_id, c_key, TObject.customer(c_data));
 
         String h_data = w_name+"    "+d_name;
         String h_key = HistoryPrimaryKey(c_id, c_d_id, c_w_id, d_id, w_id, timeStamp, h_amount, h_data);
-        t.put(w_id, h_key, MyObject.NULL(true));
+        t.put(w_id, h_key, TObject.NULL(true));
 
         t.commit();
         return 1;
@@ -689,7 +687,7 @@ public class TpccThread implements Runnable {
         int d_next_o_oid;
         int i;
 
-        Transaction<String,MyObject> t = Environment.newTransaction();
+        TransactionAbst<String,TObject> t = Environment.newTransaction();
 
         /* The row in the WAREHOUSE table with matching W_ID is selected and W_TAX
          * rate is retrieved. */
@@ -717,7 +715,7 @@ public class TpccThread implements Runnable {
         d_next_o_oid = district.d_next_o_id;
 
         district.d_next_o_id++;
-        t.put(w_id, d_key, MyObject.district(district));
+        t.put(w_id, d_key, TObject.district(district));
 
         /* The row in the customer table with matching C_W_ID, C_D_ID and C_ID
              * is selected
@@ -806,7 +804,7 @@ public class TpccThread implements Runnable {
                 stock.s_remote_cnt++;
             }
 
-            t.put(w_id, s_key, MyObject.stock(stock));
+            t.put(w_id, s_key, TObject.stock(stock));
 
             /* The amount for the item in the order (OL_AMOUNT) is computed as:
 	         * OL_QUANTITY * I_PRICE */
@@ -849,15 +847,15 @@ public class TpccThread implements Runnable {
             String ol_key = KeysUtils.OrderLinePrimaryKey(w_id,d_id, d_next_o_oid, i+1);
             OrderLine orderLine = new OrderLine(order_data[i].ol_i_id, order_data[i].ol_supply_w_id,
                     "", order_data[i].ol_quantity, 0, ol_dist_info[i]);
-            t.put(w_id, ol_key, MyObject.orderline(orderLine));
+            t.put(w_id, ol_key, TObject.orderline(orderLine));
         }
 
-        t.put(w_id, KeysUtils.NewOrderPrimaryKey(w_id, d_id, d_next_o_oid), MyObject.NULL(true));
+        t.put(w_id, KeysUtils.NewOrderPrimaryKey(w_id, d_id, d_next_o_oid), TObject.NULL(true));
 
-        t.put(w_id, KeysUtils.OrderPrimaryKey(w_id, d_id, d_next_o_oid), MyObject.order(order));
+        t.put(w_id, KeysUtils.OrderPrimaryKey(w_id, d_id, d_next_o_oid), TObject.order(order));
 
         String o_key_sec = OrderSecundaryKey(w_id, d_id, c_id);
-        t.put(w_id, o_key_sec, MyObject.Integer(d_next_o_oid));
+        t.put(w_id, o_key_sec, TObject.Integer(d_next_o_oid));
 
         t.commit();
         return 1;

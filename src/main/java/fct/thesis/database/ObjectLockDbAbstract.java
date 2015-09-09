@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by gomes on 22/04/15.
  */
-public class ObjectLockDbAbstract<K,V> implements ObjectLockDb<K,V> {
+public class ObjectLockDbAbstract<V> implements ObjectLockDb<V> {
 
     private V value;
 

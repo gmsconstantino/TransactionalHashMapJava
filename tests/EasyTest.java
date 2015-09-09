@@ -9,7 +9,7 @@ public class EasyTest {
     public static void main(String[] args) {
 
         Database<Integer, Integer> db = new Database<>();
-        Storage<Integer,Integer> storage = new MultiHashMapStorage<>();
+        Storage storage = new MultiHashMapStorage();
         db.setStorage(storage);
         switch (type){
             case SI:
@@ -21,7 +21,7 @@ public class EasyTest {
                 break;
         }
 
-        Transaction<Integer,Integer> t = db.newTransaction(TransactionFactory.type.SI);
+        TransactionAbst<Integer,Integer> t = db.newTransaction(TransactionFactory.type.SI);
         t.put(0, 10,1);
         t.commit();
 

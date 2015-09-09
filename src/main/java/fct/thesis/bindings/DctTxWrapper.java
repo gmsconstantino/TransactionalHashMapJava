@@ -17,7 +17,7 @@ public class DctTxWrapper implements Tx {
     private static final int TABLE = 0;
 
     protected Database<String,Integer> db;
-    protected Transaction<String,Integer> tx;
+    protected TransactionAbst<String,Integer> tx;
     protected DctStorage storage;
 
     public DctTxWrapper(DctStorage storage, Database _db) {

@@ -13,14 +13,14 @@ public class MainShop {
     static Database<Integer,Integer> db;
     static ConcurrentHashMap<Integer, Integer> concurrentHashMap;
     static List<Log> synclog;
-    static Set<Transaction> transactions;
+    static Set<TransactionAbst> transactions;
 
     static class Log {
-        Transaction t;
+        TransactionAbst t;
         int prod;
         int qtd;
 
-        Log(Transaction t, int prod, int qtd){
+        Log(TransactionAbst t, int prod, int qtd){
             this.t = t;
             this.prod = prod;
             this.qtd = qtd;
@@ -30,7 +30,7 @@ public class MainShop {
     public static void populate_database(){
         Random r = new Random(0);
 
-        Transaction t = db.newTransaction(TYPE);
+        TransactionAbst t = db.newTransaction(TYPE);
 
         for (int i = 0; i < 1000; i++) {
             int p = r.nextInt(1000);
@@ -52,7 +52,7 @@ public class MainShop {
 
         concurrentHashMap = new ConcurrentHashMap<Integer, Integer>();
         synclog = Collections.synchronizedList(new ArrayList<Log>());
-        transactions = new ConcurrentSkipListSet<Transaction>();
+        transactions = new ConcurrentSkipListSet<TransactionAbst>();
 
         populate_database();
 
@@ -65,7 +65,7 @@ public class MainShop {
                 public void run() {
                     super.run();
                     Random r = new Random();
-                    Transaction<Integer, Integer> t = null;
+                    TransactionAbst<Integer, Integer> t = null;
 //                    try {
 
                         t = db.newTransaction(TYPE);
@@ -138,12 +138,12 @@ public class MainShop {
 
         boolean all_ok = true;
 
-        Transaction[] array = new Transaction[transactions.size()];
+        TransactionAbst[] array = new TransactionAbst[transactions.size()];
         transactions.toArray(array);
 
-        Arrays.sort(array, new Comparator<Transaction>() {
+        Arrays.sort(array, new Comparator<TransactionAbst>() {
             @Override
-            public int compare(Transaction o1, Transaction o2) {
+            public int compare(TransactionAbst o1, TransactionAbst o2) {
                 return  (new Long(o1.getCommitId())).compareTo(o2.getCommitId());
             }
         });

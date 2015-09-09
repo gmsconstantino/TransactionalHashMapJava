@@ -10,7 +10,7 @@ import java.util.*;
  * Created by gomes on 26/02/15.
  */
 
-public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
+public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V> {
 
     protected List<RWEntry<K, V>> readSet;
     protected Map<P<Integer,K>, RWEntry<K, V>> writeSet;
@@ -85,7 +85,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
                 MyObject<K, V> newObj = new MyObject<>();
                 write.obj = newObj;
                 newObj.lock(tid);
-                ObjectDb<K, V> oldObj = putIfAbsent(write.table, write.key, newObj);
+                ObjectDb<V> oldObj = putIfAbsent(write.table, write.key, newObj);
                 if (oldObj != null) {
                     write.obj = (MyObject<?, V>) oldObj;
                     write.obj.lock(tid);

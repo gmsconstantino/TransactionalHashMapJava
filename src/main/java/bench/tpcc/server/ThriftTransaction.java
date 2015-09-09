@@ -1,7 +1,7 @@
 package bench.tpcc.server;
 
-import fct.thesis.database.Database;
 import fct.thesis.database.TransactionAbortException;
+import fct.thesis.database.TransactionAbst;
 import fct.thesis.database.TransactionTimeoutException;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -9,17 +9,13 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-import thrift.server.DBService;
 import thrift.tpcc.TpccService;
-import thrift.tpcc.schema.MyObject;
-
-import java.util.Properties;
-import java.util.UUID;
+import thrift.tpcc.schema.TObject;
 
 /**
  * Created by Constantino Gomes on 17/05/15.
  */
-public class ThriftTransaction<K extends String,V extends MyObject> extends fct.thesis.database.Transaction<K,V> {
+public class ThriftTransaction<K extends String,V extends TObject> extends TransactionAbst<K,V> {
 
     TTransport transport;
     TpccService.Client client;

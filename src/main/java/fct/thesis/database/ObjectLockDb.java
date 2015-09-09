@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Created by gomes on 28/02/15.
  */
-public interface ObjectLockDb<K,V> extends ObjectDb<K,V>{
+public interface ObjectLockDb<V> extends ObjectDb<V>{
 
     public boolean try_lock_write_for(long time, TimeUnit unit);
     public boolean try_lock_read_for(long time, TimeUnit unit);
@@ -16,7 +16,5 @@ public interface ObjectLockDb<K,V> extends ObjectDb<K,V>{
 
     public void unlock_read();
     public void unlock_write();
-
-    public long getVersion();
 
 }

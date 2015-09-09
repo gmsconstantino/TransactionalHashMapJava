@@ -16,7 +16,7 @@ public class DBServiceHandler implements DBService.Iface {
 
     Database<String, Map<String, ByteBuffer>> db = DatabaseSingleton.getDatabase();
     final TransactionFactory.type TYPE = DatabaseSingleton.getInstance().getType();
-    Transaction<String, Map<String, ByteBuffer>> t;
+    TransactionAbst<String, Map<String, ByteBuffer>> t;
 
     DBServiceHandler(){
     }

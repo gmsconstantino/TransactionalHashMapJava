@@ -8,7 +8,7 @@ import java.util.concurrent.locks.StampedLock;
 /**
  * Created by gomes on 26/02/15.
  */
-public class ObjectLock2PL<K,V> extends ObjectLockDbAbstract<K,V> {
+public class ObjectLock2PL<V> extends ObjectLockDbAbstract<V> {
 
     private StampedLock lock;
     private boolean isNew;

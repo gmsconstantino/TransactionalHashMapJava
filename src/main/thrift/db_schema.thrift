@@ -100,7 +100,7 @@ struct Warehouse {
     8:double w_ytd;
 }
 
-union MyObject {
+union TObject {
     1:Warehouse warehouse
     2:Stock stock
     3:OrderLine orderline

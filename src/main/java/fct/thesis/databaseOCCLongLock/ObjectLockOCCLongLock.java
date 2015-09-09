@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Created by gomes on 26/02/15.
  */
-public class ObjectLockOCCLongLock<K,V> extends ObjectLockDbAbstract<K,V> {
+public class ObjectLockOCCLongLock<K,V> extends ObjectLockDbAbstract<V> {
 
     private AtomicLong version;
 

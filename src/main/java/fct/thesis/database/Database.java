@@ -7,21 +7,21 @@ import java.util.Iterator;
  */
 public class Database<K,V> {
 
-    protected Storage<K,ObjectDb<K,V>> storage;
+    protected Storage<K,ObjectDb<V>> storage;
     private ThreadCleaner cleaner;
 
     public Database(){
     }
 
-    protected ObjectDb<K,V> getKey(int table, K key){
+    protected ObjectDb<V> getKey(int table, K key){
         return storage.getKey(table, key);
     }
 
-    protected ObjectDb<K,V> putIfAbsent(int table, K key, ObjectDb<K,V> obj){
+    protected ObjectDb<V> putIfAbsent(int table, K key, ObjectDb<V> obj){
         return storage.putIfAbsent(table, key, obj);
     }
 
-    protected ObjectDb<K,V> removeKey(int table, K key){
+    protected ObjectDb<V> removeKey(int table, K key){
         return null;
     }
 
@@ -45,11 +45,11 @@ public class Database<K,V> {
         this.storage = storage;
     }
 
-    public Storage<K, ObjectDb<K, V>> getStorage() {
+    public Storage<K, ObjectDb<V>> getStorage() {
         return storage;
     }
 
-    public Transaction<K,V> newTransaction(TransactionFactory.type t){
+    public TransactionAbst<K,V> newTransaction(TransactionFactory.type t){
         return TransactionFactory.createTransaction(t, this);
     }
 
@@ -61,7 +61,7 @@ public class Database<K,V> {
 //        return new DbIterator(table);
 //    }
 
-    protected Iterator<ObjectDb<K,V>> getObjectDbIterator(int table){
+    protected Iterator<ObjectDb<V>> getObjectDbIterator(int table){
         return storage.getIterator(table);
     }
 

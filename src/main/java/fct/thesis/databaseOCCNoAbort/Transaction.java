@@ -11,7 +11,7 @@ import java.util.*;
  * Created by gomes on 26/02/15.
  */
 
-public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.Transaction<K,V> {
+public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V> {
 
     protected Map<P<Integer,K>, BufferDb<K,V>> readSet;
     protected Map<P<Integer,K>, BufferDb<K,V>> writeSet;
@@ -85,7 +85,7 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         if(!isActive)
             return success;
 
-        Set<ObjectLockDb<K,V>> lockObjects = new HashSet<ObjectLockDb<K,V>>();
+        Set<ObjectLockDb<V>> lockObjects = new HashSet<ObjectLockDb<V>>();
 
         for (BufferDb<K,V> buffer : writeSet.values()){
             ObjectLockOCC<K,V> objectDb = (ObjectLockOCC) buffer.getObjectDb();
@@ -133,22 +133,22 @@ public class Transaction<K extends Comparable<K>,V> extends fct.thesis.database.
         return true;
     }
 
-    private void abortTimeout(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
+    private void abortTimeout(Set<ObjectLockDb<V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
         throw new TransactionTimeoutException("COMMIT: Transaction " + getId() +": "+Thread.currentThread().getName()+" - commit");
     }
 
-    private void abortVersions(Set<ObjectLockDb<K,V>> lockObjects) throws TransactionTimeoutException{
+    private void abortVersions(Set<ObjectLockDb<V>> lockObjects) throws TransactionTimeoutException{
         unlockWrite_objects(lockObjects);
         abort();
         throw new TransactionAbortException("COMMIT: Transaction Abort " + getId() +": "+Thread.currentThread().getName()+" - Version change");
     }
 
-    private void unlockWrite_objects(Set<ObjectLockDb<K,V>> set){
-        Iterator<ObjectLockDb<K,V>> it_locks = set.iterator();
+    private void unlockWrite_objects(Set<ObjectLockDb<V>> set){
+        Iterator<ObjectLockDb<V>> it_locks = set.iterator();
         while (it_locks.hasNext()) {
-            ObjectLockDb<K,V> objectDb = it_locks.next();
+            ObjectLockDb<V> objectDb = it_locks.next();
             objectDb.unlock_write();
         }
     }

@@ -5,7 +5,7 @@ import fct.thesis.database.ObjectDb;
 import java.util.concurrent.atomic.AtomicLong;
 
 
-public class MyObject<K,V> implements ObjectDb<K,V> {
+public class MyObject<K,V> implements ObjectDb<V> {
 
     private static final long LOCK_MASK = 1L << 63;
     private static final long UNLOCK_MASK = ~LOCK_MASK;

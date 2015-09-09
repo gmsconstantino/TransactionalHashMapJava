@@ -43,7 +43,7 @@ public class MicroSI {
         public int[] writes;
 
         public boolean execute(Database<Integer, Integer> db, TransactionFactory.type TYPE) {
-            Transaction<Integer,Integer> t = db.newTransaction(TYPE);
+            TransactionAbst<Integer,Integer> t = db.newTransaction(TYPE);
 
             try {
 
@@ -139,7 +139,7 @@ public class MicroSI {
         }
 
         for (int i=0; i < max_num_accesses; i++) {
-            Transaction<Integer,Integer> t = db.newTransaction(TYPE);
+            TransactionAbst<Integer,Integer> t = db.newTransaction(TYPE);
             t.put(i, 4);
             if (!t.commit()) {
                 throw new RuntimeException();

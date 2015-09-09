@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by gomes on 23/03/15.
  */
-public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectLockDbAbstract<K,V> {
+public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectLockDbAbstract<V> {
 
     volatile long last_version;
     ConcurrentLinkedDeque<P<Long, V>> objects;

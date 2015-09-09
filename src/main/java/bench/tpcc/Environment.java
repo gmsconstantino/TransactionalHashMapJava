@@ -13,7 +13,7 @@ import thrift.tpcc.schema.*;
 public class Environment {
 
     TransactionFactory.type type;
-    Database<String, MyObject> db;
+    Database<String, TObject> db;
     public static boolean remote = false;
 
     private static Environment ourInstance = null;
@@ -37,7 +37,7 @@ public class Environment {
         getInstance().db.cleanup();
     }
 
-    public static Transaction<String, MyObject> newTransaction(){
+    public static TransactionAbst<String, TObject> newTransaction(){
         if (remote){
             return new ThriftTransaction();
         }else

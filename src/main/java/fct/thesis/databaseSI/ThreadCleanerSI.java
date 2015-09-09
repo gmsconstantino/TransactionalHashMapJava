@@ -1,9 +1,6 @@
 package fct.thesis.databaseSI;
 
-import fct.thesis.database.Database;
-import fct.thesis.database.ObjectDb;
-import fct.thesis.database.Storage;
-import fct.thesis.database.ThreadCleaner;
+import fct.thesis.database.*;
 
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -16,7 +13,7 @@ public class ThreadCleanerSI<K,V> extends ThreadCleaner {
 
     private final static long WAITCLEANERTIME = 100;
 
-    public final static ConcurrentLinkedDeque<fct.thesis.database.Transaction> set = new ConcurrentLinkedDeque();
+    public final static ConcurrentLinkedDeque<TransactionAbst> set = new ConcurrentLinkedDeque();
 
     private long min = -1;
     Storage storage;
@@ -34,9 +31,9 @@ public class ThreadCleanerSI<K,V> extends ThreadCleaner {
 
     public long getMin() {
         long min = fct.thesis.databaseSI.Transaction.timestamp.get();
-        Iterator<fct.thesis.database.Transaction> it = set.iterator();
+        Iterator<TransactionAbst> it = set.iterator();
         while (it.hasNext()){
-            fct.thesis.database.Transaction t = it.next();
+            TransactionAbst t = it.next();
 
             while (t.id == -1) {}
 

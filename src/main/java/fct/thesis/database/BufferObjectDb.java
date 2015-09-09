@@ -17,7 +17,7 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
     private V value;
     private long version;
 
-    private ObjectDb<K,V> objectDb;
+    private ObjectDb<V> objectDb;
 
     public BufferObjectDb(V value){
         this.value = value;
@@ -31,7 +31,7 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
         this.version = -1L;
     }
 
-    public BufferObjectDb(int table, K key, V value, ObjectDb<K, V> obj) {
+    public BufferObjectDb(int table, K key, V value, ObjectDb<V> obj) {
         this.table = table;
         this.key = key;
         this.value = value;
@@ -39,7 +39,7 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
         this.version = -1L;
     }
 
-    public BufferObjectDb(int table, K key, V value, long version, ObjectDb<K, V> obj) {
+    public BufferObjectDb(int table, K key, V value, long version, ObjectDb<V> obj) {
         this.table = table;
         this.key = key;
         this.value = value;
@@ -76,7 +76,7 @@ public class BufferObjectDb<K extends Comparable<K>,V> implements BufferDb<K,V>,
         return objectDb;
     }
 
-    public void setObjectDb(ObjectDb<K, V> objectDb) {
+    public void setObjectDb(ObjectDb<V> objectDb) {
         this.objectDb = objectDb;
     }
 

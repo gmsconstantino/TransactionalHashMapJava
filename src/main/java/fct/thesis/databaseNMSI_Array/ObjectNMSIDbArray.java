@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Created by gomes on 23/03/15.
  */
-public class ObjectNMSIDbArray<K,V> implements ObjectDb<K,V> {
+public class ObjectNMSIDbArray<K,V> implements ObjectDb<V> {
 
     AtomicLong version;
     long minversion;
@@ -123,6 +123,11 @@ public class ObjectNMSIDbArray<K,V> implements ObjectDb<K,V> {
     @Override
     public V getValue() {
         return null;
+    }
+
+    @Override
+    public long getVersion() {
+        return 0;
     }
 
     public void lock_read() {
