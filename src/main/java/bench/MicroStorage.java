@@ -139,6 +139,7 @@ public class MicroStorage {
         System.out.println("RunTime(ms) = "+ runtime);
         double throughput = 1000.0 * ((double) ops) / ((double) runtime);
         System.out.println("Throughput(ops/sec) = " + String.format("%,f", throughput));
+        System.out.println();
     }
 
     private static void loadStorage(Storage<String, Integer> storage) {
