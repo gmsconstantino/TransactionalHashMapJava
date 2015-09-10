@@ -13,6 +13,7 @@ public class MicroStorage {
 
     public static volatile boolean stop = false;
 
+
     static class ClientThread extends Thread
     {
         Storage<String,Integer> _storage;
@@ -71,10 +72,11 @@ public class MicroStorage {
 
     private static int global_num_threads;
     private static int global_num_partitions;
-    private static int global_partition_size;
+    private static int global_store_size;
     private static int global_share_store = 0;
     private static int global_read_perc;
     private static int global_th_per_partition;
+    private static int global_partition_size;
 
     public static void main(String[] args) throws InterruptedException {
 
@@ -85,8 +87,8 @@ public class MicroStorage {
 
         System.out.println("Number of threads = " + global_num_threads);
         System.out.println("Number of partitions = "+ global_num_partitions);
-        System.out.println("Number of Partition size = "+ global_partition_size);
-        System.out.println("Percentage of get operations = "+ global_read_perc+"%");
+        System.out.println("Number of Store size = "+ global_store_size);
+        System.out.println("Percentage of get operations = " + global_read_perc + "%");
         if (global_read_perc!=100)
             System.out.println("Percentage of putIfAbsent operations = "+ (100-global_read_perc)+"%");
 
@@ -98,13 +100,13 @@ public class MicroStorage {
         int key_range = global_partition_size / global_th_per_partition;
         int threadid = 0;
         Vector<Thread> threads = new Vector<Thread>();
-        for (int j = 0; j < global_th_per_partition; j++) {
-            for (int i = 0; i < global_num_partitions; i++) {
+        for (int i = 0; i < global_num_partitions; i++) {
+            for (int j = 0; j < global_th_per_partition; j++) {
                 Thread t = null;
                 if (global_share_store>0)
                     t = new ClientThread(storage, threadid++, i, 0, global_partition_size);
                 else
-                    t = new ClientThread(storage, threadid++, i, i*key_range, (i+1)*key_range);
+                    t = new ClientThread(storage, threadid++, i, j*key_range, (j+1)*key_range);
                 threads.add(t);
             }
         }
@@ -139,10 +141,13 @@ public class MicroStorage {
         System.out.println("RunTime(ms) = "+ runtime);
         double throughput = 1000.0 * ((double) ops) / ((double) runtime);
         System.out.println("Throughput(ops/sec) = " + String.format("%,f", throughput));
+        printHeapSize();
         System.out.println();
     }
 
     private static void loadStorage(Storage<String, Integer> storage) {
+
+        global_partition_size = global_store_size / global_num_partitions;
 
         for (int i = 0; i < global_num_partitions; i++) {
             for (int j = 0; j < global_partition_size; j++) {
@@ -217,7 +222,7 @@ public class MicroStorage {
                 }
 
                 int ttarget=Integer.parseInt(args[argindex]);
-                global_partition_size = ttarget;
+                global_store_size = ttarget;
                 argindex++;
             }
             else if (args[argindex].compareTo("-r")==0) {
@@ -268,4 +273,28 @@ public class MicroStorage {
             }
         }
     }
+
+    public static void printHeapSize(){
+        int mb = 1024*1024;
+
+        //Getting the runtime reference from system
+        Runtime runtime = Runtime.getRuntime();
+
+        System.out.println("##### Heap utilization statistics [MB] #####");
+
+        //Print used memory
+        System.out.println("Used Memory:"
+                + (runtime.totalMemory() - runtime.freeMemory()) / mb);
+
+        //Print free memory
+        System.out.println("Free Memory:"
+                + runtime.freeMemory() / mb);
+
+        //Print total available memory
+        System.out.println("Total Memory:" + runtime.totalMemory() / mb);
+
+        //Print Maximum available memory
+        System.out.println("Max Memory:" + runtime.maxMemory() / mb);
+    }
+
 }
