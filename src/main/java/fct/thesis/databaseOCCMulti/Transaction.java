@@ -51,10 +51,10 @@ public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V>
             return null;
 
         if (readSet.containsKey(key)){
-                returnValue = obj.getValueVersionLess(readSet.get(key));
+                returnValue = obj.getValueVersionLessOrEqual(readSet.get(key));
         } else {
             addObjectDbToReadBuffer(key, obj.getVersion());
-            returnValue = (V) obj.getValueVersionLess(startTime);
+            returnValue = (V) obj.getValueVersionLessOrEqual(startTime);
         }
         return returnValue;
     }
@@ -126,7 +126,7 @@ public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V>
         // Escrita
         for (BufferDb<K,V> buffer : writeSet.values()){
             ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) buffer.getObjectDb();
-            objectDb.addNewVersionObject(commitId, buffer.getValue());
+            objectDb.addNewVersion(commitId, buffer.getValue());
             objectDb.unlock_write();
         }
 

@@ -52,7 +52,7 @@ public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V>
             obj.unlock_read();
         }
 
-        V r = obj.getValueVersion(v, aggStarted);
+        V r = obj.getValueOfVersion(v, aggStarted);
 
         return r;
     }
@@ -163,14 +163,6 @@ public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V>
         writeSet.put(key, objectDb);
     }
 
-    public static void addToCleaner(final TransactionAbst t) {
-//        Database.asyncPool.execute(() -> {
-//            try {
-//                Database.queue.add(t);
-//            } catch (Exception e) {
-//            }
-//        });
-    }
 
     @Override
     public String toString() {

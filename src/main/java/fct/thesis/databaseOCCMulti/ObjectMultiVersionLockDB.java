@@ -1,11 +1,15 @@
 package fct.thesis.databaseOCCMulti;
 
+import fct.thesis.database.ObjectDb;
 import fct.thesis.database.ObjectLockDb;
 import fct.thesis.database.ObjectLockDbAbstract;
 import fct.thesis.structures.RwLock;
 import pt.dct.util.P;
 
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
 
@@ -14,39 +18,36 @@ import java.util.concurrent.TimeUnit;
  */
 public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectLockDbAbstract<V> {
 
-    volatile long last_version;
-    ConcurrentLinkedDeque<P<Long, V>> objects;
+    LinkedList<P<Long, V>> objects;
     RwLock lock;
 
     public ObjectMultiVersionLockDB(){
         super();
-        objects = new ConcurrentLinkedDeque<>();
+        objects = new LinkedList<>();
         lock = new RwLock();
-        last_version = -1;
     }
 
     public long getVersion() {
-        return last_version;
+        return objects.getFirst().f;
     }
 
-    public V getValueVersionLess(long startTime) {
+    public V getValueVersionLessOrEqual(long timestamp) {
         for(P<Long, V> pair : objects){
-            if(pair.f <= startTime){
+            if(pair.f <= timestamp){
                 return pair.s;
             }
         }
         return null;
     }
 
-    public void addNewVersionObject(Long version, V value){
+    public void addNewVersion(Long version, V value){
 //        BufferObjectDb<K,V> obj = new BufferObjectDb<K,V>(value);
         objects.addFirst(new P(version, value));
-        last_version = version;
     }
 
     @Override
     public V getValue() {
-        if(last_version == -1)
+        if(objects.isEmpty())
             return null;
         return objects.getFirst().s;
     }
@@ -56,6 +57,7 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
         if (objects.size()==1)
             return;
 
+        lock_write();
         Iterator<P<Long, V>> it = objects.descendingIterator();
         while (it.hasNext()){
             P<Long, V> pair = it.next();
@@ -67,6 +69,7 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
             if (objects.size()==1)
                 return;
         }
+        unlock_write();
     }
 
     @Override
@@ -111,19 +114,16 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
 
     @Override
     public String toString() {
-        return "ObjectMultiVersionLockDB{" +
-                "last_version=" + last_version +
-                ", lock=" + lock +
-                '}';
+        return "ObjectMultiVersionLockDB{}";
     }
 
     public static void main(String[] args) {
         ObjectMultiVersionLockDB<Integer,Integer> obj = new ObjectMultiVersionLockDB<>();
-        obj.addNewVersionObject(0L,1);
-        obj.addNewVersionObject(3L,2);
-        obj.addNewVersionObject(4L,3);
-        obj.addNewVersionObject(7L,4);
+        obj.addNewVersion(0L, 1);
+        obj.addNewVersion(3L, 2);
+        obj.addNewVersion(4L, 3);
+        obj.addNewVersion(7L, 4);
 
-        System.out.println(obj.getValueVersionLess(6L));
+        System.out.println(obj.getValueVersionLessOrEqual(6L));
     }
 }

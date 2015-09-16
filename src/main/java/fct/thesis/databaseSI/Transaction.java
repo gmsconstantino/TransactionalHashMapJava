@@ -47,7 +47,9 @@ public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V>
         if (obj == null || obj.getVersion() == -1)
             return null;
 
-        returnValue = obj.getValueVersionLess(id);
+        obj.lock_read();
+        returnValue = obj.getValueVersionLessOrEqual(id);
+        obj.unlock_read();
 
         return returnValue;
     }
@@ -98,7 +100,7 @@ public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V>
             buffer.setObjectDb(objectDb);
 
             // buffer.version == objectDb.last_version
-            if (objectDb.getVersion() < id) {
+            if (objectDb.getVersion() <= id) {
                 continue;
             } else {
                 abortVersions(lockObjects);
@@ -111,7 +113,7 @@ public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V>
         // Escrita
         for (BufferDb<K,V> buffer : writeSet.values()){
             ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) buffer.getObjectDb();
-            objectDb.addNewVersionObject(commitId, buffer.getValue());
+            objectDb.addNewVersion(commitId, buffer.getValue());
             objectDb.unlock_write();
         }
 

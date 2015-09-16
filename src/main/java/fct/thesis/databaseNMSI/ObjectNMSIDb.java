@@ -54,7 +54,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<V> {
         return snapshots.get(tid);
     }
 
-    public V getValueVersion(long version, Set<Transaction> aggrDataTx) {
+    public V getValueOfVersion(long version, Set<Transaction> aggrDataTx) {
         if (version > getLastVersion() && version < minversion)
             return null;
 
@@ -79,16 +79,6 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<V> {
 
         return value;
     }
-
-//    public static void addToCleaner(ObjectNMSIDb o, Long version) {
-//        Database.asyncPool.execute(() -> {
-//            o.clean(version);
-//            try {
-//                ThreadCleanerNMSI.set.add(new P<>(o,version));
-//            } catch (Exception e) {
-//            }
-//        });
-//    }
 
     /**
      * Add object with value and increment the version
