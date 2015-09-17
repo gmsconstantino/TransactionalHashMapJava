@@ -107,6 +107,8 @@ public class MicroTimeout {
 
                 if (t.commit()) {
                     _opsCommit++;
+                } else {
+                    _opsAbort++;
                 }
 
             } catch (TransactionAbortException ta){

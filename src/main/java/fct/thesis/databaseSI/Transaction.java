@@ -109,7 +109,7 @@ public class Transaction<K extends Comparable<K>,V> extends TransactionAbst<K,V>
         }
 
 
-        commitId = timestamp.getAndIncrement();
+        commitId = timestamp.incrementAndGet();
         // Escrita
         for (BufferDb<K,V> buffer : writeSet.values()){
             ObjectMultiVersionLockDB<K,V> objectDb = (ObjectMultiVersionLockDB) buffer.getObjectDb();

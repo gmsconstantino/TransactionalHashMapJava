@@ -28,6 +28,8 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
     }
 
     public long getVersion() {
+        if (objects.isEmpty())
+            return -1;
         return objects.getFirst().f;
     }
 
