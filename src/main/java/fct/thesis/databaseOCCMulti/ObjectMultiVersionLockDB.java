@@ -18,61 +18,68 @@ import java.util.concurrent.TimeUnit;
  */
 public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectLockDbAbstract<V> {
 
-    LinkedList<P<Long, V>> objects;
+//    LinkedList<P<Long, V>> objects;
     RwLock lock;
+
+    protected class VTuple {
+        public long version;
+        public V object;
+        public VTuple next;
+
+        public VTuple(long version, V object, VTuple next) {
+            this.version = version;
+            this.object = object;
+            this.next = next;
+        }
+    }
 
     public ObjectMultiVersionLockDB(){
         super();
-        objects = new LinkedList<>();
         lock = new RwLock();
     }
 
+    protected VTuple lastVersion = null;
+
     public long getVersion() {
-        if (objects.isEmpty())
-            return -1;
-        return objects.getFirst().f;
+        if(lastVersion == null)
+            return -1L;
+        return lastVersion.version;
     }
 
-    public V getValueVersionLessOrEqual(long timestamp) {
-        for(P<Long, V> pair : objects){
-            if(pair.f <= timestamp){
-                return pair.s;
-            }
+    public V getValueVersionLessOrEqual(long localClock) {
+        VTuple curr = lastVersion;
+        while(curr != null) {
+            if (curr.version <= localClock)
+                return curr.object;
+            curr = curr.next;
         }
         return null;
     }
 
-    public void addNewVersion(Long version, V value){
-//        BufferObjectDb<K,V> obj = new BufferObjectDb<K,V>(value);
-        objects.addFirst(new P(version, value));
+    public void addNewVersion(long version, V object) {
+        VTuple newVersion = new VTuple(version, object, lastVersion);
+        lastVersion = newVersion;
     }
 
-    @Override
-    public V getValue() {
-        if(objects.isEmpty())
-            return null;
-        return objects.getFirst().s;
-    }
-
-    @Override
-    public void clean(long version) {
-        if (objects.size()==1)
-            return;
-
+    public void clean(int localClock) {
+        VTuple curr = lastVersion;
         lock_write();
-        Iterator<P<Long, V>> it = objects.descendingIterator();
-        while (it.hasNext()){
-            P<Long, V> pair = it.next();
-            if (version >= pair.f)
-                objects.removeLastOccurrence(pair);
-            else
-                break;
-
-            if (objects.size()==1)
-                return;
+        while(curr != null) {
+            if (curr.version <= localClock){
+                curr.next = null;
+            }
+            curr = curr.next;
         }
         unlock_write();
     }
+
+
+//    @Override
+//    public V getValue() {
+//        if(objects.isEmpty())
+//            return null;
+//        return objects.getFirst().s;
+//    }
 
     @Override
     public void setValue(V value) {
