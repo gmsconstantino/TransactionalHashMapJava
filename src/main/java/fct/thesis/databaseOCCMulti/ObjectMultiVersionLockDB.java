@@ -62,12 +62,14 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
     }
 
     public void clean(int localClock) {
+        VTuple prev = lastVersion;
         VTuple curr = lastVersion;
         lock_write();
         while(curr != null) {
             if (curr.version <= localClock){
-                curr.next = null;
+                prev.next = null;
             }
+            prev = curr;
             curr = curr.next;
         }
         unlock_write();
@@ -98,7 +100,7 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
 
     @Override
     public boolean try_lock_read_for(long time, TimeUnit unit) {
-        return lock.try_lock_read_for(time,unit);
+        return lock.try_lock_read_for(time, unit);
     }
 
     @Override
@@ -121,6 +123,16 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
         lock.lock_read();
     }
 
+//    public void debug(){
+//        String versions = "[";
+//        VTuple curr = lastVersion;
+//        while(curr != null) {
+//            versions += curr.version + ",";
+//            curr = curr.next;
+//        }
+//        System.out.println(versions+"]");
+//    }
+
     @Override
     public String toString() {
         return "ObjectMultiVersionLockDB{}";
@@ -134,5 +146,10 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
         obj.addNewVersion(7L, 4);
 
         System.out.println(obj.getValueVersionLessOrEqual(6L));
+
+//        obj.debug();
+        obj.clean(3);
+//        obj.debug();
+
     }
 }

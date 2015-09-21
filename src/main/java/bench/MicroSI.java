@@ -98,7 +98,7 @@ public class MicroSI {
     public static void main(String[] args) throws InterruptedException {
 
         if (args.length < 6) {
-            System.out.println("Params: algorithm duration num_threads perc_read_only max_num_accesses perc_writes");
+            System.out.println("Params: algorithm duration(s) num_threads perc_read_only max_num_accesses perc_writes");
             System.exit(0);
         }
 
@@ -160,7 +160,7 @@ public class MicroSI {
         }
 
 
-        Thread.sleep(duration);
+        Thread.sleep(duration*1000);
         stop = true;
 
 

@@ -109,6 +109,8 @@ public class Micro {
 
                 if (t.commit()) {
                     _opsCommit++;
+                } else {
+                    _opsAbort++;
                 }
 
             } catch (TransactionAbortException ta){
