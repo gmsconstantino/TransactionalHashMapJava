@@ -17,30 +17,42 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class ObjectNMSIDb<K,V> implements ObjectDb<V> {
 
-    AtomicLong version;
-    long minversion;
-    public ConcurrentHashMap<Long, V> objects;
+    volatile long version;
+    //long minversion;
+	
+	public class VEntry {
+		V val;
+		long ver;
+		volatile VEntry next;
+		
+		public VEntry(V val, long ver, VEntry next) {
+			this.val = val;
+			this.ver = ver;
+			this.next = next;
+		}
+	}
+	
+    //public ConcurrentHashMap<Long, V> objects;
+	public volatile VEntry current;
     public ConcurrentHashMap<Transaction, Long> snapshots;
 
     RwLock rwlock;
 
-    long id;
-    static AtomicLong c = new AtomicLong(0);
 
     public ObjectNMSIDb(){
-        version = new AtomicLong(-1L);
-        minversion = 0;
+        version = -1L;
+        //minversion = 0;
 
-        objects = new ConcurrentHashMap<>();
+        current = null;
         snapshots = new ConcurrentHashMap<>();
 
         rwlock = new RwLock();
 
-        id = c.getAndIncrement();
+
     }
 
     public Long getLastVersion() {
-        return version.get();
+        return version;
     }
 
     public void putSnapshot(Transaction t, Long v) {
@@ -53,13 +65,24 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<V> {
     public Long getVersionForTransaction(Transaction tid){
         return snapshots.get(tid);
     }
+	
+	public V findValue(long version) {
+		VEntry next = current;
+		while(next != null) {
+			if (next.ver == version) {
+				return next.val;
+			}
+			next = next.next;
+		}
+		throw new RuntimeException("THIS SHOULD NEVER HAPPEN!");
+	}
 
     public V getValueOfVersion(long version, Set<Transaction> aggrDataTx) {
-        if (version > getLastVersion() && version < minversion)
-            return null;
+        //if (version > getLastVersion() && version < minversion)
+        //    return null;
 
         V value = null;
-        value = objects.get(version);
+        value = findValue(version);
 
         // Add tids to transaction metadata
         for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
@@ -89,33 +112,55 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<V> {
     public void setValue(V value) {
 //        ObjectVersionLockDB<K,V> obj = new ObjectVersionLockDBImpl<K,V>(value);
 //        obj.unlock_write();
-        long newversion = version.incrementAndGet();
-        objects.putIfAbsent(newversion, value);
+        //long newversion = version.incrementAndGet();
+        //objects.putIfAbsent(newversion, value);
+		current = new VEntry(value, ++version, current);
     }
 
     @Override
     public long getVersion() {
-        return version.get();
+        return version;
     }
 
     @Override
     public void clean(long version) {
-        if (objects.size()<2)
-            return;
+        //if (objects.size()<2)
+        //    return;
+		
 
+		if (current == null)
+			return;
+		if (current.next == null)
+			return;
+		
+		
         long myminversion = getLastVersion();
 
         for (Map.Entry<Transaction, Long> entry : snapshots.entrySet()) {
             myminversion = Math.min(myminversion, entry.getValue());
         }
+		
+		
 
-        for (Map.Entry<Long,V> entry : objects.entrySet()) {
+        /*for (Map.Entry<Long,V> entry : objects.entrySet()) {
             if (entry.getKey() < myminversion){
                 objects.remove(entry.getKey());
             }
-        }
+        }*/
+		
+		VEntry prev = current;
+		VEntry next = prev.next;
+		while(next != null) {
+			if (next.ver < myminversion) {
+				prev.next = null;
+				break;
+			}
+			prev = next;
+			next = prev.next;
+		}
+		
 
-        minversion = myminversion;
+        //minversion = myminversion;
     }
 
     @Override
@@ -158,7 +203,7 @@ public class ObjectNMSIDb<K,V> implements ObjectDb<V> {
     @Override
     public String toString() {
         return "ObjectBlotterDbImpl@" + hashCode()+" {" +
-                "objects=" + objects +
+                "objects=" + current +
                 ", snapshots=" + snapshots +
                 '}';
     }
