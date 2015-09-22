@@ -62,12 +62,18 @@ public class ObjectMultiVersionLockDB<K extends Comparable<K>,V> extends ObjectL
     }
 
     public void clean(int localClock) {
+        if (lastVersion == null)
+            return;
+        if (lastVersion.next == null)
+            return;
+
         VTuple prev = lastVersion;
         VTuple curr = lastVersion;
         lock_write();
         while(curr != null) {
             if (curr.version <= localClock){
                 prev.next = null;
+                break;
             }
             prev = curr;
             curr = curr.next;
