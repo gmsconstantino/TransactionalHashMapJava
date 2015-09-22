@@ -12,9 +12,9 @@ algorithm = [
     "NMSI"
 ]
 
-test_time = 60
+test_time = 30
 clientsPerWare = [1]
-warehouses = range(1,20+1) # Add +1 on range to include the number you want
+warehouses = range(1,8+1) # Add +1 on range to include the number you want
 
 for i in range(1,4):
     print "### Execution "+str(i)
