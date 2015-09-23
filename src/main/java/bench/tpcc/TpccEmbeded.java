@@ -10,6 +10,7 @@ import net.openhft.affinity.CpuLayout;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.DecimalFormat;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static net.openhft.affinity.AffinityStrategies.*;
@@ -29,8 +30,10 @@ public class TpccEmbeded {
     private static int measureTime = -1;
     private static boolean bindWarehouse = false;
 
+    private static final boolean USE_AFFINITY = Boolean.getBoolean("tpcc.affinity");
+
     static int index = 0;
-    static int[] cpu_list = new int[64];
+    static int[] cpu_list;
     static {
         String hostname = "";
         try {
@@ -39,6 +42,7 @@ public class TpccEmbeded {
             e.printStackTrace();
         }
         if(hostname.equals("node10")){
+            cpu_list = new int[64];
              // cpu_list = [
              //     0, 16, 32, 48,
              //     1, 17, 33, 49,
@@ -62,6 +66,12 @@ public class TpccEmbeded {
                 if(k==4){ j=++j%16; k=0; }
             }
         } else if(hostname.equals("node9")){
+            cpu_list = new int[16];
+            for (int i = 0, j=0, k=0; i < cpu_list.length; i++){
+                cpu_list[i] = j;
+                j=j+2; k++;
+                if(k==8){ j=++j%2; k=0; }
+            }
 
         } else {
             for (int i = 0; i < 64; i++) {
@@ -112,8 +122,11 @@ public class TpccEmbeded {
         // Start each client.
         int n_worker = 1;
 
-        //AffinityThreadFactory factory = new AffinityThreadFactory("worker", TPCC_STRATEGY, ANY);
-        MyThreadFactory factory = new MyThreadFactory("worker", TPCC_STRATEGY, ANY);
+        ThreadFactory factory;
+        if (USE_AFFINITY)
+            factory = new AffinityThreadFactory("worker", TPCC_STRATEGY, ANY);
+        else
+            factory = new MyThreadFactory("worker", TPCC_STRATEGY, ANY);
 
         for (int i = 0; i < numWares; i++) {
             boolean shouldload = true;
