@@ -55,6 +55,12 @@ public class TpccThread implements Runnable {
     double latency_orderstat = 0;
     double latency_stocklev = 0;
 
+    double commit_latency_neworder = 0;
+    double commit_latency_payment = 0;
+    double commit_latency_delivery = 0;
+    double commit_latency_orderstat = 0;
+    double commit_latency_stocklev = 0;
+
     double read_latency_neworder = 0;
     double read_latency_payment = 0;
     double read_latency_delivery = 0;
@@ -193,16 +199,16 @@ public class TpccThread implements Runnable {
         R call();
     }
 
-    long last_read_lat = 0;
+    long last_tracked_latency = 0;
 
-    private <R> R doGet(LatencyWrapper<R> w) {
+    private <R> R trackLatency(LatencyWrapper<R> w) {
         long st = System.nanoTime();
         try {
             return w.call();
         }
         finally {
             long en = System.nanoTime();
-            last_read_lat = en-st;
+            last_tracked_latency = en-st;
         }
     }
 
@@ -232,8 +238,8 @@ public class TpccThread implements Runnable {
          * is selected and D_NEXT_O_OID is retrieved.
          */
         String d_key = DistrictPrimaryKey(w_id, d_id);
-        object = doGet(() -> t.get(w_id, d_key));
-        read_lat += last_read_lat;
+        object = trackLatency(() -> t.get(w_id, d_key));
+        read_lat += last_tracked_latency;
         if (object == null){
             t.abort();
             throw new TpccException("Some error "+(indexErr++));
@@ -248,8 +254,8 @@ public class TpccThread implements Runnable {
         int init = (d_data.d_next_o_id-20) < 0 ? 0 : d_data.d_next_o_id-20;
         for (o_id = init; o_id < d_data.d_next_o_id; o_id++) {
             String o_key = OrderPrimaryKey(w_id,d_id,o_id);
-            object = doGet(() -> t.get(w_id, o_key));
-            read_lat += last_read_lat;
+            object = trackLatency(() -> t.get(w_id, o_key));
+            read_lat += last_tracked_latency;
             if(object == null){
                 t.abort();
 //                System.out.println("Slev order key: "+o_key);
@@ -260,8 +266,8 @@ public class TpccThread implements Runnable {
 
             for (i=1; i <= o_ol_cnt; i++){
                 String ol_key = OrderLinePrimaryKey(w_id,d_id,o_id, i);
-                object = doGet(() -> t.get(w_id, ol_key));
-                read_lat += last_read_lat;
+                object = trackLatency(() -> t.get(w_id, ol_key));
+                read_lat += last_tracked_latency;
                 if(object == null){
                     t.abort();
                     throw new TpccException("Order Line not found.");
@@ -278,8 +284,8 @@ public class TpccThread implements Runnable {
         int count = 0;
         for (Integer i_id : set){
             String s_key = StockPrimaryKey(w_id, i_id);
-            object = doGet(() -> t.get(w_id, s_key));
-            read_lat += last_read_lat;
+            object = trackLatency(() -> t.get(w_id, s_key));
+            read_lat += last_tracked_latency;
             if (object == null){
                 t.abort();
                 throw new TpccException("Some error "+(indexErr++));
@@ -290,7 +296,8 @@ public class TpccThread implements Runnable {
                 count++;
         }
 
-        t.commit();
+        trackLatency(() -> t.commit());
+
 
         endtime = System.nanoTime();
         long newlat = endtime-begintime;
@@ -298,6 +305,7 @@ public class TpccThread implements Runnable {
         latency_stocklev = latency_stocklev + ((newlat - latency_stocklev)/(double)latency_stocklev_count);
 
         read_latency_stocklev = read_latency_stocklev + ((read_lat - read_latency_stocklev)/(double)latency_stocklev_count);
+        commit_latency_stocklev = commit_latency_stocklev + ((last_tracked_latency - commit_latency_stocklev)/(double)latency_stocklev_count);
     }
 
     /*
@@ -336,8 +344,8 @@ public class TpccThread implements Runnable {
              * selected. This is the oldest undelivered order data of that district.
              */
             String no_key_sec = NewOrderSecundaryKey(w_id, d_id);
-            object = doGet(() -> t.get(w_id, no_key_sec));
-            read_lat += last_read_lat;
+            object = trackLatency(() -> t.get(w_id, no_key_sec));
+            read_lat += last_tracked_latency;
             if (object == null){
                 t.abort();
                 throw new TpccException("Some error "+(indexErr++));
@@ -353,8 +361,8 @@ public class TpccThread implements Runnable {
              * O_CARRIER_ID is updated.
              */
             String o_key = OrderPrimaryKey(w_id,d_id, min_o_id);
-            object = doGet(() -> t.get(w_id, o_key));
-            read_lat += last_read_lat;
+            object = trackLatency(() -> t.get(w_id, o_key));
+            read_lat += last_tracked_latency;
             if (object == null){
                 t.abort();
                 throw new TpccException("Some error "+(indexErr++));
@@ -374,8 +382,8 @@ public class TpccThread implements Runnable {
             int sum_ol_amount = 0;
             for (ol_id = 1; ol_id <= o_data.o_ol_cnt; ol_id++){
                 String ol_key = OrderLinePrimaryKey(w_id,d_id,min_o_id, ol_id);
-                object = doGet(() -> t.get(w_id, ol_key));
-                read_lat += last_read_lat;
+                object = trackLatency(() -> t.get(w_id, ol_key));
+                read_lat += last_tracked_latency;
                 if (object == null){
                     t.abort();
                     throw new TpccException("Some error "+(indexErr++));
@@ -394,8 +402,8 @@ public class TpccThread implements Runnable {
              * C_DELIVERY_CNT is incremented by 1.
              */
             String c_key = CustomerPrimaryKey(w_id,d_id,o_c_id);
-            object = doGet(() -> t.get(w_id, c_key));
-            read_lat += last_read_lat;
+            object = trackLatency(() -> t.get(w_id, c_key));
+            read_lat += last_tracked_latency;
             if (object == null){
                 t.abort();
                 throw new TpccException("Some error "+(indexErr++));
@@ -409,13 +417,14 @@ public class TpccThread implements Runnable {
             t.put(w_id, no_key_sec, TObject.Integer(min_o_id++));
         }
 
-        t.commit();
+        trackLatency(() -> t.commit());
 
         endtime = System.nanoTime();
         long newlat = endtime-begintime;
         latency_delivery_count++;
         latency_delivery = latency_delivery + ((newlat - latency_delivery)/(double)latency_delivery_count);
         read_latency_delivery = read_latency_delivery + ((read_lat - read_latency_delivery)/(double)latency_delivery_count);
+        commit_latency_delivery = commit_latency_delivery + ((last_tracked_latency - commit_latency_delivery)/(double)latency_delivery_count);
     }
 
     /*
@@ -455,6 +464,7 @@ public class TpccThread implements Runnable {
         latency_orderstat_count++;
         latency_orderstat = latency_orderstat + ((newlat - latency_orderstat)/(double)latency_orderstat_count);
         read_latency_orderstat = read_latency_orderstat + ((read_lat - read_latency_orderstat)/(double)latency_orderstat_count);
+        commit_latency_orderstat = commit_latency_orderstat + ((last_tracked_latency - commit_latency_orderstat)/(double)latency_orderstat_count);
     }
 
     private long ProcessOrderStatus(int byname, String c_last, OrderStatusInfo[] order_data) {
@@ -466,8 +476,8 @@ public class TpccThread implements Runnable {
         if (byname >= 0) {
             // Case 2: the customer is selected based on customer last name
             String c_key_sec = CustomerSecundaryKey(w_id, d_id, c_last);
-            object = doGet(() -> t.get(w_id, c_key_sec));
-            read_lat += last_read_lat;
+            object = trackLatency(() -> t.get(w_id, c_key_sec));
+            read_lat += last_tracked_latency;
             if (object == null){
                 t.abort();
                 throw new TpccException("Some error "+(indexErr++));
@@ -482,8 +492,8 @@ public class TpccThread implements Runnable {
          * are retrieved.
          */
         String c_key = CustomerPrimaryKey(w_id,d_id,c_id);
-        object = doGet(() -> t.get(w_id, c_key));
-        read_lat += last_read_lat;
+        object = trackLatency(() -> t.get(w_id, c_key));
+        read_lat += last_tracked_latency;
         if (object == null){
             t.abort();
             throw new TpccException("Some error "+(indexErr++));
@@ -502,8 +512,8 @@ public class TpccThread implements Runnable {
          * that customer. O_ID, O_ENTRY_D, and O_CARRIER_ID are retrieved.
          */
         String o_key_sec = OrderSecundaryKey(w_id,d_id,c_id);
-        object = doGet(() -> t.get(w_id, o_key_sec));
-        read_lat += last_read_lat;
+        object = trackLatency(() -> t.get(w_id, o_key_sec));
+        read_lat += last_tracked_latency;
         if (object == null){
             t.abort();
             throw new TpccException("Some error "+(indexErr++));
@@ -512,8 +522,8 @@ public class TpccThread implements Runnable {
 
         // How many orderlines exists?
         String o_key = OrderPrimaryKey(w_id,d_id,o_id);
-        object = doGet(() -> t.get(w_id, o_key));
-        read_lat += last_read_lat;
+        object = trackLatency(() -> t.get(w_id, o_key));
+        read_lat += last_tracked_latency;
         if (object == null){
             t.abort();
             throw new TpccException("Some error "+(indexErr++));
@@ -533,8 +543,8 @@ public class TpccThread implements Runnable {
             order_data[i] = new OrderStatusInfo();
 
             String ol_key = OrderLinePrimaryKey(w_id, d_id, o_id, i + 1);
-            object = doGet(() -> t.get(w_id, ol_key));
-            read_lat += last_read_lat;
+            object = trackLatency(() -> t.get(w_id, ol_key));
+            read_lat += last_tracked_latency;
             if (object == null){
                 t.abort();
                 System.out.println("OrderStatus order line key: "+ol_key);
@@ -549,7 +559,7 @@ public class TpccThread implements Runnable {
             order_data[i].ol_delivery_d = ol_data.ol_delivery_d;
         }
 
-        t.commit();
+        trackLatency(() -> t.commit());
         return read_lat;
     }
 
@@ -601,6 +611,7 @@ public class TpccThread implements Runnable {
         latency_payment_count++;
         latency_payment = latency_payment + ((newlat - latency_payment)/(double)latency_payment_count);
         read_latency_payment = read_latency_payment + ((read_lat - read_latency_payment)/(double)latency_payment_count);
+        commit_latency_payment = commit_latency_payment + ((last_tracked_latency - commit_latency_payment)/(double)latency_payment_count);
     }
 
     private long ProcessPayment(int h_amount, String c_last, String timeStamp) {
@@ -615,8 +626,8 @@ public class TpccThread implements Runnable {
              */
 
             String c_key_sec = CustomerSecundaryKey(c_w_id, c_d_id, c_last);
-            object = doGet(() -> t.get(c_w_id, c_key_sec));
-            read_lat += last_read_lat;
+            object = trackLatency(() -> t.get(c_w_id, c_key_sec));
+            read_lat += last_tracked_latency;
             if (object == null){
                 t.abort();
                 throw new TpccException("Some error "+(indexErr++));
@@ -634,8 +645,8 @@ public class TpccThread implements Runnable {
          * by H_AMOUNT. C_PAYMENT_CNT is incremented by 1.
          */
         String c_key = CustomerPrimaryKey(c_w_id,c_d_id,c_id);
-        object = doGet(() -> t.get(c_w_id, c_key));
-        read_lat += last_read_lat;
+        object = trackLatency(() -> t.get(c_w_id, c_key));
+        read_lat += last_tracked_latency;
         if (object == null){
             t.abort();
             throw new TpccException("Some error "+(indexErr++));
@@ -685,8 +696,8 @@ public class TpccThread implements Runnable {
          * increased by H_AMOUNT.
          */
         String w_key = WarehousePrimaryKey(w_id);
-        object = doGet(() -> t.get(w_id, w_key));
-        read_lat += last_read_lat;
+        object = trackLatency(() -> t.get(w_id, w_key));
+        read_lat += last_tracked_latency;
         if (object == null){
             t.abort();
             throw new TpccException("Some error "+(indexErr++));
@@ -709,8 +720,8 @@ public class TpccThread implements Runnable {
          * and D_YTD, the district's year-to-date balance, is increased by H_AMOUNT
          */
         String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
-        object = doGet(() -> t.get(w_id, d_key));
-        read_lat += last_read_lat;
+        object = trackLatency(() -> t.get(w_id, d_key));
+        read_lat += last_tracked_latency;
         if (object == null){
             t.abort();
             throw new TpccException("Some error "+(indexErr++));
@@ -732,7 +743,7 @@ public class TpccThread implements Runnable {
         String h_key = HistoryPrimaryKey(c_id, c_d_id, c_w_id, d_id, w_id, timeStamp, h_amount, h_data);
         t.put(w_id, h_key, TObject.NULL(true));
 
-        t.commit();
+        trackLatency(() -> t.commit());
         return read_lat;
     }
 
@@ -802,6 +813,7 @@ public class TpccThread implements Runnable {
         latency_neworder_count++;
         latency_neworder = latency_neworder + ((newlat - latency_neworder)/(double)latency_neworder_count);
         read_latency_neworder = read_latency_neworder + ((read_lat - read_latency_neworder)/(double)latency_neworder_count);
+        commit_latency_neworder = commit_latency_neworder + ((last_tracked_latency - commit_latency_neworder)/(double)latency_neworder_count);
     }
 
     private long ProcessNewOrder(int o_ol_cnt, double total, int all_local, String timeStamp, String[] ol_dist_info) {
@@ -816,8 +828,8 @@ public class TpccThread implements Runnable {
         /* The row in the WAREHOUSE table with matching W_ID is selected and W_TAX
          * rate is retrieved. */
         String w_key = KeysUtils.WarehousePrimaryKey(w_id);
-        object = doGet(() -> t.get(w_id, w_key));
-        read_lat += last_read_lat;
+        object = trackLatency(() -> t.get(w_id, w_key));
+        read_lat += last_tracked_latency;
         if (object == null){
             t.abort();
             throw new TpccException("Some error "+(indexErr++));
@@ -833,8 +845,8 @@ public class TpccThread implements Runnable {
              * and C_CREDIT, the customer's credit status are retrieved.
              */
         String c_key = KeysUtils.CustomerPrimaryKey(w_id,d_id,c_id);
-        object = doGet(() -> t.get(w_id, c_key));
-        read_lat += last_read_lat;
+        object = trackLatency(() -> t.get(w_id, c_key));
+        read_lat += last_tracked_latency;
         if (object == null){
             t.abort();
             throw new TpccException("Some error "+(indexErr++));
@@ -871,8 +883,8 @@ public class TpccThread implements Runnable {
             }
 
             String i_key = KeysUtils.ItemPrimaryKey(order_data[i].ol_i_id);
-            object = doGet(() -> t.get(ITEM_TABLE, i_key));
-            read_lat += last_read_lat;
+            object = trackLatency(() -> t.get(ITEM_TABLE, i_key));
+            read_lat += last_tracked_latency;
             if (object == null){
                 t.abort();
                 throw new TpccException("Some error "+(indexErr++));
@@ -886,8 +898,8 @@ public class TpccThread implements Runnable {
              */
             String s_key = KeysUtils.StockPrimaryKey(order_data[i].ol_supply_w_id, order_data[i].ol_i_id);
             int ol_supply_w_id = order_data[i].ol_supply_w_id;
-            object = doGet(() -> t.get(ol_supply_w_id, s_key));
-            read_lat += last_read_lat;
+            object = trackLatency(() -> t.get(ol_supply_w_id, s_key));
+            read_lat += last_tracked_latency;
             if (object == null){
                 t.abort();
                 throw new TpccException("Some error "+(indexErr++));
@@ -954,8 +966,8 @@ public class TpccThread implements Runnable {
          * order number for the district, is retireved and incremented by one.
          */
         String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
-        object = doGet(() -> t.get(w_id, d_key));
-        read_lat += last_read_lat;
+        object = trackLatency(() -> t.get(w_id, d_key));
+        read_lat += last_tracked_latency;
         if (object == null){
             t.abort();
             throw new TpccException("Some error "+(indexErr++));
@@ -989,7 +1001,7 @@ public class TpccThread implements Runnable {
         String o_key_sec = OrderSecundaryKey(w_id, d_id, c_id);
         t.put(w_id, o_key_sec, TObject.Integer(d_next_o_oid));
 
-        t.commit();
+        trackLatency(() -> t.commit());
         return read_lat;
     }
 

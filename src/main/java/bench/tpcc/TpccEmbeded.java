@@ -74,7 +74,8 @@ public class TpccEmbeded {
             }
 
         } else {
-            for (int i = 0; i < 64; i++) {
+            for (int i = 0; i < 1; i++) {
+                cpu_list = new int[1];
                 cpu_list[i] = i;
             }
         }
@@ -207,6 +208,12 @@ public class TpccEmbeded {
         double latency_orderstat = 0;
         double latency_stocklev = 0;
 
+        double commit_latency_neworder = 0;
+        double commit_latency_payment = 0;
+        double commit_latency_delivery = 0;
+        double commit_latency_orderstat = 0;
+        double commit_latency_stocklev = 0;
+
         double read_latency_neworder = 0;
         double read_latency_payment = 0;
         double read_latency_delivery = 0;
@@ -233,6 +240,12 @@ public class TpccEmbeded {
             latency_orderstat += tpccThread.latency_orderstat;
             latency_stocklev += tpccThread.latency_stocklev;
 
+            commit_latency_neworder += tpccThread.commit_latency_neworder;
+            commit_latency_payment += tpccThread.commit_latency_payment;
+            commit_latency_delivery += tpccThread.commit_latency_delivery;
+            commit_latency_orderstat += tpccThread.commit_latency_orderstat;
+            commit_latency_stocklev += tpccThread.commit_latency_stocklev;
+
             read_latency_neworder += tpccThread.read_latency_neworder;
             read_latency_payment += tpccThread.read_latency_payment;
             read_latency_delivery += tpccThread.read_latency_delivery;
@@ -245,6 +258,12 @@ public class TpccEmbeded {
         latency_delivery /= workers.length;
         latency_orderstat /= workers.length;
         latency_stocklev /= workers.length;
+
+        commit_latency_neworder /= workers.length;
+        commit_latency_payment /= workers.length;
+        commit_latency_delivery /= workers.length;
+        commit_latency_orderstat /= workers.length;
+        commit_latency_stocklev /= workers.length;
 
         read_latency_neworder /= workers.length;
         read_latency_payment /= workers.length;
@@ -264,16 +283,25 @@ public class TpccEmbeded {
         System.out.println("Abort rate = "+Math.round((totAborts/(double)(totCommits+totAborts))*100)+"%");
         //System.out.println("Latency (ms) = "+ df.format(latency));
 
-        System.out.println(String.format("NewOrder\t%d\t%d\t%f\t%f", totCommits_neworder, totAborts_neworder,
-                latency_neworder/1000, read_latency_neworder/1000));
-        System.out.println(String.format("Payment  \t%d\t%d\t%f\t%f", totCommits_payment, totAborts_payment,
-                latency_payment/1000, read_latency_payment/1000));
-        System.out.println(String.format("Delivery\t%d\t%d\t%f\t%f", totCommits_delivery, totAborts_delivery,
-                latency_delivery/1000, read_latency_delivery/1000));
-        System.out.println(String.format("OrderStatus\t%d\t%d\t%f\t%f", totCommits_orderstat, totAborts_orderstat,
-                latency_orderstat/1000, read_latency_orderstat/1000));
-        System.out.println(String.format("StockLevel\t%d\t%d\t%f\t%f", totCommits_stocklev, totAborts_stocklev,
-                latency_stocklev/1000, read_latency_stocklev/1000));
+        System.out.println(String.format("NewOrder\t%d\t%d\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f", totCommits_neworder, totAborts_neworder,
+                latency_neworder/1000, read_latency_neworder/1000, (read_latency_neworder/latency_neworder)*100,
+                commit_latency_neworder/1000, (commit_latency_neworder/latency_neworder)*100));
+
+        System.out.println(String.format("Payment  \t%d\t%d\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f", totCommits_payment, totAborts_payment,
+                latency_payment/1000, read_latency_payment/1000, (read_latency_payment/latency_payment)*100,
+                commit_latency_payment/1000, (commit_latency_payment/latency_payment)*100));
+
+        System.out.println(String.format("Delivery\t%d\t%d\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f", totCommits_delivery, totAborts_delivery,
+                latency_delivery/1000, read_latency_delivery/1000, (read_latency_delivery/latency_delivery)*100,
+                commit_latency_delivery/1000, (commit_latency_delivery/latency_delivery)*100));
+
+        System.out.println(String.format("OrderStatus\t%d\t%d\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f", totCommits_orderstat, totAborts_orderstat,
+                latency_orderstat/1000, read_latency_orderstat/1000, (read_latency_orderstat/latency_orderstat)*100,
+                commit_latency_orderstat/1000, (commit_latency_orderstat/latency_orderstat)*100));
+
+        System.out.println(String.format("StockLevel\t%d\t%d\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f", totCommits_stocklev, totAborts_stocklev,
+                latency_stocklev/1000, read_latency_stocklev/1000, (read_latency_stocklev/latency_stocklev)*100,
+                commit_latency_stocklev/1000, (commit_latency_stocklev/latency_stocklev)*100));
 
         size = 0;
         for (int i = 0; i < numWares + 1; i++) {
