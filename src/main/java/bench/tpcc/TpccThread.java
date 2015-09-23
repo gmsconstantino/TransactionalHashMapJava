@@ -13,6 +13,10 @@ import static bench.tpcc.TpccConstants.*;
 
 public class TpccThread implements Runnable {
 
+    public static class TpccException extends RuntimeException {
+        public TpccException(String msg) { super(msg); }
+    }
+
     public static final int P_MIX = 45;
     public static final int NO_MIX = 43;
     public static final int OS_MIX = 4;
@@ -33,9 +37,28 @@ public class TpccThread implements Runnable {
     int use_ware;
 
     int count = 0;
-    int commits = 0;
-    int aborts = 0;
-    double latency = 0;
+    int commits_neworder = 0;
+    int commits_payment = 0;
+    int commits_delivery = 0;
+    int commits_orderstat = 0;
+    int commits_stocklev = 0;
+    int aborts_neworder = 0;
+    int aborts_payment = 0;
+    int aborts_delivery = 0;
+    int aborts_orderstat = 0;
+    int aborts_stocklev = 0;
+    int explicit_aborts = 0;
+
+    double latency_neworder = 0;
+    double latency_payment = 0;
+    double latency_delivery = 0;
+    double latency_orderstat = 0;
+    double latency_stocklev = 0;
+    int latency_neworder_count = 0;
+    int latency_payment_count = 0;
+    int latency_delivery_count = 0;
+    int latency_orderstat_count = 0;
+    int latency_stocklev_count = 0;
 
     int th_w_id = -1;
 
@@ -104,22 +127,59 @@ public class TpccThread implements Runnable {
 
     private void doNextTransaction() {
         int r = ThreadLocalRandom.current().nextInt(100);
-        try {
-            if (r <= P_MIX) { // 45%
+        if (r <= P_MIX) { // 45%
+            try {
                 doPayment();
-            } else if (r <= P_MIX + NO_MIX) { // 88%
-                doNewOrder();
-            } else if (r <= P_MIX + NO_MIX + OS_MIX) { // 92%
-                doOrdstat();
-            } else if (r <= P_MIX + NO_MIX + OS_MIX + D_MIX) { // 96%
-                doDelivery();
-            } else {
-                doSlev();
+                commits_payment++;
+            } catch (TransactionException e){
+                aborts_payment++;
             }
-            commits++;
-        } catch (TransactionException e){
-            aborts++;
+            catch (TpccException e) {
+                explicit_aborts++;
+            }
+
+        } else if (r <= P_MIX + NO_MIX) { // 88%
+            try {
+                doNewOrder();
+                commits_neworder++;
+            } catch (TransactionException e){
+                aborts_neworder++;
+            }
+            catch (TpccException e) {
+                explicit_aborts++;
+            }
+        } else if (r <= P_MIX + NO_MIX + OS_MIX) { // 92%
+            try {
+                doOrdstat();
+                commits_orderstat++;
+            } catch (TransactionException e){
+                aborts_orderstat++;
+            }
+            catch (TpccException e) {
+                explicit_aborts++;
+            }
+        } else if (r <= P_MIX + NO_MIX + OS_MIX + D_MIX) { // 96%
+            try {
+                doDelivery();
+                commits_delivery++;
+            } catch (TransactionException e){
+                aborts_delivery++;
+            }
+            catch (TpccException e) {
+                explicit_aborts++;
+            }
+        } else {
+            try {
+                doSlev();
+                commits_stocklev++;
+            } catch (TransactionException e){
+                aborts_stocklev++;
+            }
+            catch (TpccException e) {
+                explicit_aborts++;
+            }
         }
+
     }
 
     private void doSlev() {
@@ -139,7 +199,7 @@ public class TpccThread implements Runnable {
 
         Set<Integer> set = new HashSet<>();
 
-        begintime = System.currentTimeMillis();
+        begintime = System.nanoTime();
 
         TransactionAbst<String, TObject> t = Environment.newTransaction();
 
@@ -150,7 +210,7 @@ public class TpccThread implements Runnable {
         object = t.get(w_id, d_key);
         if (object == null){
             t.abort();
-            throw new TransactionException("Some error "+(indexErr++));
+            throw new TpccException("Some error "+(indexErr++));
         }
         District d_data = object.getDistrict();
 
@@ -166,7 +226,7 @@ public class TpccThread implements Runnable {
             if(object == null){
                 t.abort();
 //                System.out.println("Slev order key: "+o_key);
-                throw new TransactionException("Order Line not found.");
+                throw new TpccException("Order Line not found.");
             }
             Order o_data = object.getOrder();
             long o_ol_cnt = o_data.o_ol_cnt;
@@ -176,7 +236,7 @@ public class TpccThread implements Runnable {
                 object = t.get(w_id, ol_key);
                 if(object == null){
                     t.abort();
-                    throw new TransactionException("Order Line not found.");
+                    throw new TpccException("Order Line not found.");
                 }
                 OrderLine ol_data = object.getOrderline();
                 set.add(new Integer(ol_data.ol_i_id));
@@ -193,7 +253,7 @@ public class TpccThread implements Runnable {
             object = t.get(w_id, s_key);
             if (object == null){
                 t.abort();
-                throw new TransactionException("Some error "+(indexErr++));
+                throw new TpccException("Some error "+(indexErr++));
             }
             Stock s_data = object.getStock();
 
@@ -203,8 +263,10 @@ public class TpccThread implements Runnable {
 
         t.commit();
 
-        endtime = System.currentTimeMillis();
-        latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
+        endtime = System.nanoTime();
+        long newlat = endtime-begintime;
+        latency_stocklev_count++;
+        latency_stocklev = latency_stocklev + ((newlat - latency_stocklev)/(double)latency_stocklev_count);
     }
 
     /*
@@ -224,10 +286,10 @@ public class TpccThread implements Runnable {
         o_carrier_id = Util.randomNumber(1, 10);
 
         //Timestamp
-        java.sql.Timestamp time = new Timestamp(System.currentTimeMillis());
+        java.sql.Timestamp time = new Timestamp(System.nanoTime());
         String timeStamp = time.toString();
 
-        begintime = System.currentTimeMillis();
+        begintime = System.nanoTime();
 
         TransactionAbst<String, TObject> t = Environment.newTransaction();
 
@@ -245,7 +307,7 @@ public class TpccThread implements Runnable {
             object = t.get(w_id, no_key_sec);
             if (object == null){
                 t.abort();
-                throw new TransactionException("Some error "+(indexErr++));
+                throw new TpccException("Some error "+(indexErr++));
             }
             int min_o_id = object.getInteger();
 
@@ -261,7 +323,7 @@ public class TpccThread implements Runnable {
             object = t.get(w_id, o_key);
             if (object == null){
                 t.abort();
-                throw new TransactionException("Some error "+(indexErr++));
+                throw new TpccException("Some error "+(indexErr++));
             }
             Order o_data = object.deepCopy().getOrder();
 
@@ -281,7 +343,7 @@ public class TpccThread implements Runnable {
                 object = t.get(w_id, ol_key);
                 if (object == null){
                     t.abort();
-                    throw new TransactionException("Some error "+(indexErr++));
+                    throw new TpccException("Some error "+(indexErr++));
                 }
                 OrderLine ol_data = object.deepCopy().getOrderline();
 
@@ -300,7 +362,7 @@ public class TpccThread implements Runnable {
             object = t.get(w_id, c_key);
             if (object == null){
                 t.abort();
-                throw new TransactionException("Some error "+(indexErr++));
+                throw new TpccException("Some error "+(indexErr++));
             }
             Customer c_data = object.deepCopy().getCustomer(); //TODO: deu null pointer
 
@@ -313,8 +375,10 @@ public class TpccThread implements Runnable {
 
         t.commit();
 
-        endtime = System.currentTimeMillis();
-        latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
+        endtime = System.nanoTime();
+        long newlat = endtime-begintime;
+        latency_delivery_count++;
+        latency_delivery = latency_delivery + ((newlat - latency_delivery)/(double)latency_delivery_count);
     }
 
     /*
@@ -347,10 +411,12 @@ public class TpccThread implements Runnable {
         /*
          * Begining the Transaction
          */
-        long begintime = System.currentTimeMillis();
+        long begintime = System.nanoTime();
         int ret = ProcessOrderStatus(byname, c_last, order_data);
-        long endtime = System.currentTimeMillis();
-        latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
+        long endtime = System.nanoTime();
+        long newlat = endtime-begintime;
+        latency_orderstat_count++;
+        latency_orderstat = latency_orderstat + ((newlat - latency_orderstat)/(double)latency_orderstat_count);
     }
 
     private int ProcessOrderStatus(int byname, String c_last, OrderStatusInfo[] order_data) {
@@ -364,7 +430,7 @@ public class TpccThread implements Runnable {
             object = t.get(w_id, c_key_sec);
             if (object == null){
                 t.abort();
-                throw new TransactionException("Some error "+(indexErr++));
+                throw new TpccException("Some error "+(indexErr++));
             }
             int count = object.getInteger();
             c_id = count / 2 + 1;
@@ -379,7 +445,7 @@ public class TpccThread implements Runnable {
         object = t.get(w_id, c_key);
         if (object == null){
             t.abort();
-            throw new TransactionException("Some error "+(indexErr++));
+            throw new TpccException("Some error "+(indexErr++));
         }
         Customer c_data = object.getCustomer();
 
@@ -398,7 +464,7 @@ public class TpccThread implements Runnable {
         object = t.get(w_id, o_key_sec);
         if (object == null){
             t.abort();
-            throw new TransactionException("Some error "+(indexErr++));
+            throw new TpccException("Some error "+(indexErr++));
         }
         o_id = object.getInteger();
 
@@ -407,7 +473,7 @@ public class TpccThread implements Runnable {
         object = t.get(w_id, o_key);
         if (object == null){
             t.abort();
-            throw new TransactionException("Some error "+(indexErr++));
+            throw new TpccException("Some error "+(indexErr++));
         }
         Order o_data = object.getOrder();
 
@@ -428,7 +494,7 @@ public class TpccThread implements Runnable {
             if (object == null){
                 t.abort();
                 System.out.println("OrderStatus order line key: "+ol_key);
-                throw new TransactionException("Order Line not found.");
+                throw new TpccException("Order Line not found.");
             }
             OrderLine ol_data = object.deepCopy().getOrderline();
 
@@ -478,67 +544,23 @@ public class TpccThread implements Runnable {
         }
 
         //Timestamp
-        java.sql.Timestamp time = new Timestamp(System.currentTimeMillis());
+        java.sql.Timestamp time = new Timestamp(System.nanoTime());
         String timeStamp = time.toString();
 
         /*
          * Begining the Transaction
          */
-        long begintime = System.currentTimeMillis();
+        long begintime = System.nanoTime();
         int ret = ProcessPayment(h_amount, c_last, timeStamp);
-        long endtime = System.currentTimeMillis();
-        latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
+        long endtime = System.nanoTime();
+        long newlat = endtime-begintime;
+        latency_payment_count++;
+        latency_payment = latency_payment + ((newlat - latency_payment)/(double)latency_payment_count);
     }
 
     private int ProcessPayment(int h_amount, String c_last, String timeStamp) {
         TransactionAbst<String,TObject> t = Environment.newTransaction();
 
-        /* The row in the WAREHOUSE table with matching W_ID is selected.
-         * W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, and W_ZIP are
-         * retrieved and W_YTD, the warehouse's year-to-date balance is
-         * increased by H_AMOUNT.
-         */
-        String w_key = WarehousePrimaryKey(w_id);
-        object = t.get(w_id, w_key);
-        if (object == null){
-            t.abort();
-            throw new TransactionException("Some error "+(indexErr++));
-        }
-        Warehouse w_data = object.deepCopy().getWarehouse();
-
-        String w_name = w_data.w_name;
-        String w_street_1 = w_data.w_street_1;
-        String w_street_2 = w_data.w_street_2;
-        String w_city = w_data.w_city;
-        String w_state = w_data.w_state;
-        String w_zip = w_data.w_zip;
-
-        w_data.w_ytd += h_amount;
-
-        t.put(w_id, w_key, TObject.warehouse(w_data));
-
-        /* The row in the DISTRICT table with matching D_W_ID and D_ID is selected.
-         * D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, and D_ZIP are retrieved
-         * and D_YTD, the district's year-to-date balance, is increased by H_AMOUNT
-         */
-        String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
-        object = t.get(w_id, d_key);
-        if (object == null){
-            t.abort();
-            throw new TransactionException("Some error "+(indexErr++));
-        }
-        District d_data = object.deepCopy().getDistrict();
-
-        String d_name = d_data.d_name;
-        String d_street_1 = d_data.d_street_1;
-        String d_street_2 = d_data.d_street_2;
-        String d_city = d_data.d_city;
-        String d_state = d_data.d_state;
-        String d_zip = d_data.d_zip;
-
-        d_data.d_ytd += h_amount;
-
-        t.put(w_id, d_key, TObject.district(d_data));
 
         if (byname >= 1) {
             /* Case 2: the customer is selected based on customer last name
@@ -550,7 +572,7 @@ public class TpccThread implements Runnable {
             object = t.get(c_w_id, c_key_sec);
             if (object == null){
                 t.abort();
-                throw new TransactionException("Some error "+(indexErr++));
+                throw new TpccException("Some error "+(indexErr++));
             }
             int count = object.getInteger();
             c_id = count / 2 + 1;
@@ -568,7 +590,7 @@ public class TpccThread implements Runnable {
         object = t.get(c_w_id, c_key);
         if (object == null){
             t.abort();
-            throw new TransactionException("Some error "+(indexErr++));
+            throw new TpccException("Some error "+(indexErr++));
         }
         Customer c_data = object.deepCopy().getCustomer();
 
@@ -608,6 +630,54 @@ public class TpccThread implements Runnable {
 
         t.put(w_id, c_key, TObject.customer(c_data));
 
+
+        /* The row in the WAREHOUSE table with matching W_ID is selected.
+         * W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, and W_ZIP are
+         * retrieved and W_YTD, the warehouse's year-to-date balance is
+         * increased by H_AMOUNT.
+         */
+        String w_key = WarehousePrimaryKey(w_id);
+        object = t.get(w_id, w_key);
+        if (object == null){
+            t.abort();
+            throw new TpccException("Some error "+(indexErr++));
+        }
+        Warehouse w_data = object.deepCopy().getWarehouse();
+
+        String w_name = w_data.w_name;
+        String w_street_1 = w_data.w_street_1;
+        String w_street_2 = w_data.w_street_2;
+        String w_city = w_data.w_city;
+        String w_state = w_data.w_state;
+        String w_zip = w_data.w_zip;
+
+        w_data.w_ytd += h_amount;
+
+        t.put(w_id, w_key, TObject.warehouse(w_data));
+
+        /* The row in the DISTRICT table with matching D_W_ID and D_ID is selected.
+         * D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, and D_ZIP are retrieved
+         * and D_YTD, the district's year-to-date balance, is increased by H_AMOUNT
+         */
+        String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
+        object = t.get(w_id, d_key);
+        if (object == null){
+            t.abort();
+            throw new TpccException("Some error "+(indexErr++));
+        }
+        District d_data = object.deepCopy().getDistrict();
+
+        String d_name = d_data.d_name;
+        String d_street_1 = d_data.d_street_1;
+        String d_street_2 = d_data.d_street_2;
+        String d_city = d_data.d_city;
+        String d_state = d_data.d_state;
+        String d_zip = d_data.d_zip;
+
+        d_data.d_ytd += h_amount;
+
+        t.put(w_id, d_key, TObject.district(d_data));
+
         String h_data = w_name+"    "+d_name;
         String h_key = HistoryPrimaryKey(c_id, c_d_id, c_w_id, d_id, w_id, timeStamp, h_amount, h_data);
         t.put(w_id, h_key, TObject.NULL(true));
@@ -637,7 +707,7 @@ public class TpccThread implements Runnable {
         int all_local = 1;
 
         //Timestamp
-        java.sql.Timestamp time = new Timestamp(System.currentTimeMillis());
+        java.sql.Timestamp time = new Timestamp(System.nanoTime());
         String timeStamp = time.toString();
 
         /* Remember OL_DIST_INFO fields, which we retrieve in the
@@ -675,10 +745,12 @@ public class TpccThread implements Runnable {
         /*
          * Begining the Transaction
          */
-        long begintime = System.currentTimeMillis();
+        long begintime = System.nanoTime();
         int ret = ProcessNewOrder(o_ol_cnt, total, all_local, timeStamp, ol_dist_info);
-        long endtime = System.currentTimeMillis();
-        latency = latency==0? endtime-begintime : (latency+(endtime-begintime))/2;
+        long endtime = System.nanoTime();
+        long newlat = endtime-begintime;
+        latency_neworder_count++;
+        latency_neworder = latency_neworder + ((newlat - latency_neworder)/(double)latency_neworder_count);
     }
 
     private int ProcessNewOrder(int o_ol_cnt, double total, int all_local, String timeStamp, String[] ol_dist_info) {
@@ -695,27 +767,11 @@ public class TpccThread implements Runnable {
         object = t.get(w_id, w_key);
         if (object == null){
             t.abort();
-            throw new TransactionException("Some error "+(indexErr++));
+            throw new TpccException("Some error "+(indexErr++));
         }
         Warehouse ware = object.getWarehouse();
         w_tax = ware.w_tax;
 
-        /* The row in the DISTRICT table with matching D_W_ID and D_ID is selected,
-         * D_TAX, the district tax rate is retrieved, and D_NEXT_OID, the next available
-         * order number for the district, is retireved and incremented by one.
-         */
-        String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
-        object = t.get(w_id, d_key);
-        if (object == null){
-            t.abort();
-            throw new TransactionException("Some error "+(indexErr++));
-        }
-        District district = object.deepCopy().getDistrict();
-        d_tax = district.d_tax;
-        d_next_o_oid = district.d_next_o_id;
-
-        district.d_next_o_id++;
-        t.put(w_id, d_key, TObject.district(district));
 
         /* The row in the customer table with matching C_W_ID, C_D_ID and C_ID
              * is selected
@@ -727,7 +783,7 @@ public class TpccThread implements Runnable {
         object = t.get(w_id, c_key);
         if (object == null){
             t.abort();
-            throw new TransactionException("Some error "+(indexErr++));
+            throw new TpccException("Some error "+(indexErr++));
         }
         Customer customer = object.deepCopy().getCustomer();
 
@@ -757,14 +813,14 @@ public class TpccThread implements Runnable {
              */
             if(order_data[i].ol_i_id == NOTFOUND){
                 t.abort();
-                throw new TransactionException("Item key not found.");
+                throw new TpccException("Item key not found.");
             }
 
             String i_key = KeysUtils.ItemPrimaryKey(order_data[i].ol_i_id);
             object = t.get(ITEM_TABLE, i_key);
             if (object == null){
                 t.abort();
-                throw new TransactionException("Some error "+(indexErr++));
+                throw new TpccException("Some error "+(indexErr++));
             }
             Item item = object.getItem();
             double i_price = item.i_price;
@@ -777,7 +833,7 @@ public class TpccThread implements Runnable {
             object = t.get(order_data[i].ol_supply_w_id, s_key);
             if (object == null){
                 t.abort();
-                throw new TransactionException("Some error "+(indexErr++));
+                throw new TpccException("Some error "+(indexErr++));
             }
             Stock stock = object.deepCopy().getStock();
 
@@ -835,6 +891,24 @@ public class TpccThread implements Runnable {
             order_data[i].i_price = i_price;
             order_data[i].ol_amount = orderLine.ol_amount;
         }
+
+        /* The row in the DISTRICT table with matching D_W_ID and D_ID is selected,
+         * D_TAX, the district tax rate is retrieved, and D_NEXT_OID, the next available
+         * order number for the district, is retireved and incremented by one.
+         */
+        String d_key = KeysUtils.DistrictPrimaryKey(w_id, d_id);
+        object = t.get(w_id, d_key);
+        if (object == null){
+            t.abort();
+            throw new TpccException("Some error "+(indexErr++));
+        }
+        District district = object.deepCopy().getDistrict();
+        d_tax = district.d_tax;
+        d_next_o_oid = district.d_next_o_id;
+
+        district.d_next_o_id++;
+        t.put(w_id, d_key, TObject.district(district));
+
 
         /*************************/
         /* A new row is inserted into the ORDER_LINE table to reflect the

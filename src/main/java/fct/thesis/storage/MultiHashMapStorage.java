@@ -25,7 +25,7 @@ public class MultiHashMapStorage<K,V> implements Storage<K,V> {
         numberTables = ntables;
         tables = new ConcurrentHashMap[ntables];
         for (int i = 0; i < ntables; i++) {
-            tables[i] = new ConcurrentHashMap<K,V>(1000000,0.75f,256);
+            tables[i] = new ConcurrentHashMap<>(1000000,0.75f,256);
         }
     }
 
@@ -66,11 +66,13 @@ public class MultiHashMapStorage<K,V> implements Storage<K,V> {
 
     private class StorageIterator implements Iterator {
 
-        Set<Map.Entry<K, V>> set;
-        Iterator<Map.Entry<K, V>> it;
+        //Set<Map.Entry<K, V>> set;
+        //Iterator<Map.Entry<K, V>> it;
+        Iterator it;
         StorageIterator(int table){
-            set = tables[table].entrySet();
-            it = set.iterator();
+            //set = tables[table].entrySet();
+            //it = set.iterator();
+            it = tables[table].values().iterator();
         }
 
         @Override
@@ -81,11 +83,13 @@ public class MultiHashMapStorage<K,V> implements Storage<K,V> {
         @Override
         public Object next() {
 
+            /*
             if(this.hasNext()){
                 Map.Entry<K, V> obj = it.next();
                 return obj.getValue();
             }
-            return null;
+            return null;*/
+            return it.next();
         }
 
         @Override

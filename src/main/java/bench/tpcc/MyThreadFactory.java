@@ -1,25 +1,18 @@
 package bench.tpcc;
 
 
-import net.openhft.affinity.AffinityLock;
 import net.openhft.affinity.AffinityStrategy;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.concurrent.ThreadFactory;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * This is a Mock ThreadFactory, doing nothing than assign a new name to the threads
  *
  * @author constantino gomes
  */
-
-import java.util.concurrent.ThreadFactory;
 
 public class MyThreadFactory implements ThreadFactory {
 

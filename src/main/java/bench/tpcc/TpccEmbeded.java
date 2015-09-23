@@ -112,8 +112,8 @@ public class TpccEmbeded {
         // Start each client.
         int n_worker = 1;
 
-        AffinityThreadFactory factory = new AffinityThreadFactory("worker", TPCC_STRATEGY, ANY);
-//        MyThreadFactory factory = new MyThreadFactory("worker", TPCC_STRATEGY, ANY);
+        //AffinityThreadFactory factory = new AffinityThreadFactory("worker", TPCC_STRATEGY, ANY);
+        MyThreadFactory factory = new MyThreadFactory("worker", TPCC_STRATEGY, ANY);
 
         for (int i = 0; i < numWares; i++) {
             boolean shouldload = true;
@@ -146,7 +146,7 @@ public class TpccEmbeded {
         }
         System.out.println("Size database = "+size);
 
-        System.out.println("\nThe assignment of CPUs is\n" + AffinityLock.dumpLocks());
+        //System.out.println("\nThe assignment of CPUs is\n" + AffinityLock.dumpLocks());
 
 
         // TODO: Remove scanner only debug
@@ -175,22 +175,69 @@ public class TpccEmbeded {
 
         Environment.cleanup();
 
-        int totCommits = 0;
-        int totAborts = 0;
-        double latency = 0;
+
+        int totExpAborts = 0;
+        int totCommits_neworder = 0;
+        int totCommits_payment = 0;
+        int totCommits_delivery = 0;
+        int totCommits_orderstat = 0;
+        int totCommits_stocklev = 0;
+        int totAborts_neworder = 0;
+        int totAborts_payment = 0;
+        int totAborts_delivery = 0;
+        int totAborts_orderstat = 0;
+        int totAborts_stocklev = 0;
+
+        double latency_neworder = 0;
+        double latency_payment = 0;
+        double latency_delivery = 0;
+        double latency_orderstat = 0;
+        double latency_stocklev = 0;
+
+
         for (TpccThread tpccThread : workers){
-            totCommits += tpccThread.commits;
-            totAborts += tpccThread.aborts;
-            latency = latency==0? tpccThread.latency : (latency+tpccThread.latency)/2;
+            totCommits_neworder += tpccThread.commits_neworder;
+            totCommits_delivery += tpccThread.commits_delivery;
+            totCommits_orderstat += tpccThread.commits_orderstat;
+            totCommits_payment += tpccThread.commits_payment;
+            totCommits_stocklev += tpccThread.commits_stocklev;
+            totAborts_neworder += tpccThread.aborts_neworder;
+            totAborts_delivery += tpccThread.aborts_delivery;
+            totAborts_orderstat += tpccThread.aborts_orderstat;
+            totAborts_payment += tpccThread.aborts_payment;
+            totAborts_stocklev += tpccThread.aborts_stocklev;
+            totExpAborts += tpccThread.explicit_aborts;
+
+            latency_neworder += tpccThread.latency_neworder;
+            latency_payment += tpccThread.latency_payment;
+            latency_delivery += tpccThread.latency_delivery;
+            latency_orderstat += tpccThread.latency_orderstat;
+            latency_stocklev += tpccThread.latency_stocklev;
         }
+
+        latency_neworder /= workers.length;
+        latency_payment /= workers.length;
+        latency_delivery /= workers.length;
+        latency_orderstat /= workers.length;
+        latency_stocklev /= workers.length;
+
+        int totCommits = totCommits_delivery + totCommits_neworder + totCommits_orderstat + totCommits_payment + totCommits_stocklev;
+        int totAborts = totAborts_delivery + totAborts_neworder + totAborts_orderstat + totAborts_payment + totAborts_stocklev;
 
         System.out.println("RunTime(s) = "+ df.format(actualTestTime / 1000.0f));
         double throughput = 1000.0 * ((double) totCommits) / ((double) actualTestTime);
         System.out.println("Throughput(ops/sec) = " + throughput);
         System.out.println("Number Commits = "+totCommits);
         System.out.println("Number Aborts = "+totAborts);
+        System.out.println("Number Explicit Aborts = "+totExpAborts);
         System.out.println("Abort rate = "+Math.round((totAborts/(double)(totCommits+totAborts))*100)+"%");
-        System.out.println("Latency (ms) = "+ df.format(latency));
+        //System.out.println("Latency (ms) = "+ df.format(latency));
+
+        System.out.println(String.format("NewOrder\t%d\t%d\t%f", totCommits_neworder, totAborts_neworder, latency_neworder/1000));
+        System.out.println(String.format("Payment  \t%d\t%d\t%f", totCommits_payment, totAborts_payment, latency_payment/1000));
+        System.out.println(String.format("Delivery\t%d\t%d\t%f", totCommits_delivery, totAborts_delivery, latency_delivery/1000));
+        System.out.println(String.format("OrderStatus\t%d\t%d\t%f", totCommits_orderstat, totAborts_orderstat, latency_orderstat/1000));
+        System.out.println(String.format("StockLevel\t%d\t%d\t%f", totCommits_stocklev, totAborts_stocklev, latency_stocklev/1000));
 
         size = 0;
         for (int i = 0; i < numWares + 1; i++) {
