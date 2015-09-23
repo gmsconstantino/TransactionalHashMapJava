@@ -207,6 +207,12 @@ public class TpccEmbeded {
         double latency_orderstat = 0;
         double latency_stocklev = 0;
 
+        double read_latency_neworder = 0;
+        double read_latency_payment = 0;
+        double read_latency_delivery = 0;
+        double read_latency_orderstat = 0;
+        double read_latency_stocklev = 0;
+
 
         for (TpccThread tpccThread : workers){
             totCommits_neworder += tpccThread.commits_neworder;
@@ -226,6 +232,12 @@ public class TpccEmbeded {
             latency_delivery += tpccThread.latency_delivery;
             latency_orderstat += tpccThread.latency_orderstat;
             latency_stocklev += tpccThread.latency_stocklev;
+
+            read_latency_neworder += tpccThread.read_latency_neworder;
+            read_latency_payment += tpccThread.read_latency_payment;
+            read_latency_delivery += tpccThread.read_latency_delivery;
+            read_latency_orderstat += tpccThread.read_latency_orderstat;
+            read_latency_stocklev += tpccThread.read_latency_stocklev;
         }
 
         latency_neworder /= workers.length;
@@ -233,6 +245,12 @@ public class TpccEmbeded {
         latency_delivery /= workers.length;
         latency_orderstat /= workers.length;
         latency_stocklev /= workers.length;
+
+        read_latency_neworder /= workers.length;
+        read_latency_payment /= workers.length;
+        read_latency_delivery /= workers.length;
+        read_latency_orderstat /= workers.length;
+        read_latency_stocklev /= workers.length;
 
         int totCommits = totCommits_delivery + totCommits_neworder + totCommits_orderstat + totCommits_payment + totCommits_stocklev;
         int totAborts = totAborts_delivery + totAborts_neworder + totAborts_orderstat + totAborts_payment + totAborts_stocklev;
@@ -246,11 +264,16 @@ public class TpccEmbeded {
         System.out.println("Abort rate = "+Math.round((totAborts/(double)(totCommits+totAborts))*100)+"%");
         //System.out.println("Latency (ms) = "+ df.format(latency));
 
-        System.out.println(String.format("NewOrder\t%d\t%d\t%f", totCommits_neworder, totAborts_neworder, latency_neworder/1000));
-        System.out.println(String.format("Payment  \t%d\t%d\t%f", totCommits_payment, totAborts_payment, latency_payment/1000));
-        System.out.println(String.format("Delivery\t%d\t%d\t%f", totCommits_delivery, totAborts_delivery, latency_delivery/1000));
-        System.out.println(String.format("OrderStatus\t%d\t%d\t%f", totCommits_orderstat, totAborts_orderstat, latency_orderstat/1000));
-        System.out.println(String.format("StockLevel\t%d\t%d\t%f", totCommits_stocklev, totAborts_stocklev, latency_stocklev/1000));
+        System.out.println(String.format("NewOrder\t%d\t%d\t%f\t%f", totCommits_neworder, totAborts_neworder,
+                latency_neworder/1000, read_latency_neworder/1000));
+        System.out.println(String.format("Payment  \t%d\t%d\t%f\t%f", totCommits_payment, totAborts_payment,
+                latency_payment/1000, read_latency_payment/1000));
+        System.out.println(String.format("Delivery\t%d\t%d\t%f\t%f", totCommits_delivery, totAborts_delivery,
+                latency_delivery/1000, read_latency_delivery/1000));
+        System.out.println(String.format("OrderStatus\t%d\t%d\t%f\t%f", totCommits_orderstat, totAborts_orderstat,
+                latency_orderstat/1000, read_latency_orderstat/1000));
+        System.out.println(String.format("StockLevel\t%d\t%d\t%f\t%f", totCommits_stocklev, totAborts_stocklev,
+                latency_stocklev/1000, read_latency_stocklev/1000));
 
         size = 0;
         for (int i = 0; i < numWares + 1; i++) {
